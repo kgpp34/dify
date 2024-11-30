@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 class CffexRagModelConfig(BaseModel):
     base_url: str = None
     embedding_endpoint: str = None
-    model_endpoint: str = None
+    rag_model_endpoint: str = None
     sparse_embedding_model: str = None
     bear_token: str = None
 
@@ -234,6 +234,7 @@ class MilvusVector(BaseVector):
                 # Create Index params for the collection
                 index_params_obj = IndexParams()
                 index_params_obj.add_index(field_name=Field.VECTOR.value, **index_params)
+                index_params_obj.add_index(fields=Field.SPARSE_VECTOR.value, **index_params)
 
                 # Create the collection
                 collection_name = self._collection_name
@@ -332,7 +333,7 @@ class MilvusVectorFactory(AbstractVectorFactory):
             customConfig=CffexRagModelConfig(
                 base_url=dify_config.RAG_MODEL_INTERFACE_BASE_URL,
                 embedding_endpoint=dify_config.RAG_EMBEDDING_ENDPOINT,
-                model_endpoint=dify_config.RAG_MODEL_ENDPOINT,
+                rag_model_endpoint=dify_config.RAG_MODEL_ENDPOINT,
                 sparse_embedding_model=dify_config.RAG_DEFAULT_SPARSE_EMBEDDING,
                 bear_token=dify_config.RAG_PROXY_BEAR_TOKEN
             )
