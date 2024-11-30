@@ -15,11 +15,13 @@ class BaseVector(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def create(self, texts: list[Document], embeddings: list[list[float]], **kwargs):
+    def create(self, texts: list[Document], embeddings: list[list[float]],
+               sparse_embeddings: list[list[float]] = None, **kwargs):
         raise NotImplementedError
 
     @abstractmethod
-    def add_texts(self, documents: list[Document], embeddings: list[list[float]], **kwargs):
+    def add_texts(self, documents: list[Document], embeddings: list[list[float]],
+                  sparse_embeddings: list[list[float]] = None, **kwargs):
         raise NotImplementedError
 
     @abstractmethod

@@ -1,5 +1,8 @@
 import json
 import logging
+import numpy as np
+from scipy.sparse import csr_array, vstack
+
 from typing import Any, Optional
 
 from pydantic import BaseModel, model_validator
@@ -15,8 +18,24 @@ from core.rag.embedding.embedding_base import Embeddings
 from core.rag.models.document import Document
 from extensions.ext_redis import redis_client
 from models.dataset import Dataset
+from services.model_proxy.http_proxy import HttpProxy
 
 logger = logging.getLogger(__name__)
+
+
+class CffexRagModelConfig(BaseModel):
+    base_url: str = None
+    embedding_endpoint: str = None
+    model_endpoint: str = None
+    sparse_embedding_model: str = None
+    bear_token: str = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_config(cls, values: dict) -> dict:
+        if not values.get("base_url"):
+            raise ValueError("config RAG_MODEL_INTERFACE_BASE_URL is required")
+        return values
 
 
 class MilvusConfig(BaseModel):
@@ -48,13 +67,25 @@ class MilvusConfig(BaseModel):
         }
 
 
+def stack_sparse_embeddings(sparse_embs):
+    return vstack([sparse_emb.reshape((1,-1)) for sparse_emb in sparse_embs])
+
+
 class MilvusVector(BaseVector):
-    def __init__(self, collection_name: str, config: MilvusConfig):
+    def __init__(self, collection_name: str, config: MilvusConfig, customConfig: CffexRagModelConfig = None):
         super().__init__(collection_name)
         self._client_config = config
+        self._custom_model_config = customConfig
         self._client = self._init_client(config)
         self._consistency_level = "Session"
         self._fields = []
+
+        if self._custom_model_config.base_url is not None:
+            # Initialize the client with a base URL and optional headers
+            self.model_proxy_client = HttpProxy(base_url=self._custom_model_config.base_url,
+                                                headers={"Authorization": self._custom_model_config.bear_token})
+            # Obtain proxy model information
+            self.model_info = self.model_proxy_client.get(endpoint=self._custom_model_config.model_endpoint)
 
     def get_type(self) -> str:
         return VectorType.MILVUS
@@ -62,17 +93,24 @@ class MilvusVector(BaseVector):
     def create(self, texts: list[Document], embeddings: list[list[float]], **kwargs):
         index_params = {"metric_type": "IP", "index_type": "HNSW", "params": {"M": 8, "efConstruction": 64}}
         metadatas = [d.metadata for d in texts]
-        self.create_collection(embeddings, metadatas, index_params)
-        self.add_texts(texts, embeddings)
+        # call internal model proxy to obtain sparse vector
+        sparse_embeddings = self._generate_sparse_vector(texts)
+        self.create_collection(embeddings, sparse_embeddings, metadatas, index_params)
+        self.add_texts(texts, embeddings, sparse_embeddings)
 
-    def add_texts(self, documents: list[Document], embeddings: list[list[float]], **kwargs):
+    def add_texts(self, documents: list[Document], embeddings: list[list[float]],
+                  sparse_embeddings: list[list[float]] = None, **kwargs):
         insert_dict_list = []
         for i in range(len(documents)):
             insert_dict = {
                 Field.CONTENT_KEY.value: documents[i].page_content,
+                # ADD DENSE_VECTOR
                 Field.VECTOR.value: embeddings[i],
                 Field.METADATA_KEY.value: documents[i].metadata,
             }
+            if sparse_embeddings:
+                # ADD SPARSE_VECTOR
+                insert_dict[Field.SPARSE_VECTOR.value] = sparse_embeddings[i]
             insert_dict_list.append(insert_dict)
         # Total insert count
         total_count = len(insert_dict_list)
@@ -80,7 +118,7 @@ class MilvusVector(BaseVector):
         pks: list[str] = []
 
         for i in range(0, total_count, 1000):
-            batch_insert_list = insert_dict_list[i : i + 1000]
+            batch_insert_list = insert_dict_list[i: i + 1000]
             # Insert into the collection.
             try:
                 ids = self._client.insert(collection_name=self._collection_name, data=batch_insert_list)
@@ -129,9 +167,14 @@ class MilvusVector(BaseVector):
         return len(result) > 0
 
     def search_by_vector(self, query_vector: list[float], **kwargs: Any) -> list[Document]:
-        # Set search parameters.
+        if "query" in kwargs and kwargs.get("vec_type") == "sparse":
+            query_embedding = self._get_sparse_embeddings([kwargs.get("query")])
+            query_vector = query_embedding[0]
+
+            # Set search parameters.
         results = self._client.search(
             collection_name=self._collection_name,
+            anns_field=Field.SPARSE_VECTOR.value if kwargs.get("vec_type") == "sparse" else Field.VECTOR.value,
             data=[query_vector],
             limit=kwargs.get("top_k", 4),
             output_fields=[Field.CONTENT_KEY.value, Field.METADATA_KEY.value],
@@ -152,7 +195,8 @@ class MilvusVector(BaseVector):
         return []
 
     def create_collection(
-        self, embeddings: list, metadatas: Optional[list[dict]] = None, index_params: Optional[dict] = None
+            self, embeddings: list, sparse_embeddings: list, metadatas: Optional[list[dict]] = None,
+            index_params: Optional[dict] = None
     ):
         lock_name = "vector_indexing_lock_{}".format(self._collection_name)
         with redis_client.lock(lock_name, timeout=20):
@@ -176,7 +220,9 @@ class MilvusVector(BaseVector):
                 fields.append(FieldSchema(Field.PRIMARY_KEY.value, DataType.INT64, is_primary=True, auto_id=True))
                 # Create the vector field, supports binary or float vectors
                 fields.append(FieldSchema(Field.VECTOR.value, infer_dtype_bydata(embeddings[0]), dim=dim))
-
+                # Create the sparse vector field
+                if sparse_embeddings and len(sparse_embeddings) > 0:
+                    fields.append(FieldSchema(Field.SPARSE_VECTOR.value, DataType.SPARSE_FLOAT_VECTOR))
                 # Create the schema for the collection
                 schema = CollectionSchema(fields)
 
@@ -203,6 +249,66 @@ class MilvusVector(BaseVector):
         client = MilvusClient(uri=config.uri, user=config.user, password=config.password, db_name=config.database)
         return client
 
+    def _generate_sparse_vector(self, documents: list[Document]) -> list[list[float]]:
+        """
+        call internal rag model interface to obtain sparse vector
+        Args:
+            text: raw document
+
+        Returns:
+
+        """
+        """
+            调用内部 RAG 模型接口以获取稀疏向量
+            Args:
+                documents: 原始文档列表
+
+            Returns:
+                稀疏向量列表
+            """
+        if self.model_proxy_client is not None:
+            embedding_texts = [document.page_content for document in documents]
+            sparse_embeddings = self._get_sparse_embeddings(embedding_texts)
+            return sparse_embeddings
+
+    def _get_sparse_embeddings(self, texts: list[str]) -> list[list[float]]:
+        """
+        获取稀疏嵌入的公共方法
+        Args:
+            texts: 需要获取稀疏嵌入的文本列表
+
+        Returns:
+            稀疏嵌入列表
+        """
+        query = {
+            "sentences": texts,
+            "model_name": self._custom_model_config.sparse_embedding_model
+        }
+        # embedding
+        embedding_result = self.model_proxy_client.post(endpoint=self._custom_model_config.embedding_endpoint,
+                                                        data=query)
+
+        sparse_embeddings = []
+
+        sparse_dim = 250002
+        if self.model_info:
+            for model in self.model_info["embedding_model"]:
+                if model["id"] == self._custom_model_config.sparse_embedding_model:
+                    sparse_dim = model["sparse_dim"]
+
+        for emb in embedding_result["data"]:
+            sparsest = []
+            for sparse_vec in emb["embedding"]["sparse"]:
+
+                indices = [int(k) for k in sparse_vec]
+                values = np.array(list(sparse_vec.values()), dtype=np.float64)
+                row_indices = [0] * len(indices)
+                csr = csr_array((values, (row_indices, indices)), shape=(1, sparse_dim))
+                sparsest.append(csr)
+            sparse_embeddings.append(stack_sparse_embeddings(sparsest).tocsr())
+
+        return sparse_embeddings
+
 
 class MilvusVectorFactory(AbstractVectorFactory):
     def init_vector(self, dataset: Dataset, attributes: list, embeddings: Embeddings) -> MilvusVector:
@@ -223,4 +329,11 @@ class MilvusVectorFactory(AbstractVectorFactory):
                 password=dify_config.MILVUS_PASSWORD,
                 database=dify_config.MILVUS_DATABASE,
             ),
+            customConfig=CffexRagModelConfig(
+                base_url=dify_config.RAG_MODEL_INTERFACE_BASE_URL,
+                embedding_endpoint=dify_config.RAG_EMBEDDING_ENDPOINT,
+                model_endpoint=dify_config.RAG_MODEL_ENDPOINT,
+                sparse_embedding_model=dify_config.RAG_DEFAULT_SPARSE_EMBEDDING,
+                bear_token=dify_config.RAG_PROXY_BEAR_TOKEN
+            )
         )

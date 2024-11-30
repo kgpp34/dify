@@ -147,7 +147,9 @@ class Vector:
 
     def create(self, texts: Optional[list] = None, **kwargs):
         if texts:
+            # embedding
             embeddings = self._embeddings.embed_documents([document.page_content for document in texts])
+            self._vector_processor.get_type()
             self._vector_processor.create(texts=texts, embeddings=embeddings, **kwargs)
 
     def add_texts(self, documents: list[Document], **kwargs):
@@ -155,6 +157,7 @@ class Vector:
             documents = self._filter_duplicate_texts(documents)
 
         embeddings = self._embeddings.embed_documents([document.page_content for document in documents])
+        # todo: Support Milvus Sparse Vector CRUD & Full Text Search Design
         self._vector_processor.create(texts=documents, embeddings=embeddings, **kwargs)
 
     def text_exists(self, id: str) -> bool:
@@ -167,7 +170,20 @@ class Vector:
         self._vector_processor.delete_by_metadata_field(key, value)
 
     def search_by_vector(self, query: str, **kwargs: Any) -> list[Document]:
+        """
+
+        Args:
+            query:
+            **kwargs: {
+                vec_type: default is dense, optional: dense, sparse
+            }
+
+        Returns:
+
+        """
+        # todo: query embedding need adjust by different model
         query_vector = self._embeddings.embed_query(query)
+        kwargs["query"] = query
         return self._vector_processor.search_by_vector(query_vector, **kwargs)
 
     def search_by_full_text(self, query: str, **kwargs: Any) -> list[Document]:

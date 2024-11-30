@@ -74,6 +74,7 @@ class RetrievalService:
                     "all_documents": all_documents,
                     "retrieval_method": retrieval_method,
                     "exceptions": exceptions,
+                    "vec_type": "dense"
                 },
             )
             threads.append(embedding_thread)
@@ -95,7 +96,25 @@ class RetrievalService:
                     "exceptions": exceptions,
                 },
             )
+            # start sparse embedding thread to search by sparse vector
+            sparse_embedding_thread = threading.Thread(
+                target=RetrievalService.embedding_search,
+                kwargs={
+                    "flask_app": current_app._get_current_object(),
+                    "dataset_id": dataset_id,
+                    "query": query,
+                    "top_k": top_k,
+                    "score_threshold": score_threshold,
+                    "reranking_model": reranking_model,
+                    "all_documents": all_documents,
+                    "retrieval_method": retrieval_method,
+                    "exceptions": exceptions,
+                    "vec_type": "sparse"
+                },
+            )
+            threads.append(sparse_embedding_thread)
             threads.append(full_text_index_thread)
+            sparse_embedding_thread.start()
             full_text_index_thread.start()
 
         for thread in threads:
@@ -151,6 +170,7 @@ class RetrievalService:
         all_documents: list,
         retrieval_method: str,
         exceptions: list,
+        vec_type: str
     ):
         with flask_app.app_context():
             try:
@@ -164,6 +184,7 @@ class RetrievalService:
                     top_k=top_k,
                     score_threshold=score_threshold,
                     filter={"group_id": [dataset.id]},
+                    vec_type=vec_type
                 )
 
                 if documents:
