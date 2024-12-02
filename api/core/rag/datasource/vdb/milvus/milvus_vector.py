@@ -1,7 +1,7 @@
 import json
 import logging
 import numpy as np
-from scipy.sparse import csr_array, vstack
+from scipy.sparse import csr_array, vstack, csr, isspmatrix_csr
 
 from typing import Any, Optional
 
@@ -95,11 +95,12 @@ class MilvusVector(BaseVector):
         metadatas = [d.metadata for d in texts]
         # call internal model proxy to obtain sparse vector
         sparse_embeddings = self._generate_sparse_vector(texts)
+
         self.create_collection(embeddings, sparse_embeddings, metadatas, index_params)
         self.add_texts(texts, embeddings, sparse_embeddings)
 
     def add_texts(self, documents: list[Document], embeddings: list[list[float]],
-                  sparse_embeddings: list[list[float]] = None, **kwargs):
+                  sparse_embeddings=None, **kwargs):
         insert_dict_list = []
         for i in range(len(documents)):
             insert_dict = {
@@ -110,7 +111,7 @@ class MilvusVector(BaseVector):
             }
             if sparse_embeddings:
                 # ADD SPARSE_VECTOR
-                insert_dict[Field.SPARSE_VECTOR.value] = sparse_embeddings[i]
+                insert_dict[Field.SPARSE_VECTOR.value] = csr.getrow(i).toarray().flatten()
             insert_dict_list.append(insert_dict)
         # Total insert count
         total_count = len(insert_dict_list)
@@ -272,6 +273,15 @@ class MilvusVector(BaseVector):
         if self.model_proxy_client is not None:
             embedding_texts = [document.page_content for document in documents]
             sparse_embeddings = self._get_sparse_embeddings(embedding_texts)
+
+            # 检查 sparse_embeddings 是否是一个 CSR 稀疏矩阵
+            if isspmatrix_csr(sparse_embeddings):
+                print("sparse_embeddings 是一个 CSR 稀疏矩阵")
+            else:
+                print("sparse_embeddings 不是一个 CSR 稀疏矩阵")
+
+            # 打印 sparse_embeddings 的维度
+            print(f"sparse_embeddings: {sparse_embeddings}")
             return sparse_embeddings
 
     def _get_sparse_embeddings(self, texts: list[str]) -> list[list[float]]:
