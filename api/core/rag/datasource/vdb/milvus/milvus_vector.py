@@ -110,12 +110,7 @@ class MilvusVector(BaseVector):
                 Field.METADATA_KEY.value: documents[i].metadata,
             }
             if sparse_embeddings:
-                # ADD SPARSE_VECTOR
-                sparse_vector = {}
-                rows, cols = sparse_embeddings[i].nonzero()
-                for row, col in zip(rows, cols):
-                    sparse_vector[int(col)] = float(sparse_embeddings[i][row, col])
-                insert_dict[Field.SPARSE_VECTOR.value] = sparse_vector
+                insert_dict[Field.SPARSE_VECTOR.value] = sparse_embeddings[i].toarray().ravel()
             insert_dict_list.append(insert_dict)
         # Total insert count
         total_count = len(insert_dict_list)
