@@ -85,7 +85,7 @@ class MilvusVector(BaseVector):
             self.model_proxy_client = HttpProxy(base_url=self._custom_model_config.base_url,
                                                 headers={"Authorization": self._custom_model_config.bear_token})
             # Obtain proxy model information
-            self.model_info = self.model_proxy_client.get(endpoint=self._custom_model_config.model_endpoint)
+            self.model_info = self.model_proxy_client.get(endpoint=self._custom_model_config.rag_model_endpoint)
 
     def get_type(self) -> str:
         return VectorType.MILVUS
