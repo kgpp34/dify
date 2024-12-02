@@ -297,12 +297,12 @@ class MilvusVector(BaseVector):
                 if model["id"] == self._custom_model_config.sparse_embedding_model:
                     sparse_dim = model["sparse_dim"]
 
-        for emb in embedding_result["data"]:
+        for emb in embedding_result["response"]["data"]:
             sparsest = []
             for sparse_vec in emb["embedding"]["sparse"]:
 
                 indices = [int(k) for k in sparse_vec]
-                values = np.array(list(sparse_vec.values()), dtype=np.float64)
+                values = np.array(list(sparse_vec), dtype=np.float64)
                 row_indices = [0] * len(indices)
                 csr = csr_array((values, (row_indices, indices)), shape=(1, sparse_dim))
                 sparsest.append(csr)

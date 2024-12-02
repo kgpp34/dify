@@ -53,7 +53,7 @@ class HttpProxy:
         :param params: Optional query parameters to include in the request.
         :return: The response data as a dictionary or string.
         """
-        return self._make_request('GET', endpoint, params=params)
+        return self._make_request("GET", endpoint, params=params)
 
     def post(self, endpoint: str, data: Optional[Dict] = None) -> Union[Dict, str]:
         """
@@ -63,4 +63,4 @@ class HttpProxy:
         :param data: Optional data to send in the request body.
         :return: The response data as a dictionary or string.
         """
-        return self._make_request('POST', endpoint, data=data)
+        return self._make_request("POST", endpoint, data=data)
