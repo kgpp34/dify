@@ -100,7 +100,7 @@ class MilvusVector(BaseVector):
         self.add_texts(texts, embeddings, sparse_embeddings)
 
     def add_texts(self, documents: list[Document], embeddings: list[list[float]],
-                  sparse_embeddings=None, **kwargs):
+                  sparse_embeddings, **kwargs):
         insert_dict_list = []
         for i in range(len(documents)):
             insert_dict = {
@@ -111,7 +111,11 @@ class MilvusVector(BaseVector):
             }
             if sparse_embeddings:
                 # ADD SPARSE_VECTOR
-                insert_dict[Field.SPARSE_VECTOR.value] = csr.getrow(i).toarray().flatten()
+                sparse_vector = {}
+                rows, cols = sparse_embeddings[i].nonzero()
+                for row, col in zip(rows, cols):
+                    sparse_vector[int(col)] = float(sparse_embeddings[i][row, col])
+                insert_dict[Field.SPARSE_VECTOR.value] = sparse_vector
             insert_dict_list.append(insert_dict)
         # Total insert count
         total_count = len(insert_dict_list)
@@ -170,7 +174,7 @@ class MilvusVector(BaseVector):
     def search_by_vector(self, query_vector: list[float], **kwargs: Any) -> list[Document]:
         if "query" in kwargs and kwargs.get("vec_type") == "sparse":
             query_embedding = self._get_sparse_embeddings([kwargs.get("query")])
-            query_vector = query_embedding[0]
+            query_vector = query_embedding[0]._getrow(0)
 
             # Set search parameters.
         results = self._client.search(
@@ -274,17 +278,11 @@ class MilvusVector(BaseVector):
             embedding_texts = [document.page_content for document in documents]
             sparse_embeddings = self._get_sparse_embeddings(embedding_texts)
 
-            # 检查 sparse_embeddings 是否是一个 CSR 稀疏矩阵
-            if isspmatrix_csr(sparse_embeddings):
-                print("sparse_embeddings 是一个 CSR 稀疏矩阵")
-            else:
-                print("sparse_embeddings 不是一个 CSR 稀疏矩阵")
-
             # 打印 sparse_embeddings 的维度
             print(f"sparse_embeddings: {sparse_embeddings}")
             return sparse_embeddings
 
-    def _get_sparse_embeddings(self, texts: list[str]) -> list[list[float]]:
+    def _get_sparse_embeddings(self, texts: list[str]):
         """
         获取稀疏嵌入的公共方法
         Args:
