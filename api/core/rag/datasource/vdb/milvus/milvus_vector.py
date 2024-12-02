@@ -100,7 +100,7 @@ class MilvusVector(BaseVector):
         self.add_texts(texts, embeddings, sparse_embeddings)
 
     def add_texts(self, documents: list[Document], embeddings: list[list[float]],
-                  sparse_embeddings, **kwargs):
+                  sparse_embeddings=None, **kwargs):
         insert_dict_list = []
         for i in range(len(documents)):
             insert_dict = {
