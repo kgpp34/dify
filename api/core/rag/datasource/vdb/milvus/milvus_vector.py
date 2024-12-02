@@ -234,7 +234,9 @@ class MilvusVector(BaseVector):
                 # Create Index params for the collection
                 index_params_obj = IndexParams()
                 index_params_obj.add_index(field_name=Field.VECTOR.value, **index_params)
-                index_params_obj.add_index(fields=Field.SPARSE_VECTOR.value, **index_params)
+                
+                sparse_index = {"index_type": "SPARSE_INVERTED_INDEX", "metric_type": "IP"}
+                index_params_obj.add_index(field_name=Field.SPARSE_VECTOR.value, **sparse_index)
 
                 # Create the collection
                 collection_name = self._collection_name
