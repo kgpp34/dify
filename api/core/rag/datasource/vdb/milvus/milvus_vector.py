@@ -197,7 +197,7 @@ class MilvusVector(BaseVector):
                 # Create the vector field, supports binary or float vectors
                 fields.append(FieldSchema(Field.VECTOR.value, infer_dtype_bydata(embeddings[0]), dim=dim))
                 # Create the sparse vector field, supports full text search
-                fields.append(FieldSchema(Field.VECTOR.value, DataType.SPARSE_FLOAT_VECTOR))
+                fields.append(FieldSchema(Field.SPARSE_VECTOR.value, DataType.SPARSE_FLOAT_VECTOR))
                 # Create the schema for the collection
                 schema = CollectionSchema(fields)
 
