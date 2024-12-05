@@ -148,8 +148,28 @@ class MilvusVector(BaseVector):
         return docs
 
     def search_by_full_text(self, query: str, **kwargs: Any) -> list[Document]:
-        # milvus/zilliz doesn't support bm25 search
-        return []
+        search_params = {
+            'params': {'drop_ratio_search': 0.6},
+        }
+        results = self._client.search(
+            collection_name=self._collection_name,
+            data=[query],
+            anns_field=Field.SPARSE_VECTOR.value,
+            limit=kwargs.get("top_k", 4),
+            search_params=search_params,
+            output_fields=[Field.CONTENT_KEY.value, Field.METADATA_KEY.value],
+        )
+
+        # Organize results.
+        docs = []
+        for result in results[0]:
+            metadata = result["entity"].get(Field.METADATA_KEY.value)
+            metadata["score"] = result["distance"]
+            score_threshold = float(kwargs.get("score_threshold") or 0.0)
+            if result["distance"] > score_threshold:
+                doc = Document(page_content=result["entity"].get(Field.CONTENT_KEY.value), metadata=metadata)
+                docs.append(doc)
+        return docs
 
     def create_collection(
         self, embeddings: list, metadatas: Optional[list[dict]] = None, index_params: Optional[dict] = None
@@ -161,7 +181,7 @@ class MilvusVector(BaseVector):
                 return
             # Grab the existing collection if it exists
             if not self._client.has_collection(self._collection_name):
-                from pymilvus import CollectionSchema, DataType, FieldSchema
+                from pymilvus import CollectionSchema, DataType, FieldSchema, Function, FunctionType
                 from pymilvus.orm.types import infer_dtype_bydata
 
                 # Determine embedding dim
@@ -176,9 +196,20 @@ class MilvusVector(BaseVector):
                 fields.append(FieldSchema(Field.PRIMARY_KEY.value, DataType.INT64, is_primary=True, auto_id=True))
                 # Create the vector field, supports binary or float vectors
                 fields.append(FieldSchema(Field.VECTOR.value, infer_dtype_bydata(embeddings[0]), dim=dim))
-
+                # Create the sparse vector field, supports full text search
+                fields.append(FieldSchema(Field.VECTOR.value, DataType.SPARSE_FLOAT_VECTOR))
                 # Create the schema for the collection
                 schema = CollectionSchema(fields)
+
+                bm25_function = Function(
+                    name="text_bm25_emb",  # Function name
+                    input_field_names=[Field.CONTENT_KEY.value],  # Name of the VARCHAR field containing raw text data
+                    output_field_names=[Field.SPARSE_VECTOR.value],
+                    # Name of the SPARSE_FLOAT_VECTOR field reserved to store generated embeddings
+                    function_type=FunctionType.BM25,
+                )
+
+                schema.add_function(bm25_function)
 
                 for x in schema.fields:
                     self._fields.append(x.name)
@@ -189,6 +220,12 @@ class MilvusVector(BaseVector):
                 index_params_obj = IndexParams()
                 index_params_obj.add_index(field_name=Field.VECTOR.value, **index_params)
 
+                index_params_obj.add_index(
+                    field_name=Field.SPARSE_VECTOR.value,
+                    index_type="AUTOINDEX",
+                    metric_type="BM25"
+                )
+
                 # Create the collection
                 collection_name = self._collection_name
                 self._client.create_collection(
@@ -197,6 +234,7 @@ class MilvusVector(BaseVector):
                     index_params=index_params_obj,
                     consistency_level=self._consistency_level,
                 )
+
             redis_client.set(collection_exist_cache_key, 1, ex=3600)
 
     def _init_client(self, config) -> MilvusClient:
