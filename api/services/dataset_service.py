@@ -1220,7 +1220,7 @@ class DocumentService:
         if args["process_rule"]["mode"] not in DatasetProcessRule.MODES:
             raise ValueError("Process rule mode is invalid")
 
-        if args["process_rule"]["mode"] == "automatic":
+        if args["process_rule"]["mode"] == "automatic" or args["process_rule"]["mode"] == "confluence_wiki":
             args["process_rule"]["rules"] = {}
         else:
             if "rules" not in args["process_rule"] or not args["process_rule"]["rules"]:
