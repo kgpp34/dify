@@ -157,14 +157,14 @@ class MarkdownTextSplitter(EnhanceRecursiveCharacterTextSplitter):
             header_start = match.start()
 
             if last_index < header_start:
-                chunks.append(text[last_index:header_start].strip())
+                chunks.append(self._clean_text(text[last_index:header_start].strip()))  # Clean the chunk
 
-            chunks.append(header)  # Include the header itself
+            chunks.append(self._clean_text(header))  # Clean the header itself
             last_index = match.end()
 
         # Add any remaining text after the last header
         if last_index < len(text):
-            chunks.append(text[last_index:].strip())
+            chunks.append(self._clean_text(text[last_index:].strip()))
 
         return chunks
 
@@ -182,12 +182,26 @@ class MarkdownTextSplitter(EnhanceRecursiveCharacterTextSplitter):
                     chunks = text.split(separator)
                     for chunk in chunks:
                         if chunk.strip():  # Ignore empty chunks
-                            final_chunks.append(chunk.strip())
+                            final_chunks.append(self._clean_text(chunk.strip()))  # Clean each chunk
                     break
             else:
                 # If no separators found, split by lines
-                final_chunks.extend(text.split("\n"))
+                final_chunks.extend(self._clean_text(line.strip()) for line in text.split("\n"))
         else:
-            final_chunks.append(text)
+            final_chunks.append(self._clean_text(text))
 
         return final_chunks
+
+    def _clean_text(self, text: str) -> str:
+        """
+        Clean text by removing unnecessary spaces, empty lines, and special characters.
+        """
+        # Remove extra spaces, tabs, and newlines
+        text = re.sub(r'\s+', ' ', text)  # Collapse multiple spaces/tabs into a single space
+        text = re.sub(r'\n+', '\n', text)  # Collapse multiple newlines into a single newline
+        text = text.strip()  # Remove leading/trailing whitespace
+
+        # Optional: Remove specific unwanted characters (like extra Markdown formatting)
+        text = re.sub(r'^\s*(#.*)', r'\1', text)  # Ensure headers are properly formatted (e.g., no leading spaces)
+
+        return text
