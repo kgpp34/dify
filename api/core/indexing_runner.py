@@ -428,7 +428,7 @@ class IndexingRunner:
             character_splitter = EnhanceRecursiveCharacterTextSplitter.from_encoder(
                 chunk_size=DatasetProcessRule.AUTOMATIC_RULES["segmentation"]["max_tokens"],
                 chunk_overlap=DatasetProcessRule.AUTOMATIC_RULES["segmentation"]["chunk_overlap"],
-                separator=[
+                separators=[
                     # Headers
                     "\n# ", "\n## ", "\n### ", "\n#### ", "\n##### ", "\n###### ",
                     # Common markdown block separators
