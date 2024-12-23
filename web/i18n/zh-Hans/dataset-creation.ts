@@ -99,6 +99,11 @@ const translation = {
     autoDescription: '自动设置分段规则与预处理规则，如果不了解这些参数建议选择此项',
     custom: '自定义',
     customDescription: '自定义分段规则、分段长度以及预处理规则等参数',
+    /**
+     * feature: add confluence wiki mode
+     */
+    confluenceWiki: '标准Markdown分段',
+    confluenceWikiDescription: '适用于内网Confluence文档的分段，文档标准：http://agile.cffex.net/confluence/pages/viewpage.action?pageId=89024932',
     separator: '分段标识符',
     separatorTip: '分隔符是用于分隔文本的字符。\\n\\n 和 \\n 是常用于分隔段落和行的分隔符。用逗号连接分隔符（\\n\\n,\\n），当段落超过最大块长度时，会按行进行分割。你也可以使用自定义的特殊分隔符（例如 ***）。',
     separatorPlaceholder: '\\n\\n 用于分段；\\n 用于分行',

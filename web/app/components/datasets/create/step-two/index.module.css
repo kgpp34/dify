@@ -140,6 +140,10 @@
   background-image: url(../assets/sliders-02.svg);
 }
 
+.typeIcon.confluence {
+  background-image: url(../assets/confluence.svg)
+}
+
 .typeIcon.qualified {
   background-color: #FFF6ED;
   background-image: url(../assets/star-07.svg);

@@ -77,6 +77,7 @@ type StepTwoProps = {
 enum SegmentType {
   AUTO = 'automatic',
   CUSTOM = 'custom',
+  CONFLUENCE_WIKI = 'confluence_wiki'
 }
 enum IndexingType {
   QUALIFIED = 'high_quality',
@@ -146,9 +147,10 @@ const StepTwo = ({
   const [showPreview, { setTrue: setShowPreview, setFalse: hidePreview }] = useBoolean()
   const [customFileIndexingEstimate, setCustomFileIndexingEstimate] = useState<FileIndexingEstimateResponse | null>(null)
   const [automaticFileIndexingEstimate, setAutomaticFileIndexingEstimate] = useState<FileIndexingEstimateResponse | null>(null)
+  const [markdownWikiFileIndexingEstimate, setMarkdownWikiFileIndexingEstimate] = useState<FileIndexingEstimateResponse | null>(null)
 
   const fileIndexingEstimate = (() => {
-    return segmentationType === SegmentType.AUTO ? automaticFileIndexingEstimate : customFileIndexingEstimate
+    return segmentationType === SegmentType.AUTO ? automaticFileIndexingEstimate : segmentationType === SegmentType.CUSTOM ? customFileIndexingEstimate : markdownWikiFileIndexingEstimate
   })()
   const [isCreating, setIsCreating] = useState(false)
 
@@ -208,8 +210,10 @@ const StepTwo = ({
     const res = await didFetchFileIndexingEstimate(getFileIndexingEstimateParams(docForm, language)!)
     if (segmentationType === SegmentType.CUSTOM)
       setCustomFileIndexingEstimate(res)
-    else
+    else if (segmentationType === SegmentType.AUTO)
       setAutomaticFileIndexingEstimate(res)
+    else 
+      setMarkdownWikiFileIndexingEstimate(res)
   }
 
   const confirmChangeCustomConfig = () => {
@@ -240,7 +244,7 @@ const StepTwo = ({
         },
       }
       processRule.rules = ruleObj
-    }
+    } 
     return processRule
   }
 
@@ -500,8 +504,10 @@ const StepTwo = ({
     setIsLanguageSelectDisabled(true)
     if (segmentationType === SegmentType.AUTO)
       setAutomaticFileIndexingEstimate(null)
-    else
+    else if (segmentationType === SegmentType.CUSTOM)
       setCustomFileIndexingEstimate(null)
+    else 
+      setMarkdownWikiFileIndexingEstimate(null)
     try {
       await fetchFileIndexingEstimate(DocForm.QA, language)
     }
@@ -572,9 +578,15 @@ const StepTwo = ({
       fetchFileIndexingEstimate()
       setPreviewSwitched(false)
     }
-    else {
+    else if (segmentationType === SegmentType.CUSTOM) {
       hidePreview()
       setCustomFileIndexingEstimate(null)
+      setPreviewSwitched(false)
+    } else {
+      // confluence wiki mode
+      setMarkdownWikiFileIndexingEstimate(null)
+      !isMobile && setShowPreview()
+      fetchFileIndexingEstimate()
       setPreviewSwitched(false)
     }
   }, [segmentationType, indexType])
@@ -626,6 +638,21 @@ const StepTwo = ({
               <div className={s.typeHeader}>
                 <div className={s.title}>{t('datasetCreation.stepTwo.auto')}</div>
                 <div className={s.tip}>{t('datasetCreation.stepTwo.autoDescription')}</div>
+              </div>
+            </div>
+            <div
+              className={cn(
+                s.radioItem,
+                s.segmentationItem,
+                segmentationType === SegmentType.CONFLUENCE_WIKI && s.active,
+              )}
+              onClick={() => setSegmentationType(SegmentType.CONFLUENCE_WIKI)}
+            >
+              <span className={cn(s.typeIcon, s.confluence)} />
+              <span className={cn(s.radio)} />
+              <div className={s.typeHeader}>
+                <div className={s.title}>{t('datasetCreation.stepTwo.confluenceWiki')}</div>
+                <div className={s.tip}>{t('datasetCreation.stepTwo.confluenceWikiDescription')}</div>
               </div>
             </div>
             <div

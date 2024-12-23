@@ -424,6 +424,19 @@ class IndexingRunner:
                 separators=["\n\n", "。", ". ", " ", ""],
                 embedding_model_instance=embedding_model_instance,
             )
+        elif processing_rule.mode == "confluence_wiki":
+            character_splitter = EnhanceRecursiveCharacterTextSplitter.from_encoder(
+                chunk_size=DatasetProcessRule.AUTOMATIC_RULES["segmentation"]["max_tokens"],
+                chunk_overlap=DatasetProcessRule.AUTOMATIC_RULES["segmentation"]["chunk_overlap"],
+                separator=[
+                    # Headers
+                    "\n# ", "\n## ", "\n### ", "\n#### ", "\n##### ", "\n###### ",
+                    # Common markdown block separators
+                    "\n\n",  # Double line break
+                    "。", ". ", " ", ""
+                ],
+                embedding_model_instance=embedding_model_instance,
+            )
         else:
             # Automatic segmentation
             character_splitter = EnhanceRecursiveCharacterTextSplitter.from_encoder(
