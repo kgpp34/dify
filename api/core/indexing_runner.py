@@ -618,7 +618,7 @@ class IndexingRunner:
         """
         Clean the document text according to the processing rules.
         """
-        if processing_rule.mode == "automatic":
+        if processing_rule.mode == "automatic" or processing_rule.mode == "confluence_wiki":
             rules = DatasetProcessRule.AUTOMATIC_RULES
         else:
             rules = json.loads(processing_rule.rules) if processing_rule.rules else {}
