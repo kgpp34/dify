@@ -27,6 +27,7 @@ from core.rag.models.document import Document
 from core.rag.splitter.fixed_text_splitter import (
     EnhanceRecursiveCharacterTextSplitter,
     FixedRecursiveCharacterTextSplitter,
+    MarkdownTextSplitter,
 )
 from core.rag.splitter.text_splitter import TextSplitter
 from core.tools.utils.text_processing_utils import remove_leading_symbols
@@ -425,7 +426,7 @@ class IndexingRunner:
                 embedding_model_instance=embedding_model_instance,
             )
         elif processing_rule.mode == "confluence_wiki":
-            character_splitter = EnhanceRecursiveCharacterTextSplitter.from_encoder(
+            character_splitter = MarkdownTextSplitter.from_encoder(
                 chunk_size=DatasetProcessRule.AUTOMATIC_RULES["segmentation"]["max_tokens"],
                 chunk_overlap=DatasetProcessRule.AUTOMATIC_RULES["segmentation"]["chunk_overlap"],
                 separators=[
@@ -433,6 +434,7 @@ class IndexingRunner:
                     "\n# ", "\n## ", "\n### ", "\n#### ", "\n##### ", "\n###### ",
                     # Common markdown block separators
                     "\n\n",  # Double line break
+                    "\n",
                     "。", ". ", " ", ""
                 ],
                 embedding_model_instance=embedding_model_instance,

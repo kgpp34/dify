@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Optional
 
 from core.model_manager import ModelInstance
@@ -24,11 +25,11 @@ class EnhanceRecursiveCharacterTextSplitter(RecursiveCharacterTextSplitter):
 
     @classmethod
     def from_encoder(
-        cls: type[TS],
-        embedding_model_instance: Optional[ModelInstance],
-        allowed_special: Union[Literal[all], Set[str]] = set(),
-        disallowed_special: Union[Literal[all], Collection[str]] = "all",
-        **kwargs: Any,
+            cls: type[TS],
+            embedding_model_instance: Optional[ModelInstance],
+            allowed_special: Union[Literal[all], Set[str]] = set(),
+            disallowed_special: Union[Literal[all], Collection[str]] = "all",
+            **kwargs: Any,
     ):
         def _token_encoder(text: str) -> int:
             if not text:
@@ -109,4 +110,84 @@ class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter)
         if _good_splits:
             merged_text = self._merge_splits(_good_splits, separator, _good_splits_lengths)
             final_chunks.extend(merged_text)
+        return final_chunks
+
+
+class MarkdownTextSplitter(EnhanceRecursiveCharacterTextSplitter):
+    def __init__(self, fixed_separator: str = "\n\n", separators: Optional[list[str]] = None, **kwargs: Any):
+        """
+        Create a new MarkdownTextSplitter, inheriting from EnhanceRecursiveCharacterTextSplitter.
+        Args:
+            fixed_separator: The fixed separator to use for splitting. Defaults to "\n\n" (paragraph break).
+            separators: List of other separators to try for splitting (e.g., newlines, spaces).
+        """
+        super().__init__(**kwargs)
+        self._fixed_separator = fixed_separator
+        self._separators = separators or ["\n\n", "\n", " ", ""]
+
+    def split_text(self, text: str) -> list[str]:
+        """
+        First split the text based on headings, then recursively split each chunk based on length.
+        """
+        # Step 1: Split by Markdown headers (titles)
+        chunks = self._split_by_headings(text)
+
+        # Step 2: Recursively split the chunks by length
+        final_chunks = []
+        for chunk in chunks:
+            if self._length_function(chunk) > self._chunk_size:
+                final_chunks.extend(self._recursive_split(chunk))
+            else:
+                final_chunks.append(chunk)
+
+        return final_chunks
+
+    def _split_by_headings(self, text: str) -> list[str]:
+        """
+        Split the text by Markdown headers (e.g., #, ##, ###).
+        """
+        # Match Markdown headers (e.g., # Heading, ## Subheading)
+        header_pattern = re.compile(r"^(#{1,6})\s+(.*)", re.MULTILINE)
+        chunks = []
+        last_index = 0
+
+        # Iterate over the text and split it at each header
+        for match in header_pattern.finditer(text):
+            header = match.group(0)
+            header_start = match.start()
+
+            if last_index < header_start:
+                chunks.append(text[last_index:header_start].strip())
+
+            chunks.append(header)  # Include the header itself
+            last_index = match.end()
+
+        # Add any remaining text after the last header
+        if last_index < len(text):
+            chunks.append(text[last_index:].strip())
+
+        return chunks
+
+    def _recursive_split(self, text: str) -> list[str]:
+        """
+        Recursively split longer text chunks, based on Markdown elements like paragraphs.
+        """
+        final_chunks = []
+
+        # If the text is too long, split it further
+        if self._length_function(text) > self._chunk_size:
+            # Split based on available separators (e.g., paragraphs or newlines)
+            for separator in self._separators:
+                if separator in text:
+                    chunks = text.split(separator)
+                    for chunk in chunks:
+                        if chunk.strip():  # Ignore empty chunks
+                            final_chunks.append(chunk.strip())
+                    break
+            else:
+                # If no separators found, split by lines
+                final_chunks.extend(text.split("\n"))
+        else:
+            final_chunks.append(text)
+
         return final_chunks
