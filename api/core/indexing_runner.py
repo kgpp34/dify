@@ -611,6 +611,8 @@ class IndexingRunner:
             for document in documents:
                 if document.page_content is None or not document.page_content.strip():
                     continue
+
+                print(f"document.page_content\n")
                 doc_id = str(uuid.uuid4())
                 hash = helper.generate_text_hash(document.page_content)
 

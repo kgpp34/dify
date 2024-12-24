@@ -22,6 +22,11 @@ class ParagraphIndexProcessor(BaseIndexProcessor):
             extract_setting=extract_setting, is_automatic=kwargs.get("process_rule_mode") == "automatic"
         )
 
+        print("==================extract=======================")
+        for text_doc in text_docs:
+            print(f"{text_doc.page_content}")
+        print("================================================")
+
         return text_docs
 
     def transform(self, documents: list[Document], **kwargs) -> list[Document]:
