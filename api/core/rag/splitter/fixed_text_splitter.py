@@ -167,15 +167,8 @@ class MarkdownTextSplitter(EnhanceRecursiveCharacterTextSplitter):
 
     def split_text(self, text: str):
         # chunks = self._spliter.split_text(text=text)
-        print("正在进行markdown spliter切分")
         document = Document(text=text)
         markdown_nodes = self._md_node_parser.get_nodes_from_documents(documents=[document])
-
-        # 打印转换后的 Document 对象
-        for doc in markdown_nodes:
-            print(f"Document Text: {doc.text}")
-            print(f"Document Metadata: {doc.metadata}")
-            print("<->" * 40)
 
         simple_nodes = convert_nodes_to_documents(markdown_nodes)
         nodes = self._simple_chunk_parser.get_nodes_from_documents(simple_nodes)
