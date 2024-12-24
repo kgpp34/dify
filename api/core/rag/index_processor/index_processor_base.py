@@ -10,7 +10,7 @@ from core.rag.models.document import Document
 from core.rag.splitter.fixed_text_splitter import (
     EnhanceRecursiveCharacterTextSplitter,
     FixedRecursiveCharacterTextSplitter,
-    MarkdownTextSplitter
+    MarkdownTextSplitter,
 )
 from core.rag.splitter.text_splitter import TextSplitter
 from models.dataset import Dataset, DatasetProcessRule
@@ -84,11 +84,19 @@ class BaseIndexProcessor(ABC):
                 chunk_overlap=DatasetProcessRule.AUTOMATIC_RULES["segmentation"]["chunk_overlap"],
                 separators=[
                     # Headers
-                    "\n# ", "\n## ", "\n### ", "\n#### ", "\n##### ", "\n###### ",
+                    "\n# ",
+                    "\n## ",
+                    "\n### ",
+                    "\n#### ",
+                    "\n##### ",
+                    "\n###### ",
                     # Common markdown block separators
                     "\n\n",  # Double line break
                     "\n",
-                    "。", ". ", " ", ""
+                    "。",
+                    ". ",
+                    " ",
+                    "",
                 ],
                 embedding_model_instance=embedding_model_instance,
             )

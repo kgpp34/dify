@@ -431,11 +431,19 @@ class IndexingRunner:
                 chunk_overlap=DatasetProcessRule.AUTOMATIC_RULES["segmentation"]["chunk_overlap"],
                 separators=[
                     # Headers
-                    "\n# ", "\n## ", "\n### ", "\n#### ", "\n##### ", "\n###### ",
+                    "\n# ",
+                    "\n## ",
+                    "\n### ",
+                    "\n#### ",
+                    "\n##### ",
+                    "\n###### ",
                     # Common markdown block separators
                     "\n\n",  # Double line break
                     "\n",
-                    "。", ". ", " ", ""
+                    "。",
+                    ". ",
+                    " ",
+                    "",
                 ],
                 embedding_model_instance=embedding_model_instance,
             )

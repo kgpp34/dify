@@ -25,11 +25,11 @@ class EnhanceRecursiveCharacterTextSplitter(RecursiveCharacterTextSplitter):
 
     @classmethod
     def from_encoder(
-            cls: type[TS],
-            embedding_model_instance: Optional[ModelInstance],
-            allowed_special: Union[Literal[all], Set[str]] = set(),
-            disallowed_special: Union[Literal[all], Collection[str]] = "all",
-            **kwargs: Any,
+        cls: type[TS],
+        embedding_model_instance: Optional[ModelInstance],
+        allowed_special: Union[Literal[all], Set[str]] = set(),
+        disallowed_special: Union[Literal[all], Collection[str]] = "all",
+        **kwargs: Any,
     ):
         def _token_encoder(text: str) -> int:
             if not text:
@@ -125,83 +125,159 @@ class MarkdownTextSplitter(EnhanceRecursiveCharacterTextSplitter):
         self._fixed_separator = fixed_separator
         self._separators = separators or ["\n\n", "\n", " ", ""]
 
-    def split_text(self, text: str) -> list[str]:
-        """
-        First split the text based on headings, then recursively split each chunk based on length.
-        """
-        # Step 1: Split by Markdown headers (titles)
-        chunks = self._split_by_headings(text)
+        self._h1_pattern = re.compile(r"^#\s+([^\n]+)", re.MULTILINE)
+        self._header_pattern = re.compile(r"^(#{1,6})\s+([^\n]+)", re.MULTILINE)
 
-        # Step 2: Recursively split the chunks by length
+    def split_text(self, text: str) -> list[str]:
+        """Split Markdown text into chunks based on header hierarchy"""
+        # 1. 首先按一级标题分割
+        h1_sections = self._split_by_h1(text)
+
         final_chunks = []
-        for chunk in chunks:
-            if self._length_function(chunk) > self._chunk_size:
-                final_chunks.extend(self._recursive_split(chunk))
-            else:
-                final_chunks.append(chunk)
+        for title, content in h1_sections:
+            if not content.strip():
+                continue
+
+            # 2. 智能处理每个一级标题下的内容
+            section_chunks = self._process_section(title, content)
+            final_chunks.extend(section_chunks)
+
+        # 3. 清理所有chunk中的特殊字符
+        final_chunks = [self._clean_chunk(chunk) for chunk in final_chunks]
 
         return final_chunks
 
-    def _split_by_headings(self, text: str) -> list[str]:
-        """
-        Split the text by Markdown headers (e.g., #, ##, ###).
-        """
-        # Match Markdown headers (e.g., # Heading, ## Subheading)
-        header_pattern = re.compile(r"^(#{1,6})\s+(.*)", re.MULTILINE)
+    def _split_by_h1(self, text: str) -> list[tuple[str, str]]:
+        """Split text by h1 headers"""
+        sections = []
+        matches = list(self._h1_pattern.finditer(text))
+
+        for i in range(len(matches)):
+            start = matches[i].start()
+            end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+            title = matches[i].group(1)
+            content = text[start:end]
+            sections.append((title.strip(), content))
+
+        return sections
+
+    def _process_section(self, h1_title: str, content: str) -> list[str]:
+        """Process content under each h1 header intelligently"""
+        # 获取所有子标题及其内容
+        subsections = self._get_subsections(content)
+        if not subsections:
+            return [self._create_chunk(h1_title, "", content)]
+
         chunks = []
-        last_index = 0
+        current_chunk = []
+        current_size = 0
+        current_header = None
 
-        # Iterate over the text and split it at each header
-        for match in header_pattern.finditer(text):
-            header = match.group(0)
-            header_start = match.start()
+        for header_level, header_text, section_content in subsections:
+            section_size = self._length_function(section_content)
 
-            if last_index < header_start:
-                chunks.append(self._clean_text(text[last_index:header_start].strip()))  # Clean the chunk
+            # 是否应该开始新的chunk
+            should_start_new_chunk = (
+                current_size + section_size > self._chunk_size * 1.2  # 超过阈值
+                or header_level <= 3  # 较高层级的标题强制分割
+            )
 
-            chunks.append(self._clean_text(header))  # Clean the header itself
-            last_index = match.end()
+            if should_start_new_chunk and current_chunk:
+                # 合并当前chunk并添加到结果中
+                chunk_content = self._merge_subsections(current_chunk)
+                chunks.append(self._create_chunk(h1_title, current_header, chunk_content))
+                current_chunk = []
+                current_size = 0
 
-        # Add any remaining text after the last header
-        if last_index < len(text):
-            chunks.append(self._clean_text(text[last_index:].strip()))
+            # 如果单个章节超过chunk_size，需要进一步分割
+            if section_size > self._chunk_size:
+                split_chunks = self._split_long_section(h1_title, header_text, header_level, section_content)
+                chunks.extend(split_chunks)
+            else:
+                if not current_chunk:
+                    current_header = f"{'#' * header_level} {header_text}"
+                current_chunk.append((header_level, header_text, section_content))
+                current_size += section_size
+
+        # 处理最后的chunk
+        if current_chunk:
+            chunk_content = self._merge_subsections(current_chunk)
+            chunks.append(self._create_chunk(h1_title, current_header, chunk_content))
 
         return chunks
 
-    def _recursive_split(self, text: str) -> list[str]:
-        """
-        Recursively split longer text chunks, based on Markdown elements like paragraphs.
-        """
-        final_chunks = []
+    def _get_subsections(self, content: str) -> list[tuple[int, str, str]]:
+        """Extract all subsections with their headers"""
+        matches = list(self._header_pattern.finditer(content))
+        if not matches:
+            return []
 
-        # If the text is too long, split it further
-        if self._length_function(text) > self._chunk_size:
-            # Split based on available separators (e.g., paragraphs or newlines)
-            for separator in self._separators:
-                if separator in text:
-                    chunks = text.split(separator)
-                    for chunk in chunks:
-                        if chunk.strip():  # Ignore empty chunks
-                            final_chunks.append(self._clean_text(chunk.strip()))  # Clean each chunk
-                    break
+        subsections = []
+        for i in range(len(matches)):
+            start = matches[i].start()
+            end = matches[i + 1].start() if i + 1 < len(matches) else len(content)
+            level = len(matches[i].group(1))
+            header = matches[i].group(2)
+            section_content = content[start:end]
+            subsections.append((level, header, section_content))
+
+        return subsections
+
+    def _split_long_section(self, h1_title: str, header_text: str, header_level: int, content: str) -> list[str]:
+        """Split a long section into multiple chunks"""
+        # 按段落分割
+        paragraphs = content.split("\n\n")
+        chunks = []
+        current_paragraphs = []
+        current_size = 0
+
+        for para in paragraphs:
+            para_size = self._length_function(para)
+            if current_size + para_size > self._chunk_size:
+                if current_paragraphs:
+                    chunk_content = " ".join(current_paragraphs)
+                    chunks.append(
+                        self._create_chunk(
+                            h1_title, f"{'#' * header_level} {header_text}", chunk_content, f"Part {len(chunks) + 1}"
+                        )
+                    )
+                current_paragraphs = [para]
+                current_size = para_size
             else:
-                # If no separators found, split by lines
-                final_chunks.extend(self._clean_text(line.strip()) for line in text.split("\n"))
-        else:
-            final_chunks.append(self._clean_text(text))
+                current_paragraphs.append(para)
+                current_size += para_size
 
-        return final_chunks
+        if current_paragraphs:
+            chunk_content = " ".join(current_paragraphs)
+            chunks.append(
+                self._create_chunk(
+                    h1_title, f"{'#' * header_level} {header_text}", chunk_content, f"Part {len(chunks) + 1}"
+                )
+            )
 
-    def _clean_text(self, text: str) -> str:
-        """
-        Clean text by removing unnecessary spaces, empty lines, and special characters.
-        """
-        # Remove extra spaces, tabs, and newlines
-        text = re.sub(r'\s+', ' ', text)  # Collapse multiple spaces/tabs into a single space
-        text = re.sub(r'\n+', '\n', text)  # Collapse multiple newlines into a single newline
-        text = text.strip()  # Remove leading/trailing whitespace
+        # 添加总部分数
+        chunks = [chunk.replace("Part ", f"Part {i + 1} of {len(chunks)} - ") for i, chunk in enumerate(chunks)]
 
-        # Optional: Remove specific unwanted characters (like extra Markdown formatting)
-        text = re.sub(r'^\s*(#.*)', r'\1', text)  # Ensure headers are properly formatted (e.g., no leading spaces)
+        return chunks
 
-        return text
+    def _merge_subsections(self, subsections: list[tuple[int, str, str]]) -> str:
+        """Merge subsections into a single chunk"""
+        merged = []
+        for level, header, content in subsections:
+            merged.append(f"{'#' * level} {header}")
+            merged.append(content.strip())
+        return " ".join(merged)
+
+    def _create_chunk(self, h1_title: str, current_header: str, content: str, part_info: str = "") -> str:
+        """Create a chunk with proper header information"""
+        if part_info:
+            return f"# {h1_title} {current_header} {part_info} {content}"
+        return f"# {h1_title} {current_header} {content}"
+
+    def _clean_chunk(self, text: str) -> str:
+        """Clean special characters from chunk"""
+        # 将多个空格替换为单个空格
+        text = re.sub(r"\s+", " ", text)
+        # 确保标题标记后有空格
+        text = re.sub(r"(#{1,6})([^\s])", r"\1 \2", text)
+        return text.strip()
