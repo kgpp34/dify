@@ -100,7 +100,7 @@ zhipuai = "~2.1.5"
 # Related transparent dependencies with pinned version
 # required by main implementations
 ############################################################
-psycopg2 = "^2.9.10"
+#psycopg2 = "^2.9.10"
 llama-index = "^0.12.8"
 [tool.poetry.group.indirect.dependencies]
 kaleido = "0.2.1"
