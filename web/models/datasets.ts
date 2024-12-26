@@ -120,7 +120,7 @@ export type FileItem = {
 }
 
 export type ConfluencePage = {
-  pageId: number
+  pageId: string
   space: string
   title: string
   children: FileItem[]

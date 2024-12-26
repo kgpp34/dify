@@ -180,7 +180,7 @@ const StepOne = ({
                   }}
                 >
                   <span className={cn(s.datasetIcon, s.confluence)} />
-                  {t('datasetCreation.SourceType.confluence')}
+                  {t('datasetCreation.stepOne.SourceType.confluence')}
                 </div>
                 <div
                   className={cn(
@@ -198,7 +198,7 @@ const StepOne = ({
                   }}
                 >
                   <span className={cn(s.datasetIcon, s.notion)} />
-                  {t('datasetCreation.SourceType.notion')}
+                  {t('datasetCreation.stepOne.dataSourceType.web')}
                 </div>
                 <div
                   className={cn(
