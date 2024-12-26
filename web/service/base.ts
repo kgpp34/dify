@@ -22,6 +22,7 @@ const TIME_OUT = 100000
 
 const ContentType = {
   json: 'application/json',
+  plain: 'text/plain',
   stream: 'text/event-stream',
   audio: 'audio/mpeg',
   form: 'application/x-www-form-urlencoded; charset=UTF-8',

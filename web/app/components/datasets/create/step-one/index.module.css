@@ -78,6 +78,9 @@
 .datasetIcon.web {
   background-image: url(../assets/web.svg);
 }
+.datasetIcon.confluence {
+  background-image: url(../assets/confluence.svg);
+}
 
 .submitButton {
   width: 120px;

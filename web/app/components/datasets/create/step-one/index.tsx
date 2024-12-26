@@ -1,15 +1,16 @@
 'use client'
-import React, { useMemo, useState } from 'react'
+import React, { use, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import FilePreview from '../file-preview'
 import FileUploader from '../file-uploader'
+import ConfluencePageUploader from '../confluence-page-uploader/confluence-uploader'
 import NotionPagePreview from '../notion-page-preview'
 import EmptyDatasetCreationModal from '../empty-dataset-creation-modal'
 import Website from '../website'
 import WebsitePreview from '../website/preview'
 import s from './index.module.css'
 import cn from '@/utils/classnames'
-import type { CrawlOptions, CrawlResultItem, FileItem } from '@/models/datasets'
+import type { CrawlOptions, CrawlResultItem, FileItem, ConfluencePage } from '@/models/datasets'
 import type { DataSourceProvider, NotionPage } from '@/models/common'
 import { DataSourceType } from '@/models/datasets'
 import Button from '@/app/components/base/button'
@@ -80,6 +81,7 @@ const StepOne = ({
   const [currentFile, setCurrentFile] = useState<File | undefined>()
   const [currentNotionPage, setCurrentNotionPage] = useState<NotionPage | undefined>()
   const [currentWebsite, setCurrentWebsite] = useState<CrawlResultItem | undefined>()
+  const [currentConfluence, setConfluence] = useState<ConfluencePage | undefined>()
   const { t } = useTranslation()
 
   const modalShowHandle = () => setShowModal(true)
@@ -90,6 +92,13 @@ const StepOne = ({
   }
   const hideFilePreview = () => {
     setCurrentFile(undefined)
+  }
+
+  const updateConfluencePage = (confluence: ConfluencePage) => {
+    setConfluence(confluence)
+  }
+  const hideConfluencePreview = () => {
+    setConfluence(undefined)
   }
 
   const updateCurrentPage = (page: NotionPage) => {
@@ -147,10 +156,29 @@ const StepOne = ({
                     changeType(DataSourceType.FILE)
                     hideFilePreview()
                     hideNotionPagePreview()
+                    hideConfluencePreview()
                   }}
                 >
                   <span className={cn(s.datasetIcon)} />
                   {t('datasetCreation.stepOne.dataSourceType.file')}
+                </div>
+                <div
+                  className={cn(
+                    s.dataSourceItem,
+                    dataSourceType === DataSourceType.CONFLUENCE && s.active,
+                    dataSourceTypeDisable && dataSourceType !== DataSourceType.CONFLUENCE && s.disabled,
+                  )}
+                  onClick={() => {
+                    if (dataSourceTypeDisable)
+                      return
+                    changeType(DataSourceType.CONFLUENCE)
+                    hideFilePreview()
+                    hideNotionPagePreview()
+                    hideWebsitePreview()
+                  }}
+                >
+                  <span className={cn(s.datasetIcon, s.confluence)} />
+                  {t('datasetCreation.SourceType.notion')}
                 </div>
                 <div
                   className={cn(
@@ -164,10 +192,11 @@ const StepOne = ({
                     changeType(DataSourceType.NOTION)
                     hideFilePreview()
                     hideNotionPagePreview()
+                    hideConfluencePreview()
                   }}
                 >
                   <span className={cn(s.datasetIcon, s.notion)} />
-                  {t('datasetCreation.stepOne.dataSourceType.notion')}
+                  {t('datasetCreation.SourceType.notion')}
                 </div>
                 <div
                   className={cn(
@@ -200,6 +229,24 @@ const StepOne = ({
                 </div>
               )}
               <Button disabled={nextDisabled} className={s.submitButton} variant='primary' onClick={onStepChange}>{t('datasetCreation.stepOne.button')}</Button>
+            </>
+          )}
+          {dataSourceType === DataSourceType.CONFLUENCE && (
+            <>
+                <ConfluencePageUploader
+                  onFileUpload={(fileItem) => {
+                    // 将新文件添加到文件列表中
+                    updateFileList([...files, fileItem]);
+                  }}
+                />
+                {isShowVectorSpaceFull && (
+                  <div className='max-w-[640px] mb-4'>
+                    <VectorSpaceFull />
+                  </div>
+                )}
+                <Button disabled={isShowVectorSpaceFull || !files.length} className={s.submitButton} variant='primary' onClick={onStepChange}>
+                  {t('datasetCreation.stepOne.button')}
+                </Button>
             </>
           )}
           {dataSourceType === DataSourceType.NOTION && (

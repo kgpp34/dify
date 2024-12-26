@@ -6,6 +6,7 @@ export enum DataSourceType {
   FILE = 'upload_file',
   NOTION = 'notion_import',
   WEB = 'website_crawl',
+  CONFLUENCE = "confluence"
 }
 
 export type DatasetPermission = 'only_me' | 'all_team_members' | 'partial_members'
@@ -116,6 +117,13 @@ export type FileItem = {
   fileID: string
   file: CustomFile
   progress: number
+}
+
+export type ConfluencePage = {
+  pageId: number
+  space: string
+  url: string
+  title: string
 }
 
 export type DataSetListResponse = {

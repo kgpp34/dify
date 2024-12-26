@@ -16,6 +16,7 @@ const translation = {
     pagePreview: '頁面預覽',
     dataSourceType: {
       file: '匯入已有文字',
+      confluence: '同步自 Confluence Wiki',
       notion: '同步自 Notion 內容',
       web: '同步自 Web 站點',
     },
