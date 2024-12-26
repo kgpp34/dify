@@ -122,8 +122,8 @@ export type FileItem = {
 export type ConfluencePage = {
   pageId: number
   space: string
-  url: string
   title: string
+  children: FileItem[]
 }
 
 export type DataSetListResponse = {

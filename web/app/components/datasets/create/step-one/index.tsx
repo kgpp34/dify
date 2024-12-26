@@ -3,7 +3,7 @@ import React, { use, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import FilePreview from '../file-preview'
 import FileUploader from '../file-uploader'
-import ConfluencePageUploader from '../confluence-page-uploader/confluence-uploader'
+import ConfluencePageUploader from '../confluence-page-uploader'
 import NotionPagePreview from '../notion-page-preview'
 import EmptyDatasetCreationModal from '../empty-dataset-creation-modal'
 import Website from '../website'
@@ -82,6 +82,8 @@ const StepOne = ({
   const [currentNotionPage, setCurrentNotionPage] = useState<NotionPage | undefined>()
   const [currentWebsite, setCurrentWebsite] = useState<CrawlResultItem | undefined>()
   const [currentConfluence, setConfluence] = useState<ConfluencePage | undefined>()
+  const [confluencePageList, setConfluencePageList] = useState<ConfluencePage[]>([]);
+
   const { t } = useTranslation()
 
   const modalShowHandle = () => setShowModal(true)
@@ -178,7 +180,7 @@ const StepOne = ({
                   }}
                 >
                   <span className={cn(s.datasetIcon, s.confluence)} />
-                  {t('datasetCreation.SourceType.notion')}
+                  {t('datasetCreation.SourceType.confluence')}
                 </div>
                 <div
                   className={cn(
@@ -234,19 +236,11 @@ const StepOne = ({
           {dataSourceType === DataSourceType.CONFLUENCE && (
             <>
                 <ConfluencePageUploader
-                  onFileUpload={(fileItem) => {
-                    // 将新文件添加到文件列表中
-                    updateFileList([...files, fileItem]);
+                  confluencePageList={confluencePageList}
+                  onPageListChange={(pages) => {
+                    setConfluencePageList(pages); // 更新页面列表
                   }}
                 />
-                {isShowVectorSpaceFull && (
-                  <div className='max-w-[640px] mb-4'>
-                    <VectorSpaceFull />
-                  </div>
-                )}
-                <Button disabled={isShowVectorSpaceFull || !files.length} className={s.submitButton} variant='primary' onClick={onStepChange}>
-                  {t('datasetCreation.stepOne.button')}
-                </Button>
             </>
           )}
           {dataSourceType === DataSourceType.NOTION && (
