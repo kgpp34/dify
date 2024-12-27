@@ -170,42 +170,42 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
   };
 
   return (
-    <div className="confluencePageUploader">
+    <div className={s.confluencePageUploader}>
       <input
         type="text"
         placeholder="Enter Confluence Page URL"
-        className="w-full p-2 border border-gray-300 rounded-md"
+        className={s.input}
         onChange={(e) => handleUrlChange(e.target.value)}
         disabled={loading}
       />
-      {loading && <p>Loading...</p>}
+      {loading && <p className={s.loading}>Loading...</p>}
 
       {confluencePageList.map((page, pageIndex) => (
-        <div key={page.pageId} className="pageContainer">
-          <h3 className="pageTitle">{page.title || `Page ${page.pageId}`}</h3>
-          <div className="fileList">
+        <div key={page.pageId} className={s.pageContainer}>
+          <h3 className={s.pageTitle}>{page.title || `Page ${page.pageId}`}</h3>
+          <div className={s.fileList}>
             {page.children.map((fileItem, fileIndex) => (
               <div
                 key={`${fileItem.fileID}-${fileIndex}`}
                 className={cn(
-                  'file',
-                  fileItem.progress < 100 && 'uploading',
+                  s.file,
+                  fileItem.progress < 100 && s.uploading,
                 )}
               >
                 {fileItem.progress < 100 && (
-                  <div className="progressbar" style={{ width: `${fileItem.progress}%` }} />
+                  <div className={s.progressbar} style={{ width: `${fileItem.progress}%` }} />
                 )}
-                <div className="fileInfo">
-                  <div className={cn('fileIcon', getFileType(fileItem.file))} />
-                  <div className="filename">{fileItem.file.name}</div>
-                  <div className="size">{getFileSize(fileItem.file.size)}</div>
+                <div className={s.fileInfo}>
+                  <div className={cn(s.fileIcon, s[getFileType(fileItem.file)])} />
+                  <div className={s.filename}>{fileItem.file.name}</div>
+                  <div className={s.size}>{getFileSize(fileItem.file.size)}</div>
                 </div>
-                <div className="actionWrapper">
+                <div className={s.actionWrapper}>
                   {fileItem.progress < 100 && fileItem.progress >= 0 && (
-                    <div className="percent">{`${fileItem.progress}%`}</div>
+                    <div className={s.percent}>{`${fileItem.progress}%`}</div>
                   )}
                   {fileItem.progress === -2 && (
-                    <div className="error">Upload Failed</div>
+                    <div className={s.error}>Upload Failed</div>
                   )}
                 </div>
               </div>

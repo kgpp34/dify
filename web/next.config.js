@@ -38,6 +38,11 @@ const nextConfig = {
   async redirects() {
     return [
       {
+        source: '/confluence2md/page/:path*',
+        destination: 'http://confluence2markdown.rag.com/confluence2md/page/:path*',
+        permanent: false
+      },
+      {
         source: '/',
         destination: '/apps',
         permanent: false,
