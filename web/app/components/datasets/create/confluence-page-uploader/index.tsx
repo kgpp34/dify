@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useContext } from 'use-context-selector'
+import { v4 as uuid4 } from 'uuid'
 import s from './index.module.css' // 引入样式文件
 import type { ConfluencePage, FileItem } from '@/models/datasets'
 import { upload } from '@/service/base'
@@ -146,7 +147,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
       const file = new File([blob], `confluence-page-${pageId}.txt`, { type: 'text/plain' })
 
       const fileItem: FileItem = {
-        fileID: `confluence-page-${pageId}`,
+        fileID: uuid4(),
         file,
         progress: 0, // 初始进度为0
       }
