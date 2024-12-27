@@ -1,5 +1,5 @@
 'use client'
-import React, { use, useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import FilePreview from '../file-preview'
 import FileUploader from '../file-uploader'
@@ -10,7 +10,7 @@ import Website from '../website'
 import WebsitePreview from '../website/preview'
 import s from './index.module.css'
 import cn from '@/utils/classnames'
-import type { CrawlOptions, CrawlResultItem, FileItem, ConfluencePage } from '@/models/datasets'
+import type { ConfluencePage, CrawlOptions, CrawlResultItem, FileItem } from '@/models/datasets'
 import type { DataSourceProvider, NotionPage } from '@/models/common'
 import { DataSourceType } from '@/models/datasets'
 import Button from '@/app/components/base/button'
@@ -82,7 +82,7 @@ const StepOne = ({
   const [currentNotionPage, setCurrentNotionPage] = useState<NotionPage | undefined>()
   const [currentWebsite, setCurrentWebsite] = useState<CrawlResultItem | undefined>()
   const [currentConfluence, setConfluence] = useState<ConfluencePage | undefined>()
-  const [confluencePageList, setConfluencePageList] = useState<ConfluencePage[]>([]);
+  const [confluencePageList, setConfluencePageList] = useState<ConfluencePage[]>([])
 
   const { t } = useTranslation()
 
@@ -235,12 +235,18 @@ const StepOne = ({
           )}
           {dataSourceType === DataSourceType.CONFLUENCE && (
             <>
-                <ConfluencePageUploader
-                  confluencePageList={confluencePageList}
-                  onPageListChange={(pages) => {
-                    setConfluencePageList(pages); // 更新页面列表
-                  }}
-                />
+              <ConfluencePageUploader
+                confluencePageList={confluencePageList}
+                onPageListChange={(pages) => {
+                  setConfluencePageList(pages) // 更新页面列表
+                }}
+              />
+              {isShowVectorSpaceFull && (
+                <div className='max-w-[640px] mb-4'>
+                  <VectorSpaceFull />
+                </div>
+              )}
+              <Button disabled={!confluencePageList.length} className={s.submitButton} variant='primary' onClick={onStepChange}>{t('datasetCreation.stepOne.button')}</Button>
             </>
           )}
           {dataSourceType === DataSourceType.NOTION && (
