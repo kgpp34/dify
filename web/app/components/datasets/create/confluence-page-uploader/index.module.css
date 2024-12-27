@@ -2,31 +2,20 @@
     @apply mb-6;
   }
   
-  .confluencePageUploader .title {
-    @apply mb-2;
-    font-weight: 500;
-    font-size: 16px;
-    line-height: 24px;
-    color: #344054;
+  .inputContainer {
+    @apply relative mb-4;
   }
   
-  .confluencePageUploader .tip {
-    font-weight: 400;
-    font-size: 12px;
-    line-height: 18px;
-    color: #667085;
+  .input {
+    @apply w-full p-2 border border-gray-300 rounded-md;
   }
   
-  .pageContainer {
-    @apply mb-6;
+  .loadingSpinner {
+    @apply absolute right-2 top-2 w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin;
   }
   
-  .pageTitle {
-    @apply mb-2;
-    font-weight: 500;
-    font-size: 16px;
-    line-height: 24px;
-    color: #344054;
+  .errorMessage {
+    @apply text-red-500 text-sm mb-4;
   }
   
   .fileList {
@@ -46,6 +35,11 @@
     cursor: pointer;
   }
   
+  .file.uploading {
+    background: #FCFCFD;
+    border: 0.5px solid #EAECF0;
+  }
+  
   .progressbar {
     position: absolute;
     top: 0;
@@ -54,22 +48,12 @@
     background-color: #F2F4F7;
   }
   
-  .file.uploading,
-  .file.uploading:hover {
-    background: #FCFCFD;
-    border: 0.5px solid #EAECF0;
-  }
-  
-  .file.active {
-    background: #F5F8FF;
-    border: 1px solid #D1E0FF;
-    box-shadow: 0px 1px 2px rgba(16, 24, 40, 0.05);
-  }
-  
-  .file:hover {
-    background: #F5F8FF;
-    border: 1px solid #D1E0FF;
-    box-shadow: 0px 4px 8px -2px rgba(16, 24, 40, 0.1), 0px 2px 4px -2px rgba(16, 24, 40, 0.06);
+  .fileInfo {
+    @apply grow flex items-center;
+    z-index: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   
   .fileIcon {
@@ -117,14 +101,6 @@
     background-image: url(../assets/json.svg);
   }
   
-  .fileInfo {
-    @apply grow flex items-center;
-    z-index: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  
   .filename {
     font-weight: 500;
     font-size: 13px;
@@ -145,21 +121,14 @@
     z-index: 1;
   }
   
-  .actionWrapper .percent {
+  .percent {
     font-weight: 400;
     font-size: 13px;
     line-height: 18px;
     color: #344054;
   }
   
-  .actionWrapper .error {
-    font-weight: 400;
-    font-size: 13px;
-    line-height: 18px;
-    color: #D92D20;
-  }
-  
-  .actionWrapper .remove {
+  .remove {
     display: none;
     width: 24px;
     height: 24px;
@@ -168,6 +137,6 @@
     cursor: pointer;
   }
   
-  .file:hover .actionWrapper .remove {
+  .file:hover .remove {
     display: block;
   }
