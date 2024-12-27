@@ -129,18 +129,12 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
     }
 
     const pageId = pageIdMatch[1]
-    const conversionServer = process.env.CONFLUENCE_TO_MARKDOWN_SERVER
-
-    if (!conversionServer) {
-      notify({ type: 'error', message: 'Confluence to Markdown conversion server URL is not set.' })
-      return
-    }
 
     setLoading(true)
     setError(null)
 
     try {
-      const response = await fetch(`${conversionServer}/confluence2md/page/${pageId}`)
+      const response = await fetch(`/confluence2md/page/${pageId}`)
       if (!response.ok)
         throw new Error('Failed to convert Confluence page to Markdown')
 
