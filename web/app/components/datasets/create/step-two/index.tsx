@@ -16,7 +16,7 @@ import s from './index.module.css'
 import unescape from './unescape'
 import escape from './escape'
 import cn from '@/utils/classnames'
-import type { CrawlOptions, CrawlResultItem, CreateDocumentReq, CustomFile, FileIndexingEstimateResponse, FullDocumentDetail, IndexingEstimateParams, NotionInfo, PreProcessingRule, ProcessRule, Rules, createDocumentResponse } from '@/models/datasets'
+import type { ConfluencePage, CrawlOptions, CrawlResultItem, CreateDocumentReq, CustomFile, FileIndexingEstimateResponse, FullDocumentDetail, IndexingEstimateParams, NotionInfo, PreProcessingRule, ProcessRule, Rules, createDocumentResponse } from '@/models/datasets'
 import {
   createDocument,
   createFirstDocument,
@@ -64,6 +64,7 @@ type StepTwoProps = {
   files: CustomFile[]
   notionPages?: NotionPage[]
   websitePages?: CrawlResultItem[]
+  confluencePages?: ConfluencePage[]
   crawlOptions?: CrawlOptions
   websiteCrawlProvider?: DataSourceProvider
   websiteCrawlJobId?: string
@@ -77,7 +78,7 @@ type StepTwoProps = {
 enum SegmentType {
   AUTO = 'automatic',
   CUSTOM = 'custom',
-  CONFLUENCE_WIKI = 'confluence_wiki'
+  CONFLUENCE_WIKI = 'confluence_wiki',
 }
 enum IndexingType {
   QUALIFIED = 'high_quality',
@@ -97,6 +98,7 @@ const StepTwo = ({
   files,
   notionPages = [],
   websitePages = [],
+  confluencePages = [],
   crawlOptions,
   websiteCrawlProvider = DataSourceProvider.fireCrawl,
   websiteCrawlJobId = '',
@@ -212,7 +214,7 @@ const StepTwo = ({
       setCustomFileIndexingEstimate(res)
     else if (segmentationType === SegmentType.AUTO)
       setAutomaticFileIndexingEstimate(res)
-    else 
+    else
       setMarkdownWikiFileIndexingEstimate(res)
   }
 
@@ -244,7 +246,7 @@ const StepTwo = ({
         },
       }
       processRule.rules = ruleObj
-    } 
+    }
     return processRule
   }
 
@@ -315,6 +317,19 @@ const StepTwo = ({
         info_list: {
           data_source_type: dataSourceType,
           website_info_list: getWebsiteInfo(),
+        },
+        indexing_technique: getIndexing_technique() as string,
+        process_rule: getProcessRule(),
+        doc_form: docForm,
+        doc_language: language || docLanguage,
+        dataset_id: datasetId as string,
+      }
+    }
+    if (dataSourceType === DataSourceType.CONFLUENCE) {
+      return {
+        info_list: {
+          data_source_type: DataSourceType.FILE,
+          file_info_list: { file_ids: confluencePages.flatMap(page => page.children.map(child => child.fileID)) },
         },
         indexing_technique: getIndexing_technique() as string,
         process_rule: getProcessRule(),
@@ -506,7 +521,7 @@ const StepTwo = ({
       setAutomaticFileIndexingEstimate(null)
     else if (segmentationType === SegmentType.CUSTOM)
       setCustomFileIndexingEstimate(null)
-    else 
+    else
       setMarkdownWikiFileIndexingEstimate(null)
     try {
       await fetchFileIndexingEstimate(DocForm.QA, language)
@@ -582,7 +597,8 @@ const StepTwo = ({
       hidePreview()
       setCustomFileIndexingEstimate(null)
       setPreviewSwitched(false)
-    } else {
+    }
+    else {
       // confluence wiki mode
       setMarkdownWikiFileIndexingEstimate(null)
       !isMobile && setShowPreview()

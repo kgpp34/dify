@@ -6,7 +6,7 @@ export enum DataSourceType {
   FILE = 'upload_file',
   NOTION = 'notion_import',
   WEB = 'website_crawl',
-  CONFLUENCE = "confluence"
+  CONFLUENCE = 'confluence_wiki',
 }
 
 export type DatasetPermission = 'only_me' | 'all_team_members' | 'partial_members'

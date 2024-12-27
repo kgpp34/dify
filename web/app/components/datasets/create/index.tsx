@@ -8,7 +8,7 @@ import StepOne from './step-one'
 import StepTwo from './step-two'
 import StepThree from './step-three'
 import { DataSourceType } from '@/models/datasets'
-import type { CrawlOptions, CrawlResultItem, DataSet, FileItem, createDocumentResponse } from '@/models/datasets'
+import type { ConfluencePage, CrawlOptions, CrawlResultItem, DataSet, FileItem, createDocumentResponse } from '@/models/datasets'
 import { fetchDataSource } from '@/service/common'
 import { fetchDatasetDetail } from '@/service/datasets'
 import { DataSourceProvider, type NotionPage } from '@/models/common'
@@ -48,6 +48,11 @@ const DatasetUpdateForm = ({ datasetId }: DatasetUpdateFormProps) => {
 
   const [websitePages, setWebsitePages] = useState<CrawlResultItem[]>([])
   const [crawlOptions, setCrawlOptions] = useState<CrawlOptions>(DEFAULT_CRAWL_OPTIONS)
+
+  const [confluencePages, setConfluencePages] = useState<ConfluencePage[]>([]) // 新增：管理 Confluence 页面
+  const updateConfluencePages = (value: ConfluencePage[]) => {
+    setConfluencePages(value)
+  }
 
   const updateFileList = (preparedFiles: FileItem[]) => {
     setFiles(preparedFiles)
@@ -136,6 +141,8 @@ const DatasetUpdateForm = ({ datasetId }: DatasetUpdateFormProps) => {
             updateFileList={updateFileList}
             notionPages={notionPages}
             updateNotionPages={updateNotionPages}
+            confluencePages={confluencePages}
+            updateConfluencePages={updateConfluencePages} // 传递给 StepOne
             onStepChange={nextStep}
             websitePages={websitePages}
             updateWebsitePages={setWebsitePages}
@@ -156,6 +163,7 @@ const DatasetUpdateForm = ({ datasetId }: DatasetUpdateFormProps) => {
           websitePages={websitePages}
           websiteCrawlProvider={websiteCrawlProvider}
           websiteCrawlJobId={websiteCrawlJobId}
+          confluencePages={confluencePages} // 传递给 StepTwo
           onStepChange={changeStep}
           updateIndexingTypeCache={updateIndexingTypeCache}
           updateResultCache={updateResultCache}

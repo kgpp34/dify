@@ -8,12 +8,12 @@ import cn from '@/utils/classnames'
 
 type ConfluencePageUploaderProps = {
   confluencePageList: ConfluencePage[] // 当前的 Confluence 页面列表
-  onPageListChange: (pages: ConfluencePage[]) => void // Confluence 页面列表变化回调
+  onConfluenceListUpdate: (pages: ConfluencePage[]) => void // Confluence 页面列表变化回调
 }
 
 const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
   confluencePageList,
-  onPageListChange,
+  onConfluenceListUpdate,
 }) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -56,7 +56,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
             }
             : page,
         )
-        onPageListChange(updatedPageList) // 触发页面列表变化回调
+        onConfluenceListUpdate(updatedPageList) // 触发页面列表变化回调
       }
     }
 
@@ -84,7 +84,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
             }
             : page,
         )
-        onPageListChange(updatedPageList) // 触发页面列表变化回调
+        onConfluenceListUpdate(updatedPageList) // 触发页面列表变化回调
       }
     }
     catch (err) {
@@ -103,7 +103,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
           }
           : page,
       )
-      onPageListChange(updatedPageList) // 触发页面列表变化回调
+      onConfluenceListUpdate(updatedPageList) // 触发页面列表变化回调
     }
   }
 
@@ -117,7 +117,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
         }
         : page,
     )
-    onPageListChange(updatedPageList) // 触发页面列表变化回调
+    onConfluenceListUpdate(updatedPageList) // 触发页面列表变化回调
   }
 
   // 处理 Confluence URL 输入
@@ -175,7 +175,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
       }
 
       // 更新页面列表
-      onPageListChange(updatedPageList)
+      onConfluenceListUpdate(updatedPageList)
 
       // 开始上传文件
       await fileUpload(fileItem, updatedPageList, existingPageIndex !== -1 ? existingPageIndex : updatedPageList.length - 1)
