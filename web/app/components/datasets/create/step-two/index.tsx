@@ -329,7 +329,13 @@ const StepTwo = ({
       return {
         info_list: {
           data_source_type: DataSourceType.FILE,
-          file_info_list: { file_ids: confluencePages.flatMap(page => page.children.map(child => child.fileID)) },
+          file_info_list: { 
+            file_ids: confluencePages.flatMap(page => 
+              page.children
+                .map(child => child.file.id)
+                .filter(id => id !== undefined) as string[]
+            ),
+          },
         },
         indexing_technique: getIndexing_technique() as string,
         process_rule: getProcessRule(),
