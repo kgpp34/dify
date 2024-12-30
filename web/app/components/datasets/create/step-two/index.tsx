@@ -427,6 +427,16 @@ const StepTwo = ({
           file_ids: files.map(file => file.id || '').filter(Boolean),
         }
       }
+      if (dataSourceType === DataSourceType.CONFLUENCE) {
+        params.data_source.info_list.file_info_list = {
+          file_ids: confluencePages.flatMap(page => 
+            page.children
+              .map(child => child.file.id)
+              .filter(id => id !== undefined) as string[]
+          ),
+        }
+        params.data_source.type = DataSourceType.FILE
+      }
       if (dataSourceType === DataSourceType.NOTION)
         params.data_source.info_list.notion_info_list = getNotionInfo()
 

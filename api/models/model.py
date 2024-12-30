@@ -139,7 +139,7 @@ class App(db.Model):
         if not app_model_config.agent_mode:
             return False
         if self.app_model_config.agent_mode_dict.get("enabled", False) and self.app_model_config.agent_mode_dict.get(
-            "strategy", ""
+                "strategy", ""
         ) in {"function_call", "react"}:
             self.mode = AppMode.AGENT_CHAT.value
             db.session.commit()
@@ -574,7 +574,7 @@ class Conversation(db.Model):
                     value["upload_file_id"] = value["related_id"]
                 inputs[key] = file_factory.build_from_mapping(mapping=value, tenant_id=value["tenant_id"])
             elif isinstance(value, list) and all(
-                isinstance(item, dict) and item.get("dify_model_identity") == FILE_MODEL_IDENTITY for item in value
+                    isinstance(item, dict) and item.get("dify_model_identity") == FILE_MODEL_IDENTITY for item in value
             ):
                 inputs[key] = []
                 for item in value:
@@ -810,7 +810,7 @@ class Message(db.Model):
                     value["upload_file_id"] = value["related_id"]
                 inputs[key] = file_factory.build_from_mapping(mapping=value, tenant_id=value["tenant_id"])
             elif isinstance(value, list) and all(
-                isinstance(item, dict) and item.get("dify_model_identity") == FILE_MODEL_IDENTITY for item in value
+                    isinstance(item, dict) and item.get("dify_model_identity") == FILE_MODEL_IDENTITY for item in value
             ):
                 inputs[key] = []
                 for item in value:
@@ -1135,16 +1135,16 @@ class MessageFile(db.Model):
     )
 
     def __init__(
-        self,
-        *,
-        message_id: str,
-        type: FileType,
-        transfer_method: FileTransferMethod,
-        url: str | None = None,
-        belongs_to: Literal["user", "assistant"] | None = None,
-        upload_file_id: str | None = None,
-        created_by_role: CreatedByRole,
-        created_by: str,
+            self,
+            *,
+            message_id: str,
+            type: FileType,
+            transfer_method: FileTransferMethod,
+            url: str | None = None,
+            belongs_to: Literal["user", "assistant"] | None = None,
+            upload_file_id: str | None = None,
+            created_by_role: CreatedByRole,
+            created_by: str,
     ):
         self.message_id = message_id
         self.type = type
@@ -1405,6 +1405,68 @@ class ApiToken(db.Model):
             return result
 
 
+class UploadConfluence(db.Model):
+    __tablename__ = "confluence_wikis"
+    __table_args__ = (
+        db.PrimaryKeyConstraint("id", name="upload_file_pkey"),
+        db.Index("upload_file_tenant_idx", "tenant_id"),
+    )
+
+    id: Mapped[str] = db.Column(StringUUID, server_default=db.text("uuid_generate_v4()"))
+    tenant_id: Mapped[str] = db.Column(StringUUID, nullable=False)
+    storage_type: Mapped[str] = db.Column(db.String(255), nullable=False)
+    key: Mapped[str] = db.Column(db.String(255), nullable=False)
+    name: Mapped[str] = db.Column(db.String(255), nullable=False)
+    size: Mapped[int] = db.Column(db.Integer, nullable=False)
+    extension: Mapped[str] = db.Column(db.String(255), nullable=False)
+    mime_type: Mapped[str] = db.Column(db.String(255), nullable=True)
+    created_by_role: Mapped[str] = db.Column(
+        db.String(255), nullable=False, server_default=db.text("'account'::character varying")
+    )
+    created_by: Mapped[str] = db.Column(StringUUID, nullable=False)
+    created_at: Mapped[datetime] = db.Column(db.DateTime, nullable=False, server_default=func.current_timestamp())
+    used: Mapped[bool] = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
+    used_by: Mapped[str | None] = db.Column(StringUUID, nullable=True)
+    used_at: Mapped[datetime | None] = db.Column(db.DateTime, nullable=True)
+    hash: Mapped[str | None] = db.Column(db.String(255), nullable=True)
+    source_url: Mapped[str] = mapped_column(sa.TEXT, default="")
+
+    def __init__(
+            self,
+            *,
+            tenant_id: str,
+            storage_type: str,
+            key: str,
+            name: str,
+            size: int,
+            extension: str,
+            mime_type: str,
+            created_by_role: CreatedByRole,
+            created_by: str,
+            created_at: datetime,
+            used: bool,
+            used_by: str | None = None,
+            used_at: datetime | None = None,
+            hash: str | None = None,
+            source_url: str = "",
+    ):
+        self.tenant_id = tenant_id
+        self.storage_type = storage_type
+        self.key = key
+        self.name = name
+        self.size = size
+        self.extension = extension
+        self.mime_type = mime_type
+        self.created_by_role = created_by_role.value
+        self.created_by = created_by
+        self.created_at = created_at
+        self.used = used
+        self.used_by = used_by
+        self.used_at = used_at
+        self.hash = hash
+        self.source_url = source_url
+
+
 class UploadFile(db.Model):
     __tablename__ = "upload_files"
     __table_args__ = (
@@ -1432,23 +1494,23 @@ class UploadFile(db.Model):
     source_url: Mapped[str] = mapped_column(sa.TEXT, default="")
 
     def __init__(
-        self,
-        *,
-        tenant_id: str,
-        storage_type: str,
-        key: str,
-        name: str,
-        size: int,
-        extension: str,
-        mime_type: str,
-        created_by_role: CreatedByRole,
-        created_by: str,
-        created_at: datetime,
-        used: bool,
-        used_by: str | None = None,
-        used_at: datetime | None = None,
-        hash: str | None = None,
-        source_url: str = "",
+            self,
+            *,
+            tenant_id: str,
+            storage_type: str,
+            key: str,
+            name: str,
+            size: int,
+            extension: str,
+            mime_type: str,
+            created_by_role: CreatedByRole,
+            created_by: str,
+            created_at: datetime,
+            used: bool,
+            used_by: str | None = None,
+            used_at: datetime | None = None,
+            hash: str | None = None,
+            source_url: str = "",
     ):
         self.tenant_id = tenant_id
         self.storage_type = storage_type

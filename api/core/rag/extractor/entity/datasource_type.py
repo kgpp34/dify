@@ -5,3 +5,4 @@ class DatasourceType(Enum):
     FILE = "upload_file"
     NOTION = "notion_import"
     WEBSITE = "website_crawl"
+    CONFLUENCE = "confluence_wiki"

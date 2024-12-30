@@ -23,7 +23,7 @@ from fields.app_fields import related_app_list
 from fields.dataset_fields import dataset_detail_fields, dataset_query_detail_fields
 from fields.document_fields import document_status_fields
 from libs.login import login_required
-from models import ApiToken, Dataset, Document, DocumentSegment, UploadFile
+from models import ApiToken, Dataset, Document, DocumentSegment, UploadFile, UploadConfluence
 from models.dataset import DatasetPermissionEnum
 from services.dataset_service import DatasetPermissionService, DatasetService, DocumentService
 
@@ -442,6 +442,23 @@ class DatasetIndexingEstimateApi(Resource):
                     document_model=args["doc_form"],
                 )
                 extract_settings.append(extract_setting)
+        elif args["info_list"]["data_source_type"] == "confluence_wiki":
+            file_ids = args["info_list"]["file_info_list"]["file_ids"]
+            file_details = (
+                db.session.query(UploadConfluence)
+                .filter(UploadConfluence.tenant_id == current_user.current_tenant_id, UploadConfluence.id.in_(file_ids))
+                .all()
+            )
+
+            if file_details is None:
+                raise NotFound("File not found.")
+
+            if file_details:
+                for file_detail in file_details:
+                    extract_setting = ExtractSetting(
+                        datasource_type="confluence_wiki", upload_file=file_detail, document_model=args["doc_form"]
+                    )
+                    extract_settings.append(extract_setting)
         else:
             raise ValueError("Data source type not support")
         indexing_runner = IndexingRunner()
