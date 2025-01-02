@@ -55,8 +55,8 @@ from .model import (
     Tag,
     TagBinding,
     TraceAppConfig,
+    UploadConfluence,
     UploadFile,
-    UploadConfluence
 )
 from .provider import (
     LoadBalancingModelConfig,

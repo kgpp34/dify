@@ -687,7 +687,10 @@ class DocumentService:
         if features.billing.enabled:
             if "original_document_id" not in document_data or not document_data["original_document_id"]:
                 count = 0
-                if document_data["data_source"]["type"] == "upload_file" or document_data["data_source"]["type"] == "confluence_wiki":
+                if (
+                    document_data["data_source"]["type"] == "upload_file"
+                    or document_data["data_source"]["type"] == "confluence_wiki"
+                ):
                     upload_file_list = document_data["data_source"]["info_list"]["file_info_list"]["file_ids"]
                     count = len(upload_file_list)
                 elif document_data["data_source"]["type"] == "notion_import":
@@ -768,7 +771,10 @@ class DocumentService:
                 position = DocumentService.get_documents_position(dataset.id)
                 document_ids = []
                 duplicate_document_ids = []
-                if document_data["data_source"]["type"] == "upload_file" or document_data["data_source"]["type"] == "confluence_wiki":
+                if (
+                    document_data["data_source"]["type"] == "upload_file"
+                    or document_data["data_source"]["type"] == "confluence_wiki"
+                ):
                     upload_file_list = document_data["data_source"]["info_list"]["file_info_list"]["file_ids"]
                     for file_id in upload_file_list:
                         file = (
@@ -1012,7 +1018,10 @@ class DocumentService:
         if document_data.get("data_source"):
             file_name = ""
             data_source_info = {}
-            if document_data["data_source"]["type"] == "upload_file" or document_data["data_source"]["type"] == "confluence_wiki":
+            if (
+                document_data["data_source"]["type"] == "upload_file"
+                or document_data["data_source"]["type"] == "confluence_wiki"
+            ):
                 upload_file_list = document_data["data_source"]["info_list"]["file_info_list"]["file_ids"]
                 for file_id in upload_file_list:
                     file = (
@@ -1094,7 +1103,10 @@ class DocumentService:
 
         if features.billing.enabled:
             count = 0
-            if document_data["data_source"]["type"] == "upload_file" or document_data["data_source"]["type"] == "confluence_wiki":
+            if (
+                document_data["data_source"]["type"] == "upload_file"
+                or document_data["data_source"]["type"] == "confluence_wiki"
+            ):
                 upload_file_list = document_data["data_source"]["info_list"]["file_info_list"]["file_ids"]
                 count = len(upload_file_list)
             elif document_data["data_source"]["type"] == "notion_import":

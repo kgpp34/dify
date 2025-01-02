@@ -124,7 +124,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
         }
         : page,
     )
-    onConfluenceListUpdate(updatedPageList) // 触发页面列表变化回调
+    onConfluenceListUpdate(updatedPageList); // 触发页面列表变化回调
   }
 
   // 处理 Confluence URL 输入
