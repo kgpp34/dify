@@ -6,8 +6,63 @@
     @apply relative mb-4;
   }
   
+  .inputWithTags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #e2e8f0;
+    padding: 8px;
+    border-radius: 8px;
+    background-color: #fff;
+    max-width: 500px; /* 控制输入框的最大宽度 */
+    transition: border-color 0.2s;
+  }
+  
+  .inputWithTags:focus-within {
+    border-color: #3182ce; /* 聚焦时边框颜色变化 */
+  }
+  
+  .urlTag {
+    display: inline-flex;
+    align-items: center;
+    background-color: #edf2f7;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #2d3748;
+    transition: background-color 0.2s;
+  }
+  
+  .urlTag:hover {
+    background-color: #e2e8f0;
+  }
+  
+  .removeTag {
+    margin-left: 6px;
+    cursor: pointer;
+    color: #718096;
+    font-size: 12px;
+    transition: color 0.2s;
+  }
+  
+  .removeTag:hover {
+    color: #e53e3e;
+  }
+  
   .input {
-    @apply w-full p-2 border border-gray-300 rounded-md;
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 4px;
+    min-width: 120px;
+    background-color: transparent;
+    font-size: 14px;
+    color: #2d3748;
+  }
+  
+  .input::placeholder {
+    color: #a0aec0;
   }
   
   .loadingSpinner {
@@ -16,6 +71,23 @@
   
   .errorMessage {
     @apply text-red-500 text-sm mb-4;
+  }
+  
+  .uploadButton {
+    @apply px-4 py-2 bg-blue-500 text-white rounded-md cursor-pointer;
+    transition: background-color 0.2s, transform 0.1s;
+  }
+  
+  .uploadButton:disabled {
+    @apply bg-gray-400 cursor-not-allowed;
+  }
+  
+  .uploadButton:hover:not(:disabled) {
+    @apply bg-blue-600;
+  }
+  
+  .uploadButton:active:not(:disabled) {
+    transform: scale(0.98);
   }
   
   .fileList {
@@ -28,16 +100,21 @@
     max-width: 640px;
     height: 40px;
     background: #ffffff;
-    border: 0.5px solid #EAECF0;
+    border: 1px solid #e2e8f0;
     box-shadow: 0px 1px 2px rgba(16, 24, 40, 0.05);
     border-radius: 8px;
     overflow: hidden;
     cursor: pointer;
+    transition: box-shadow 0.2s;
+  }
+  
+  .file:hover {
+    box-shadow: 0px 2px 4px rgba(16, 24, 40, 0.1);
   }
   
   .file.uploading {
-    background: #FCFCFD;
-    border: 0.5px solid #EAECF0;
+    background: #f7fafc;
+    border-color: #e2e8f0;
   }
   
   .progressbar {
@@ -45,7 +122,7 @@
     top: 0;
     left: 0;
     height: 100%;
-    background-color: #F2F4F7;
+    background-color: #ebf8ff;
   }
   
   .fileInfo {
@@ -105,7 +182,7 @@
     font-weight: 500;
     font-size: 13px;
     line-height: 18px;
-    color: #1D2939;
+    color: #1d2939;
   }
   
   .size {
@@ -135,6 +212,11 @@
     background: center no-repeat url(../assets/trash.svg);
     background-size: 16px;
     cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  
+  .remove:hover {
+    opacity: 0.8;
   }
   
   .file:hover .remove {

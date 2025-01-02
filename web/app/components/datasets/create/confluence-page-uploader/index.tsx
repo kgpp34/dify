@@ -19,6 +19,8 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { notify } = useContext(ToastContext)
+  const [urls, setUrls] = useState<string[]>([]) // 存储用户输入的URLs
+  const [inputValue, setInputValue] = useState('') // 输入框的值
 
   // 获取文件类型
   const getFileType = (file: File) => {
@@ -190,25 +192,67 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
     }
   }
 
+  // 处理输入框变化
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value)
+  }
+
+  // 处理输入框回车或粘贴事件
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      const newUrl = inputValue.trim()
+      if (newUrl && !urls.includes(newUrl)) {
+        setUrls([...urls, newUrl])
+        setInputValue('')
+      }
+    }
+  }
+
+  // 处理删除URL
+  const handleRemoveUrl = (urlToRemove: string) => {
+    setUrls(urls.filter(url => url !== urlToRemove))
+  }
+
+  // 处理上传按钮点击
+  const handleUploadClick = async () => {
+    for (const url of urls) {
+      await handleUrlChange(url)
+    }
+  }
+
   return (
     <div className={s.confluencePageUploader}>
       <div className={s.inputContainer}>
-        <input
-          type="text"
-          placeholder="Enter Confluence Page URL"
-          className={s.input}
-          onChange={e => handleUrlChange(e.target.value)}
-          disabled={loading}
-        />
+        <div className={s.inputWithTags}>
+          {urls.map((url, index) => (
+            <div key={index} className={s.urlTag}>
+              {url}
+              <span className={s.removeTag} onClick={() => handleRemoveUrl(url)}>×</span>
+            </div>
+          ))}
+          <input
+            type="text"
+            placeholder={urls.length === 0 ? "Enter Confluence Page URL" : ""}
+            className={s.input}
+            value={inputValue}
+            onChange={handleInputChange}
+            onKeyDown={handleInputKeyDown}
+            disabled={loading}
+          />
+        </div>
         {loading && <div className={s.loadingSpinner} />}
       </div>
       {error && <div className={s.errorMessage}>{error}</div>}
+
+      <button className={s.uploadButton} onClick={handleUploadClick} disabled={loading || urls.length === 0}>
+        Upload
+      </button>
 
       {/* 文件列表 */}
       <div className={s.fileList}>
         {confluencePageList.map((page, pageIndex) => (
           <div key={page.pageId} className={s.pageContainer}>
-            <h3 className={s.pageTitle}>{page.title || `Page ${page.pageId}`}</h3>
             <div className={s.fileList}>
               {page.children.map((fileItem, fileIndex) => (
                 <div

@@ -182,7 +182,7 @@ const StepOne = ({
                   <span className={cn(s.datasetIcon, s.confluence)} />
                   {t('datasetCreation.stepOne.dataSourceType.confluence')}
                 </div>
-                <div
+                {/* <div
                   className={cn(
                     s.dataSourceItem,
                     dataSourceType === DataSourceType.NOTION && s.active,
@@ -210,7 +210,7 @@ const StepOne = ({
                 >
                   <span className={cn(s.datasetIcon, s.web)} />
                   {t('datasetCreation.stepOne.dataSourceType.web')}
-                </div>
+                </div> */}
               </div>
             )
           }
