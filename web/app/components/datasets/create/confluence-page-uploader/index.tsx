@@ -125,72 +125,88 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
 
   // 处理 Confluence URL 输入
   const handleUrlChange = async (url: string) => {
-    const pageIdMatch = url.match(/pageId=(\d+)/)
+    const pageIdMatch = url.match(/pageId=(\d+)/);
     if (!pageIdMatch) {
-      notify({ type: 'error', message: 'Invalid Confluence Page URL' })
-      return
+      notify({ type: 'error', message: 'Invalid Confluence Page URL' });
+      return;
     }
-
-    const pageId = pageIdMatch[1]
-
-    setLoading(true)
-    setError(null)
-
+  
+    const pageId = pageIdMatch[1];
+  
+    setLoading(true);
+    setError(null);
+  
     try {
-      const response = await fetch(`/confluence2md/page/${pageId}`)
-      if (!response.ok)
-        throw new Error('Failed to convert Confluence page to Markdown')
-
+      const response = await fetch(`/confluence2md/page/${pageId}`);
+      if (!response.ok) throw new Error('Failed to convert Confluence page to Markdown');
+  
       // 获取纯文本内容
-      const textContent = await response.text()
-
-      // 将纯文本内容封装为 .txt 文件
-      const blob = new Blob([textContent], { type: 'text/plain' })
-      const file = new File([blob], `confluence-page-${pageId}.txt`, { type: 'text/plain' })
-
-      const fileItem: FileItem = {
-        fileID: uuid4(),
-        file,
-        progress: 0, // 初始进度为0
+      const textContent = await response.text();
+  
+      // 根据 <!-- Page: xxxx --> 切分内容
+      const sections = textContent.split(/<!--\s*Page:\s*(.*?)\s*-->/);
+  
+      // 过滤掉空内容，并提取文件名和内容
+      const files: { name: string; content: string }[] = [];
+      for (let i = 1; i < sections.length; i += 2) {
+        const name = sections[i].trim(); // 提取文件名
+        const content = sections[i + 1].trim(); // 提取内容
+        if (name && content) {
+          files.push({ name, content });
+        }
       }
-
+  
       // 检查是否已经存在该页面
-      const existingPageIndex = confluencePageList.findIndex(page => page.pageId === pageId)
-      let updatedPageList: ConfluencePage[]
-
+      const existingPageIndex = confluencePageList.findIndex(page => page.pageId === pageId);
+      let updatedPageList: ConfluencePage[];
+  
       if (existingPageIndex !== -1) {
         // 如果页面已存在，更新该页面的文件列表
         updatedPageList = confluencePageList.map((page, index) =>
           index === existingPageIndex
-            ? { ...page, children: [...page.children, fileItem] }
+            ? {
+                ...page,
+                children: [
+                  ...page.children,
+                  ...files.map(file => ({
+                    fileID: uuid4(),
+                    file: new File([file.content], `${file.name}.txt`, { type: 'text/plain' }),
+                    progress: 0,
+                  })),
+                ],
+              }
             : page,
-        )
-      }
-      else {
+        );
+      } else {
         // 如果页面不存在，创建一个新的 ConfluencePage
         const newPage: ConfluencePage = {
           pageId,
           space: '',
           title: '',
-          children: [fileItem],
-        }
-        updatedPageList = [...confluencePageList, newPage]
+          children: files.map(file => ({
+            fileID: uuid4(),
+            file: new File([file.content], `${file.name}.txt`, { type: 'text/plain' }),
+            progress: 0,
+          })),
+        };
+        updatedPageList = [...confluencePageList, newPage];
       }
-
+  
       // 更新页面列表
-      onConfluenceListUpdate(updatedPageList)
-
+      onConfluenceListUpdate(updatedPageList);
+  
       // 开始上传文件
-      await fileUpload(fileItem, updatedPageList, existingPageIndex !== -1 ? existingPageIndex : updatedPageList.length - 1)
+      for (let i = 0; i < files.length; i++) {
+        const fileItem = updatedPageList[existingPageIndex !== -1 ? existingPageIndex : updatedPageList.length - 1].children[i];
+        await fileUpload(fileItem, updatedPageList, existingPageIndex !== -1 ? existingPageIndex : updatedPageList.length - 1);
+      }
+    } catch (err) {
+      setError('Error converting Confluence page to Markdown');
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-    catch (err) {
-      setError('Error converting Confluence page to Markdown')
-      console.error(err)
-    }
-    finally {
-      setLoading(false)
-    }
-  }
+  };
 
   // 处理输入框变化
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
