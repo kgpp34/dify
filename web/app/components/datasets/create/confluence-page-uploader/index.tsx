@@ -194,31 +194,18 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
 
   // 处理输入框变化
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value)
-  }
-
-  // 处理输入框回车或粘贴事件
-  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      const newUrl = inputValue.trim()
-      if (newUrl && !urls.includes(newUrl)) {
-        setUrls([...urls, newUrl])
-        setInputValue('')
-      }
+    const newUrl = e.target.value.trim()
+    setInputValue(newUrl)
+    if (newUrl && !urls.includes(newUrl)) {
+      setUrls([...urls, newUrl])
+      handleUrlChange(newUrl)
+      setInputValue('')
     }
   }
 
   // 处理删除URL
   const handleRemoveUrl = (urlToRemove: string) => {
     setUrls(urls.filter(url => url !== urlToRemove))
-  }
-
-  // 处理上传按钮点击
-  const handleUploadClick = async () => {
-    for (const url of urls) {
-      await handleUrlChange(url)
-    }
   }
 
   return (
@@ -237,17 +224,13 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
             className={s.input}
             value={inputValue}
             onChange={handleInputChange}
-            onKeyDown={handleInputKeyDown}
             disabled={loading}
+            style={{ width: '100%' }} // 调整输入框宽度
           />
         </div>
         {loading && <div className={s.loadingSpinner} />}
       </div>
       {error && <div className={s.errorMessage}>{error}</div>}
-
-      <button className={s.uploadButton} onClick={handleUploadClick} disabled={loading || urls.length === 0}>
-        Upload
-      </button>
 
       {/* 文件列表 */}
       <div className={s.fileList}>

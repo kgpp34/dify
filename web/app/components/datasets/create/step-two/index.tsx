@@ -661,7 +661,7 @@ const StepTwo = ({
               className={cn(
                 s.radioItem,
                 s.segmentationItem,
-                segmentationType === SegmentType.AUTO && s.active,
+                segmentationType === SegmentType.AUTO && dataSourceType !== DataSourceType.CONFLUENCE && s.active,
               )}
               onClick={() => setSegmentationType(SegmentType.AUTO)}
             >

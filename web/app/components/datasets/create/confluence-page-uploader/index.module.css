@@ -55,7 +55,7 @@
     border: none;
     outline: none;
     padding: 4px;
-    min-width: 120px;
+    width: 100%; /* 调整输入框宽度 */
     background-color: transparent;
     font-size: 14px;
     color: #2d3748;
