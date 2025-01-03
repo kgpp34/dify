@@ -167,7 +167,7 @@ const StepOne = ({
                 <div
                   className={cn(
                     s.dataSourceItem,
-                    (dataSourceType === DataSourceType.CONFLUENCE || dataSourceType === DataSourceType.FILE) && s.active,
+                    dataSourceType === DataSourceType.CONFLUENCE && s.active,
                     dataSourceTypeDisable && dataSourceType !== DataSourceType.CONFLUENCE && s.disabled,
                   )}
                   onClick={() => {
