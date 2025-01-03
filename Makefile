@@ -1,8 +1,8 @@
 # Variables
-DOCKER_REGISTRY=langgenius
+DOCKER_REGISTRY=kgpp34
 WEB_IMAGE=$(DOCKER_REGISTRY)/dify-web
 API_IMAGE=$(DOCKER_REGISTRY)/dify-api
-VERSION=latest
+VERSION=0.0.1
 
 # Build Docker images
 build-web:
