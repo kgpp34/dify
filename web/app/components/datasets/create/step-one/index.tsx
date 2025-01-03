@@ -115,7 +115,7 @@ const StepOne = ({
     setCurrentWebsite(undefined)
   }
 
-  const shouldShowDataSourceTypeList = !datasetId || (datasetId && !dataset?.data_source_type)
+  const shouldShowDataSourceTypeList = !datasetId || (datasetId && dataset?.data_source_type)
   const isInCreatePage = shouldShowDataSourceTypeList
   const dataSourceType = isInCreatePage ? inCreatePageDataSourceType : dataset?.data_source_type
   const { plan, enableBilling } = useProviderContext()
@@ -167,7 +167,7 @@ const StepOne = ({
                 <div
                   className={cn(
                     s.dataSourceItem,
-                    dataSourceType === DataSourceType.CONFLUENCE && s.active,
+                    (dataSourceType === DataSourceType.CONFLUENCE || dataSourceType === DataSourceType.FILE) && s.active,
                     dataSourceTypeDisable && dataSourceType !== DataSourceType.CONFLUENCE && s.disabled,
                   )}
                   onClick={() => {
@@ -233,7 +233,7 @@ const StepOne = ({
               <Button disabled={nextDisabled} className={s.submitButton} variant='primary' onClick={onStepChange}>{t('datasetCreation.stepOne.button')}</Button>
             </>
           )}
-          {dataSourceType === DataSourceType.CONFLUENCE && (
+          {(dataSourceType === DataSourceType.CONFLUENCE || dataSourceType === DataSourceType.FILE) && (
             <>
               <ConfluencePageUploader
                 confluencePageList={confluencePages}

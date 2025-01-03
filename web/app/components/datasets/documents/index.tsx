@@ -86,7 +86,7 @@ const Documents: FC<IDocumentsProps> = ({ datasetId }) => {
   const [timerCanRun, setTimerCanRun] = useState(true)
   const isDataSourceNotion = dataset?.data_source_type === DataSourceType.NOTION
   const isDataSourceWeb = dataset?.data_source_type === DataSourceType.WEB
-  const isDataSourceFile = dataset?.data_source_type === DataSourceType.FILE
+  const isDataSourceFile = dataset?.data_source_type === DataSourceType.FILE || dataset?.data_source_type === DataSourceType.CONFLUENCE
   const embeddingAvailable = !!dataset?.embedding_available
 
   const debouncedSearchValue = useDebounce(searchValue, { wait: 500 })
