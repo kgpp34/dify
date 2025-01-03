@@ -5,6 +5,7 @@ import s from './index.module.css' // 引入样式文件
 import type { ConfluencePage, FileItem } from '@/models/datasets'
 import { ToastContext } from '@/app/components/base/toast'
 import cn from '@/utils/classnames'
+import { upload } from '@/service/base' // 引入 upload 函数
 
 type ConfluencePageUploaderProps = {
   confluencePageList: ConfluencePage[] // 当前的 Confluence 页面列表
@@ -34,92 +35,95 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
     return `${(size / 1024 / 1024).toFixed(2)}MB`
   }
 
-  // 批量上传文件
-  const batchFileUpload = async (fileItems: FileItem[], pageList: ConfluencePage[], pageIndex: number) => {
-    const uploadPromises = fileItems.map(fileItem => {
-      return new Promise<void>(async (resolve, reject) => {
-        const formData = new FormData();
-        formData.append('file', fileItem.file);
-  
-        const xhr = new XMLHttpRequest(); // 每个文件使用独立的 XMLHttpRequest 实例
-  
-        xhr.upload.onprogress = (e: ProgressEvent) => {
-          if (e.lengthComputable) {
-            const percent = Math.floor((e.loaded / e.total) * 100);
-            // 更新文件上传进度
-            const updatedFileItem = { ...fileItem, progress: percent };
-            const updatedPageList = pageList.map((page, index) =>
-              index === pageIndex
-                ? {
-                    ...page,
-                    children: page.children.map(item =>
-                      item.fileID === fileItem.fileID ? updatedFileItem : item,
-                    ),
-                  }
-                : page,
-            );
-            onConfluenceListUpdate(updatedPageList); // 触发页面列表变化回调
-          }
-        };
-  
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            const response = JSON.parse(xhr.responseText);
-            // 上传成功，更新文件项
-            const updatedFileItem = {
-              ...fileItem,
-              progress: 100,
-              file: response, // 更新文件对象
-            };
-            const updatedPageList = pageList.map((page, index) =>
-              index === pageIndex
-                ? {
-                    ...page,
-                    children: page.children.map(item =>
-                      item.fileID === fileItem.fileID ? updatedFileItem : item,
-                    ),
-                  }
-                : page,
-            );
-            onConfluenceListUpdate(updatedPageList); // 触发页面列表变化回调
-            resolve();
-          } else {
-            reject(new Error('File upload failed'));
-          }
-        };
-  
-        xhr.onerror = () => {
-          reject(new Error('File upload failed'));
-        };
-  
-        try {
-          xhr.open('POST', '/upload?source=datasets', true);
-          xhr.send(formData);
-        } catch (err) {
-          reject(err);
-        }
-      }).catch(err => {
-        notify({ type: 'error', message: 'File upload failed' });
-        console.error(err);
-  
-        // 上传失败，更新文件状态
-        const updatedFileItem = { ...fileItem, progress: -2 };
+  // 单个文件上传逻辑
+  const uploadSingleFile = async (fileItem: FileItem, pageList: ConfluencePage[], pageIndex: number) => {
+    const formData = new FormData()
+    formData.append('file', fileItem.file)
+
+    const onProgress = (e: ProgressEvent) => {
+      if (e.lengthComputable) {
+        const percent = Math.floor((e.loaded / e.total) * 100)
+        // 更新文件上传进度
+        const updatedFileItem = { ...fileItem, progress: percent }
         const updatedPageList = pageList.map((page, index) =>
           index === pageIndex
             ? {
-                ...page,
-                children: page.children.map(item =>
-                  item.fileID === fileItem.fileID ? updatedFileItem : item,
-                ),
-              }
+              ...page,
+              children: page.children.map(item =>
+                item.fileID === fileItem.fileID ? updatedFileItem : item,
+              ),
+            }
             : page,
-        );
-        onConfluenceListUpdate(updatedPageList); // 触发页面列表变化回调
-      });
-    });
-  
-    await Promise.all(uploadPromises);
-  };
+        )
+        onConfluenceListUpdate(updatedPageList) // 触发页面列表变化回调
+      }
+    }
+
+    try {
+      const response = await upload(
+        {
+          xhr: new XMLHttpRequest(),
+          data: formData,
+          onprogress: onProgress,
+        },
+        false,
+        undefined,
+        '?source=datasets',
+      )
+
+      if (response) {
+        // 上传成功，更新文件项
+        const updatedFileItem = {
+          ...fileItem,
+          progress: 100,
+          file: response, // 更新文件对象
+        }
+        const updatedPageList = pageList.map((page, index) =>
+          index === pageIndex
+            ? {
+              ...page,
+              children: page.children.map(item =>
+                item.fileID === fileItem.fileID ? updatedFileItem : item,
+              ),
+            }
+            : page,
+        )
+        onConfluenceListUpdate(updatedPageList) // 触发页面列表变化回调
+      }
+    }
+    catch (err) {
+      notify({ type: 'error', message: 'File upload failed' })
+      console.error(err)
+
+      // 上传失败，更新文件状态
+      const updatedFileItem = { ...fileItem, progress: -2 }
+      const updatedPageList = pageList.map((page, index) =>
+        index === pageIndex
+          ? {
+            ...page,
+            children: page.children.map(item =>
+              item.fileID === fileItem.fileID ? updatedFileItem : item,
+            ),
+          }
+          : page,
+      )
+      onConfluenceListUpdate(updatedPageList) // 触发页面列表变化回调
+    }
+  }
+
+  // 批量上传文件
+  const batchFileUpload = async (fileItems: FileItem[], pageList: ConfluencePage[], pageIndex: number) => {
+    if (fileItems.length === 1) {
+      // 如果只有一个文件，使用单独上传函数
+      await uploadSingleFile(fileItems[0], pageList, pageIndex)
+    }
+    else {
+      // 多个文件并行上传
+      await Promise.all(
+        fileItems.map(fileItem => uploadSingleFile(fileItem, pageList, pageIndex)),
+      )
+    }
+  }
 
   // 删除文件
   const removeFile = (fileID: string, pageIndex: number) => {
@@ -131,64 +135,65 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
         }
         : page,
     )
-    onConfluenceListUpdate(updatedPageList); // 触发页面列表变化回调
+    onConfluenceListUpdate(updatedPageList) // 触发页面列表变化回调
   }
 
   // 处理 Confluence URL 输入
   const handleUrlChange = async (url: string) => {
-    const pageIdMatch = url.match(/pageId=(\d+)/);
+    const pageIdMatch = url.match(/pageId=(\d+)/)
     if (!pageIdMatch) {
-      notify({ type: 'error', message: 'Invalid Confluence Page URL' });
-      return;
+      notify({ type: 'error', message: 'Invalid Confluence Page URL' })
+      return
     }
-  
-    const pageId = pageIdMatch[1];
-  
-    setLoading(true);
-    setError(null);
-  
+
+    const pageId = pageIdMatch[1]
+
+    setLoading(true)
+    setError(null)
+
     try {
-      const response = await fetch(`/confluence2md/page/${pageId}`);
-      if (!response.ok) throw new Error('Failed to convert Confluence page to Markdown');
-  
+      const response = await fetch(`/confluence2md/page/${pageId}`)
+      if (!response.ok)
+        throw new Error('Failed to convert Confluence page to Markdown')
+
       // 获取纯文本内容
-      const textContent = await response.text();
-  
+      const textContent = await response.text()
+
       // 根据 <!-- Page: xxxx --> 切分内容
-      const sections = textContent.split(/<!--\s*Page:\s*(.*?)\s*-->/);
-  
+      const sections = textContent.split(/<!--\s*Page:\s*(.*?)\s*-->/)
+
       // 过滤掉空内容，并提取文件名和内容
-      const files: { name: string; content: string }[] = [];
+      const files: { name: string; content: string }[] = []
       for (let i = 1; i < sections.length; i += 2) {
-        const name = sections[i].trim(); // 提取文件名
-        const content = sections[i + 1].trim(); // 提取内容
-        if (name && content) {
-          files.push({ name, content });
-        }
+        const name = sections[i].trim() // 提取文件名
+        const content = sections[i + 1].trim() // 提取内容
+        if (name && content)
+          files.push({ name, content })
       }
-  
+
       // 检查是否已经存在该页面
-      const existingPageIndex = confluencePageList.findIndex(page => page.pageId === pageId);
-      let updatedPageList: ConfluencePage[];
-  
+      const existingPageIndex = confluencePageList.findIndex(page => page.pageId === pageId)
+      let updatedPageList: ConfluencePage[]
+
       if (existingPageIndex !== -1) {
         // 如果页面已存在，更新该页面的文件列表
         updatedPageList = confluencePageList.map((page, index) =>
           index === existingPageIndex
             ? {
-                ...page,
-                children: [
-                  ...page.children,
-                  ...files.map(file => ({
-                    fileID: uuid4(),
-                    file: new File([file.content], `${file.name}.txt`, { type: 'text/plain' }),
-                    progress: 0,
-                  })),
-                ],
-              }
+              ...page,
+              children: [
+                ...page.children,
+                ...files.map(file => ({
+                  fileID: uuid4(),
+                  file: new File([file.content], `${file.name}.txt`, { type: 'text/plain' }),
+                  progress: 0,
+                })),
+              ],
+            }
             : page,
-        );
-      } else {
+        )
+      }
+      else {
         // 如果页面不存在，创建一个新的 ConfluencePage
         const newPage: ConfluencePage = {
           pageId,
@@ -199,26 +204,28 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
             file: new File([file.content], `${file.name}.txt`, { type: 'text/plain' }),
             progress: 0,
           })),
-        };
-        updatedPageList = [...confluencePageList, newPage];
+        }
+        updatedPageList = [...confluencePageList, newPage]
       }
-  
+
       // 更新页面列表
-      onConfluenceListUpdate(updatedPageList);
-  
+      onConfluenceListUpdate(updatedPageList)
+
       // 批量上传文件
       await batchFileUpload(
         updatedPageList[existingPageIndex !== -1 ? existingPageIndex : updatedPageList.length - 1].children,
         updatedPageList,
-        existingPageIndex !== -1 ? existingPageIndex : updatedPageList.length - 1
-      );
-    } catch (err) {
-      setError('Error converting Confluence page to Markdown');
-      console.error(err);
-    } finally {
-      setLoading(false);
+        existingPageIndex !== -1 ? existingPageIndex : updatedPageList.length - 1,
+      )
     }
-  };
+    catch (err) {
+      setError('Error converting Confluence page to Markdown')
+      console.error(err)
+    }
+    finally {
+      setLoading(false)
+    }
+  }
 
   // 处理输入框变化
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -243,12 +250,14 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
           {urls.map((url, index) => (
             <div key={index} className={s.urlTag}>
               {url}
-              <span className={s.removeTag} onClick={() => handleRemoveUrl(url)}>×</span>
+              <span className={s.removeTag} onClick={() => handleRemoveUrl(url)}>
+                ×
+              </span>
             </div>
           ))}
           <input
             type="text"
-            placeholder={urls.length === 0 ? "Enter Confluence Page URL" : ""}
+            placeholder={urls.length === 0 ? 'Enter Confluence Page URL' : ''}
             className={s.input}
             value={inputValue}
             onChange={handleInputChange}
@@ -268,10 +277,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
               {page.children.map((fileItem, fileIndex) => (
                 <div
                   key={`${fileItem.fileID}-${fileIndex}`}
-                  className={cn(
-                    s.file,
-                    fileItem.progress < 100 && s.uploading,
-                  )}
+                  className={cn(s.file, fileItem.progress < 100 && s.uploading)}
                 >
                   {fileItem.progress < 100 && (
                     <div className={s.progressbar} style={{ width: `${fileItem.progress}%` }} />
