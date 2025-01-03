@@ -3,7 +3,6 @@ import { useContext } from 'use-context-selector'
 import { v4 as uuid4 } from 'uuid'
 import s from './index.module.css' // 引入样式文件
 import type { ConfluencePage, FileItem } from '@/models/datasets'
-import { upload } from '@/service/base'
 import { ToastContext } from '@/app/components/base/toast'
 import cn from '@/utils/classnames'
 
@@ -35,53 +34,76 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
     return `${(size / 1024 / 1024).toFixed(2)}MB`
   }
 
-  // 文件上传逻辑
-  const fileUpload = async (
-    fileItem: FileItem,
-    pageList: ConfluencePage[],
-    pageIndex: number,
-  ): Promise<void> => {
-    const formData = new FormData();
-    formData.append('file', fileItem.file);
+  // 批量上传文件
+  const batchFileUpload = async (fileItems: FileItem[], pageList: ConfluencePage[], pageIndex: number) => {
+    const uploadPromises = fileItems.map(fileItem => {
+      return new Promise<void>(async (resolve, reject) => {
+        const formData = new FormData();
+        formData.append('file', fileItem.file);
   
-    const onProgress = (e: ProgressEvent) => {
-      if (e.lengthComputable) {
-        const percent = Math.floor((e.loaded / e.total) * 100);
-        // 更新文件上传进度
-        const updatedFileItem = { ...fileItem, progress: percent };
-        const updatedPageList = pageList.map((page, index) =>
-          index === pageIndex
-            ? {
-                ...page,
-                children: page.children.map(item =>
-                  item.fileID === fileItem.fileID ? updatedFileItem : item,
-                ),
-              }
-            : page,
-        );
-        onConfluenceListUpdate(updatedPageList); // 触发页面列表变化回调
-      }
-    };
+        const xhr = new XMLHttpRequest(); // 每个文件使用独立的 XMLHttpRequest 实例
   
-    try {
-      const response = await upload(
-        {
-          xhr: new XMLHttpRequest(),
-          data: formData,
-          onprogress: onProgress,
-        },
-        false,
-        undefined,
-        '?source=datasets',
-      );
-  
-      if (response) {
-        // 上传成功，更新文件项
-        const updatedFileItem = {
-          ...fileItem,
-          progress: 100,
-          file: response, // 更新文件对象
+        xhr.upload.onprogress = (e: ProgressEvent) => {
+          if (e.lengthComputable) {
+            const percent = Math.floor((e.loaded / e.total) * 100);
+            // 更新文件上传进度
+            const updatedFileItem = { ...fileItem, progress: percent };
+            const updatedPageList = pageList.map((page, index) =>
+              index === pageIndex
+                ? {
+                    ...page,
+                    children: page.children.map(item =>
+                      item.fileID === fileItem.fileID ? updatedFileItem : item,
+                    ),
+                  }
+                : page,
+            );
+            onConfluenceListUpdate(updatedPageList); // 触发页面列表变化回调
+          }
         };
+  
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            const response = JSON.parse(xhr.responseText);
+            // 上传成功，更新文件项
+            const updatedFileItem = {
+              ...fileItem,
+              progress: 100,
+              file: response, // 更新文件对象
+            };
+            const updatedPageList = pageList.map((page, index) =>
+              index === pageIndex
+                ? {
+                    ...page,
+                    children: page.children.map(item =>
+                      item.fileID === fileItem.fileID ? updatedFileItem : item,
+                    ),
+                  }
+                : page,
+            );
+            onConfluenceListUpdate(updatedPageList); // 触发页面列表变化回调
+            resolve();
+          } else {
+            reject(new Error('File upload failed'));
+          }
+        };
+  
+        xhr.onerror = () => {
+          reject(new Error('File upload failed'));
+        };
+  
+        try {
+          xhr.open('POST', '/upload?source=datasets', true);
+          xhr.send(formData);
+        } catch (err) {
+          reject(err);
+        }
+      }).catch(err => {
+        notify({ type: 'error', message: 'File upload failed' });
+        console.error(err);
+  
+        // 上传失败，更新文件状态
+        const updatedFileItem = { ...fileItem, progress: -2 };
         const updatedPageList = pageList.map((page, index) =>
           index === pageIndex
             ? {
@@ -93,25 +115,10 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
             : page,
         );
         onConfluenceListUpdate(updatedPageList); // 触发页面列表变化回调
-      }
-    } catch (err) {
-      notify({ type: 'error', message: 'File upload failed' });
-      console.error(err);
+      });
+    });
   
-      // 上传失败，更新文件状态
-      const updatedFileItem = { ...fileItem, progress: -2 };
-      const updatedPageList = pageList.map((page, index) =>
-        index === pageIndex
-          ? {
-              ...page,
-              children: page.children.map(item =>
-                item.fileID === fileItem.fileID ? updatedFileItem : item,
-              ),
-            }
-          : page,
-      );
-      onConfluenceListUpdate(updatedPageList); // 触发页面列表变化回调
-    }
+    await Promise.all(uploadPromises);
   };
 
   // 删除文件
@@ -199,12 +206,11 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
       // 更新页面列表
       onConfluenceListUpdate(updatedPageList);
   
-      // 并行上传文件
-      await Promise.all(
-        files.map((file, i) => {
-          const fileItem = updatedPageList[existingPageIndex !== -1 ? existingPageIndex : updatedPageList.length - 1].children[i];
-          return fileUpload(fileItem, updatedPageList, existingPageIndex !== -1 ? existingPageIndex : updatedPageList.length - 1);
-        }),
+      // 批量上传文件
+      await batchFileUpload(
+        updatedPageList[existingPageIndex !== -1 ? existingPageIndex : updatedPageList.length - 1].children,
+        updatedPageList,
+        existingPageIndex !== -1 ? existingPageIndex : updatedPageList.length - 1
       );
     } catch (err) {
       setError('Error converting Confluence page to Markdown');
