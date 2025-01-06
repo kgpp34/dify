@@ -120,7 +120,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
   const uploadBatchFiles = useCallback(
     async (fileItems: FileItem[], pageList: ConfluencePage[], pageIndex: number) => {
       // 设置所有文件的初始进度为 0
-      const updatedPageList = pageList.map((page, index) => {
+      let currentPageList = pageList.map((page, index) => {
         if (index === pageIndex) {
           return {
             ...page,
@@ -128,34 +128,52 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
               const fileItemToUpdate = fileItems.find(file => file.fileID === child.fileID)
               if (fileItemToUpdate)
                 return { ...child, progress: 0 }
-
               return child
             }),
           }
         }
         return page
       })
-      onConfluenceListUpdate(updatedPageList)
+      onConfluenceListUpdate(currentPageList)
 
-      // 上传文件
-      await Promise.allSettled(fileItems.map(fileItem => fileUpload(fileItem, updatedPageList, pageIndex)))
+      // 逐个上传文件并更新进度
+      for (const fileItem of fileItems) {
+        try {
+          const updatedFileItem = await fileUpload(fileItem, currentPageList, pageIndex)
 
-      // 上传完成后，统一更新progress为100%
-      const updatedFileItems = fileItems.map(fileItem => ({ ...fileItem, progress: 100 }))
-      const finalPageList = pageList.map((page, index) => {
-        if (index === pageIndex) {
-          return {
-            ...page,
-            children: page.children.map(child =>
-              fileItems.some(fi => fi.fileID === child.fileID)
-                ? { ...child, progress: 100 }
-                : child,
-            ),
-          }
+          // 更新当前状态以供下一个文件上传使用
+          currentPageList = currentPageList.map((page, index) => {
+            if (index === pageIndex) {
+              return {
+                ...page,
+                children: page.children.map(child =>
+                  child.fileID === fileItem.fileID ? updatedFileItem : child,
+                ),
+              }
+            }
+            return page
+          })
+          onConfluenceListUpdate(currentPageList)
         }
-        return page
-      })
-      onConfluenceListUpdate(finalPageList)
+        catch (error) {
+          console.error(`Failed to upload file ${fileItem.file.name}:`, error)
+          // 更新失败状态
+          currentPageList = currentPageList.map((page, index) => {
+            if (index === pageIndex) {
+              return {
+                ...page,
+                children: page.children.map(child =>
+                  child.fileID === fileItem.fileID ? { ...child, progress: -2 } : child,
+                ),
+              }
+            }
+            return page
+          })
+          onConfluenceListUpdate(currentPageList)
+        }
+      }
+
+      return currentPageList
     },
     [fileUpload, onConfluenceListUpdate],
   )
