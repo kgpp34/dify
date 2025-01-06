@@ -150,11 +150,9 @@ const StepOne = ({
                   className={cn(
                     s.dataSourceItem,
                     dataSourceType === DataSourceType.FILE && s.active,
-                    dataSourceTypeDisable && dataSourceType !== DataSourceType.FILE && s.disabled,
+                    dataSourceType !== DataSourceType.FILE && s.disabled,
                   )}
                   onClick={() => {
-                    if (dataSourceTypeDisable)
-                      return
                     changeType(DataSourceType.FILE)
                     hideFilePreview()
                     hideNotionPagePreview()
@@ -168,11 +166,9 @@ const StepOne = ({
                   className={cn(
                     s.dataSourceItem,
                     dataSourceType === DataSourceType.CONFLUENCE && s.active,
-                    dataSourceTypeDisable && dataSourceType !== DataSourceType.CONFLUENCE && s.disabled,
+                    dataSourceType !== DataSourceType.CONFLUENCE && s.disabled,
                   )}
                   onClick={() => {
-                    if (dataSourceTypeDisable)
-                      return
                     changeType(DataSourceType.CONFLUENCE)
                     hideFilePreview()
                     hideNotionPagePreview()
