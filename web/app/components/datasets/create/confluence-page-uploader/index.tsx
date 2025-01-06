@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { useContext } from 'use-context-selector'
 import { v4 as uuid4 } from 'uuid'
 import s from './index.module.css' // 引入样式文件
@@ -21,6 +21,10 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
   const { notify } = useContext(ToastContext)
   const [urls, setUrls] = useState<string[]>([]) // 存储用户输入的URLs
   const [inputValue, setInputValue] = useState('') // 输入框的值
+
+  useEffect(() => {
+    console.log('confluencePageList updated:', confluencePageList)
+  }, [confluencePageList])
 
   // 获取文件类型
   const getFileType = useCallback((file: File) => {
@@ -135,6 +139,23 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
 
       // 上传文件
       await Promise.allSettled(fileItems.map(fileItem => fileUpload(fileItem, updatedPageList, pageIndex)))
+
+      // 上传完成后，统一更新progress为100%
+      const updatedFileItems = fileItems.map(fileItem => ({ ...fileItem, progress: 100 }))
+      const finalPageList = pageList.map((page, index) => {
+        if (index === pageIndex) {
+          return {
+            ...page,
+            children: page.children.map(child =>
+              fileItems.some(fi => fi.fileID === child.fileID)
+                ? { ...child, progress: 100 }
+                : child,
+            ),
+          }
+        }
+        return page
+      })
+      onConfluenceListUpdate(finalPageList)
     },
     [fileUpload, onConfluenceListUpdate],
   )
@@ -317,11 +338,8 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
         {confluencePageList.map((page, pageIndex) => (
           <div key={page.pageId} className={s.pageContainer}>
             <div className={s.fileList}>
-              {page.children.map((fileItem, fileIndex) => (
-                <div
-                  key={`${fileItem.fileID}-${fileIndex}`}
-                  className={cn(s.file, fileItem.progress < 100 && s.uploading)}
-                >
+              {page.children.map(fileItem => (
+                <div key={fileItem.fileID} className={cn(s.file, fileItem.progress < 100 && s.uploading)}>
                   {fileItem.progress < 100 && (
                     <div className={s.progressbar} style={{ width: `${fileItem.progress}%` }} />
                   )}
