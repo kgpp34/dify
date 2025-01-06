@@ -233,7 +233,7 @@ const StepOne = ({
               <Button disabled={nextDisabled} className={s.submitButton} variant='primary' onClick={onStepChange}>{t('datasetCreation.stepOne.button')}</Button>
             </>
           )}
-          {(dataSourceType === DataSourceType.CONFLUENCE || dataSourceType === DataSourceType.FILE) && (
+          {(dataSourceType === DataSourceType.CONFLUENCE) && (
             <>
               <ConfluencePageUploader
                 confluencePageList={confluencePages}
