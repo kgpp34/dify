@@ -329,11 +329,11 @@ const StepTwo = ({
       return {
         info_list: {
           data_source_type: DataSourceType.FILE,
-          file_info_list: { 
-            file_ids: confluencePages.flatMap(page => 
+          file_info_list: {
+            file_ids: confluencePages.flatMap(page =>
               page.children
                 .map(child => child.file.id)
-                .filter(id => id !== undefined) as string[]
+                .filter(id => id !== undefined) as string[],
             ),
           },
         },
@@ -429,10 +429,10 @@ const StepTwo = ({
       }
       if (dataSourceType === DataSourceType.CONFLUENCE) {
         params.data_source.info_list.file_info_list = {
-          file_ids: confluencePages.flatMap(page => 
+          file_ids: confluencePages.flatMap(page =>
             page.children
               .map(child => child.file.id)
-              .filter(id => id !== undefined) as string[]
+              .filter(id => id !== undefined) as string[],
           ),
         }
         params.data_source.type = DataSourceType.FILE
@@ -939,6 +939,26 @@ const StepTwo = ({
                         <span className={s.sourceCount}>
                           <span>{t('datasetCreation.stepTwo.other')}</span>
                           <span>{files.length - 1}</span>
+                          <span>{t('datasetCreation.stepTwo.fileUnit')}</span>
+                        </span>
+                      )}
+                    </div>
+                  </>
+                )}
+                {dataSourceType === DataSourceType.CONFLUENCE && (
+                  <>
+                    <div className='mb-2 text-xs font-medium text-gray-500'>{t('datasetCreation.stepTwo.confluenceSource')}</div>
+                    <div className='flex items-center text-sm leading-6 font-medium text-gray-800'>
+                      <span className={cn(s.fileIcon, confluencePages.length)} />
+                      {/* 显示第一个 FileItem 的 fileID */}
+                      {confluencePages[0].children[0]?.fileID || 'No File ID'}
+                      {/* 显示剩余 children 的数量 */}
+                      {confluencePages.length > 1 && (
+                        <span className={s.sourceCount}>
+                          <span>{t('datasetCreation.stepTwo.other')}</span>
+                          <span>
+                            {confluencePages.reduce((total, page) => total + page.children.length, 0) - 1}
+                          </span>
                           <span>{t('datasetCreation.stepTwo.fileUnit')}</span>
                         </span>
                       )}

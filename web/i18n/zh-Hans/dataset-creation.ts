@@ -135,6 +135,7 @@ const translation = {
     segmentCount: '段',
     calculating: '计算中...',
     fileSource: '预处理文档',
+    confluenceSource: '预处理Confluence Wiki',
     notionSource: '预处理页面',
     websiteSource: '预处理页面',
     other: '和其他 ',
