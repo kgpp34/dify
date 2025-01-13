@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useContext } from 'use-context-selector'
 import { v4 as uuid4 } from 'uuid'
 import s from './index.module.css' // 引入样式文件
@@ -22,6 +22,12 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
   const [urls, setUrls] = useState<string[]>([]) // 存储用户输入的URLs
   const [inputValue, setInputValue] = useState('') // 输入框的值
 
+  // 使用 useRef 存储最新的 confluencePageList
+  const pageListRef = useRef(confluencePageList)
+  useEffect(() => {
+    pageListRef.current = confluencePageList
+  }, [confluencePageList])
+
   useEffect(() => {
     console.log('confluencePageList updated:', confluencePageList)
   }, [confluencePageList])
@@ -40,7 +46,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
   }, [])
 
   const fileUpload = useCallback(
-    async (fileItem: FileItem, getLatestPageList: () => ConfluencePage[], pageIndex: number) => {
+    async (fileItem: FileItem, pageIndex: number) => {
       const formData = new FormData()
       formData.append('file', fileItem.file)
 
@@ -48,7 +54,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
         if (e.lengthComputable) {
           const percent = Math.floor((e.loaded / e.total) * 100)
           // 获取最新的 pageList
-          const currentPageList = getLatestPageList()
+          const currentPageList = pageListRef.current
           const updatedPageList = currentPageList.map((page, index) => {
             if (index === pageIndex) {
               return {
@@ -75,7 +81,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
         '?source=datasets',
       )
         .then((res: File) => {
-          const currentPageList = getLatestPageList()
+          const currentPageList = pageListRef.current
           const updatedFileItem = {
             ...fileItem,
             progress: 100,
@@ -110,7 +116,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
             ...page,
             children: page.children.map((child) => {
               const fileItemToUpdate = fileItems.find(file => file.fileID === child.fileID)
-              if (fileItemToUpdate)
+              if (fileItemToUpdate && child.progress === undefined) // 只有未初始化的文件才设置progress为0
                 return { ...child, progress: 0 }
               return child
             }),
@@ -120,13 +126,10 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
       })
       onConfluenceListUpdate(currentPageList)
 
-      // 使用函数来获取最新状态
-      const getLatestPageList = () => currentPageList
-
       for (const fileItem of fileItems) {
         try {
-          const updatedFileItem = await fileUpload(fileItem, getLatestPageList, pageIndex)
-          currentPageList = getLatestPageList().map((page, index) => {
+          const updatedFileItem = await fileUpload(fileItem, pageIndex)
+          currentPageList = pageListRef.current.map((page, index) => {
             if (index === pageIndex) {
               return {
                 ...page,
@@ -137,10 +140,12 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
             }
             return page
           })
+          // 只在文件上传成功时更新状态
+          onConfluenceListUpdate(currentPageList)
         }
         catch (error) {
           console.error(`Failed to upload file ${fileItem.file.name}:`, error)
-          currentPageList = getLatestPageList().map((page, index) => {
+          currentPageList = pageListRef.current.map((page, index) => {
             if (index === pageIndex) {
               return {
                 ...page,
@@ -151,6 +156,8 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
             }
             return page
           })
+          // 只在文件上传失败时更新状态
+          onConfluenceListUpdate(currentPageList)
         }
       }
 
