@@ -45,10 +45,30 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
       const formData = new FormData()
       formData.append('file', fileItem.file)
 
+      const onProgress = (e: ProgressEvent) => {
+        if (e.lengthComputable) {
+          const percent = Math.floor((e.loaded / e.total) * 100)
+          console.log(`File ${fileItem.file.name} progress: ${percent}%`)
+          const updatedPageList = pageList.map((page, index) => {
+            if (index === pageIndex) {
+              return {
+                ...page,
+                children: page.children.map(child =>
+                  child.fileID === fileItem.fileID ? { ...child, progress: percent } : child,
+                ),
+              }
+            }
+            return page
+          })
+          onConfluenceListUpdate(updatedPageList)
+        }
+      }
+
       return upload(
         {
           xhr: new XMLHttpRequest(),
           data: formData,
+          onprogress: onProgress,
         },
         false,
         undefined,
@@ -57,7 +77,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
         .then((res: File) => {
           const updatedFileItem = {
             ...fileItem,
-            progress: 100, // 直接设置为 100
+            progress: 100,
             file: res,
           }
           const updatedPageList = pageList.map((page, index) => {
@@ -99,7 +119,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
   // 批量上传文件
   const uploadBatchFiles = useCallback(
     async (fileItems: FileItem[], pageList: ConfluencePage[], pageIndex: number) => {
-      // 设置所有文件的初始进度为 100
+      // 设置所有文件的初始进度为 0
       let currentPageList = pageList.map((page, index) => {
         if (index === pageIndex) {
           return {
@@ -107,7 +127,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
             children: page.children.map((child) => {
               const fileItemToUpdate = fileItems.find(file => file.fileID === child.fileID)
               if (fileItemToUpdate)
-                return { ...child, progress: 100 } // 直接设置为 100
+                return { ...child, progress: 0 }
               return child
             }),
           }
@@ -116,7 +136,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
       })
       onConfluenceListUpdate(currentPageList)
 
-      // 逐个上传文件
+      // 逐个上传文件并更新进度
       for (const fileItem of fileItems) {
         try {
           const updatedFileItem = await fileUpload(fileItem, currentPageList, pageIndex)
@@ -161,7 +181,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
   // 分批次上传文件
   const uploadMultipleFiles = useCallback(
     async (fileItems: FileItem[], pageList: ConfluencePage[], pageIndex: number) => {
-      const BATCH_COUNT_LIMIT = 3 // 每批次上传的文件数量
+      const BATCH_COUNT_LIMIT = 1 // 每批次上传的文件数量
       const length = fileItems.length
       let start = 0
 
@@ -240,7 +260,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
                   ...files.map(file => ({
                     fileID: uuid4(),
                     file: new File([file.content], `${file.name}.txt`, { type: 'text/plain' }),
-                    progress: 100, // 直接设置为 100
+                    progress: 0,
                   })),
                 ],
               }
@@ -256,7 +276,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
             children: files.map(file => ({
               fileID: uuid4(),
               file: new File([file.content], `${file.name}.txt`, { type: 'text/plain' }),
-              progress: 100, // 直接设置为 100
+              progress: 0,
             })),
           }
           updatedPageList = [...confluencePageList, newPage]
