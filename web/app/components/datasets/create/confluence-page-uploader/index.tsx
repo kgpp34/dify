@@ -21,6 +21,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
   const { notify } = useContext(ToastContext)
   const [urls, setUrls] = useState<string[]>([]) // 存储用户输入的URLs
   const [inputValue, setInputValue] = useState('') // 输入框的值
+  const [updatedPageList, setUpdatedPageList] = useState<ConfluencePage[]>(confluencePageList) // 显式定义类型
 
   useEffect(() => {
     console.log('confluencePageList updated:', confluencePageList)
@@ -41,7 +42,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
 
   // 单个文件上传逻辑
   const fileUpload = useCallback(
-    async (fileItem: FileItem, pageList: ConfluencePage[], pageIndex: number): Promise<FileItem> => {
+    async (fileItem: FileItem, pageList: ConfluencePage[], pageIndex: number): Promise<ConfluencePage[]> => {
       const formData = new FormData()
       formData.append('file', fileItem.file)
 
@@ -60,7 +61,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
             }
             return page
           })
-          onConfluenceListUpdate(updatedPageList)
+          setUpdatedPageList(updatedPageList) // 更新状态
         }
       }
 
@@ -91,8 +92,8 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
             }
             return page
           })
-          onConfluenceListUpdate(updatedPageList)
-          return Promise.resolve(updatedFileItem)
+          setUpdatedPageList(updatedPageList) // 更新状态
+          return Promise.resolve(updatedPageList)
         })
         .catch((err) => {
           notify({ type: 'error', message: 'File upload failed' })
@@ -109,17 +110,17 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
             }
             return page
           })
-          onConfluenceListUpdate(updatedPageList)
-          return Promise.resolve(updatedFileItem)
+          setUpdatedPageList(updatedPageList) // 更新状态
+          return Promise.resolve(updatedPageList)
         })
     },
-    [notify, onConfluenceListUpdate],
+    [notify],
   )
 
   // 删除文件
   const removeFile = useCallback(
     (fileID: string, pageIndex: number) => {
-      const updatedPageList = confluencePageList.map((page, index) =>
+      const newPageList = updatedPageList.map((page, index) =>
         index === pageIndex
           ? {
             ...page,
@@ -127,9 +128,10 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
           }
           : page,
       )
-      onConfluenceListUpdate(updatedPageList) // 触发页面列表变化回调
+      setUpdatedPageList(newPageList) // 更新状态
+      onConfluenceListUpdate(newPageList) // 触发页面列表变化回调
     },
-    [confluencePageList, onConfluenceListUpdate],
+    [updatedPageList, onConfluenceListUpdate],
   )
 
   // 处理 Confluence URL 输入
@@ -167,12 +169,12 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
         }
 
         // 检查是否已经存在该页面
-        const existingPageIndex = confluencePageList.findIndex(page => page.pageId === pageId)
-        let updatedPageList: ConfluencePage[]
+        const existingPageIndex = updatedPageList.findIndex(page => page.pageId === pageId)
+        let newPageList: ConfluencePage[]
 
         if (existingPageIndex !== -1) {
           // 如果页面已存在，更新该页面的文件列表
-          updatedPageList = confluencePageList.map((page, index) =>
+          newPageList = updatedPageList.map((page, index) =>
             index === existingPageIndex
               ? {
                 ...page,
@@ -200,15 +202,19 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
               progress: 0,
             })),
           }
-          updatedPageList = [...confluencePageList, newPage]
+          newPageList = [...updatedPageList, newPage]
         }
 
         // 更新页面列表
-        onConfluenceListUpdate(updatedPageList)
+        setUpdatedPageList(newPageList)
+        onConfluenceListUpdate(newPageList)
 
         // 逐个上传文件
-        for (const fileItem of updatedPageList[existingPageIndex !== -1 ? existingPageIndex : updatedPageList.length - 1].children)
-          await fileUpload(fileItem, updatedPageList, existingPageIndex !== -1 ? existingPageIndex : updatedPageList.length - 1)
+        let currentPageList = newPageList
+        for (const fileItem of currentPageList[existingPageIndex !== -1 ? existingPageIndex : currentPageList.length - 1].children) {
+          currentPageList = await fileUpload(fileItem, currentPageList, existingPageIndex !== -1 ? existingPageIndex : currentPageList.length - 1)
+          setUpdatedPageList(currentPageList) // 更新状态
+        }
       }
       catch (err) {
         setError('Error converting Confluence page to Markdown')
@@ -218,7 +224,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
         setLoading(false)
       }
     },
-    [confluencePageList, notify, onConfluenceListUpdate, fileUpload],
+    [updatedPageList, notify, onConfluenceListUpdate, fileUpload],
   )
 
   // 处理输入框变化
@@ -271,7 +277,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
 
       {/* 文件列表 */}
       <div className={s.fileList}>
-        {confluencePageList.map((page, pageIndex) => (
+        {updatedPageList.map((page, pageIndex) => (
           <div key={page.pageId} className={s.pageContainer}>
             <div className={s.fileList}>
               {page.children.map(fileItem => (
