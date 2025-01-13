@@ -116,85 +116,6 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
     [notify, onConfluenceListUpdate],
   )
 
-  // 批量上传文件
-  const uploadBatchFiles = useCallback(
-    async (fileItems: FileItem[], pageList: ConfluencePage[], pageIndex: number) => {
-      // 设置所有文件的初始进度为 0
-      let currentPageList = pageList.map((page, index) => {
-        if (index === pageIndex) {
-          return {
-            ...page,
-            children: page.children.map((child) => {
-              const fileItemToUpdate = fileItems.find(file => file.fileID === child.fileID)
-              if (fileItemToUpdate)
-                return { ...child, progress: 0 }
-              return child
-            }),
-          }
-        }
-        return page
-      })
-      onConfluenceListUpdate(currentPageList)
-
-      // 逐个上传文件并更新进度
-      for (const fileItem of fileItems) {
-        try {
-          const updatedFileItem = await fileUpload(fileItem, currentPageList, pageIndex)
-
-          // 更新当前状态以供下一个文件上传使用
-          currentPageList = currentPageList.map((page, index) => {
-            if (index === pageIndex) {
-              return {
-                ...page,
-                children: page.children.map(child =>
-                  child.fileID === fileItem.fileID ? updatedFileItem : child,
-                ),
-              }
-            }
-            return page
-          })
-          onConfluenceListUpdate(currentPageList)
-        }
-        catch (error) {
-          console.error(`Failed to upload file ${fileItem.file.name}:`, error)
-          // 更新失败状态
-          currentPageList = currentPageList.map((page, index) => {
-            if (index === pageIndex) {
-              return {
-                ...page,
-                children: page.children.map(child =>
-                  child.fileID === fileItem.fileID ? { ...child, progress: -2 } : child,
-                ),
-              }
-            }
-            return page
-          })
-          onConfluenceListUpdate(currentPageList)
-        }
-      }
-
-      return currentPageList
-    },
-    [fileUpload, onConfluenceListUpdate],
-  )
-
-  // 分批次上传文件
-  const uploadMultipleFiles = useCallback(
-    async (fileItems: FileItem[], pageList: ConfluencePage[], pageIndex: number) => {
-      const BATCH_COUNT_LIMIT = 1 // 每批次上传的文件数量
-      const length = fileItems.length
-      let start = 0
-
-      while (start < length) {
-        const end = Math.min(start + BATCH_COUNT_LIMIT, length)
-        const batchFiles = fileItems.slice(start, end)
-        await uploadBatchFiles(batchFiles, pageList, pageIndex)
-        start = end
-      }
-    },
-    [uploadBatchFiles],
-  )
-
   // 删除文件
   const removeFile = useCallback(
     (fileID: string, pageIndex: number) => {
@@ -285,12 +206,9 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
         // 更新页面列表
         onConfluenceListUpdate(updatedPageList)
 
-        // 分批次上传文件
-        await uploadMultipleFiles(
-          updatedPageList[existingPageIndex !== -1 ? existingPageIndex : updatedPageList.length - 1].children,
-          updatedPageList,
-          existingPageIndex !== -1 ? existingPageIndex : updatedPageList.length - 1,
-        )
+        // 逐个上传文件
+        for (const fileItem of updatedPageList[existingPageIndex !== -1 ? existingPageIndex : updatedPageList.length - 1].children)
+          await fileUpload(fileItem, updatedPageList, existingPageIndex !== -1 ? existingPageIndex : updatedPageList.length - 1)
       }
       catch (err) {
         setError('Error converting Confluence page to Markdown')
@@ -300,7 +218,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
         setLoading(false)
       }
     },
-    [confluencePageList, notify, onConfluenceListUpdate, uploadMultipleFiles],
+    [confluencePageList, notify, onConfluenceListUpdate, fileUpload],
   )
 
   // 处理输入框变化
