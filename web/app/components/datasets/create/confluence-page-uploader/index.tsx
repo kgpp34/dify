@@ -109,15 +109,16 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
   // 批量上传文件
   const uploadBatchFiles = useCallback(
     async (fileItems: FileItem[], pageList: ConfluencePage[], pageIndex: number) => {
-      // 初始化进度为0
+      // 初始化进度为0（仅针对未初始化的文件）
       let currentPageList = pageList.map((page, index) => {
         if (index === pageIndex) {
           return {
             ...page,
             children: page.children.map((child) => {
               const fileItemToUpdate = fileItems.find(file => file.fileID === child.fileID)
-              if (fileItemToUpdate && child.progress === undefined) // 只有未初始化的文件才设置progress为0
-                return { ...child, progress: 0 }
+              if (fileItemToUpdate && child.progress === undefined)
+                return { ...child, progress: 0 } // 只有未初始化的文件才设置progress为0
+
               return child
             }),
           }
@@ -129,7 +130,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
       for (const fileItem of fileItems) {
         try {
           const updatedFileItem = await fileUpload(fileItem, pageIndex)
-          currentPageList = pageListRef.current.map((page, index) => {
+          currentPageList = currentPageList.map((page, index) => {
             if (index === pageIndex) {
               return {
                 ...page,
@@ -145,7 +146,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
         }
         catch (error) {
           console.error(`Failed to upload file ${fileItem.file.name}:`, error)
-          currentPageList = pageListRef.current.map((page, index) => {
+          currentPageList = currentPageList.map((page, index) => {
             if (index === pageIndex) {
               return {
                 ...page,
