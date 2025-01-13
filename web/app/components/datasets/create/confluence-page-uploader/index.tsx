@@ -119,8 +119,8 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
   // 批量上传文件
   const uploadBatchFiles = useCallback(
     async (fileItems: FileItem[], pageList: ConfluencePage[], pageIndex: number) => {
-      // 设置所有文件的初始进度为 0
-      let currentPageList = pageList.map((page, index) => {
+      // Create a mutable copy of the page list that we'll update throughout the process
+      let updatedPageList = pageList.map((page, index) => {
         if (index === pageIndex) {
           return {
             ...page,
@@ -134,15 +134,18 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
         }
         return page
       })
-      onConfluenceListUpdate(currentPageList)
 
-      // 逐个上传文件并更新进度
+      // Initial update with 0 progress
+      onConfluenceListUpdate(updatedPageList)
+
+      // Upload files sequentially and maintain the latest state
       for (const fileItem of fileItems) {
         try {
-          const updatedFileItem = await fileUpload(fileItem, currentPageList, pageIndex)
+          // Pass the latest state to fileUpload
+          const updatedFileItem = await fileUpload(fileItem, updatedPageList, pageIndex)
 
-          // 更新当前状态以供下一个文件上传使用
-          currentPageList = currentPageList.map((page, index) => {
+          // Update our local copy with the latest state
+          updatedPageList = updatedPageList.map((page, index) => {
             if (index === pageIndex) {
               return {
                 ...page,
@@ -153,12 +156,15 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
             }
             return page
           })
-          onConfluenceListUpdate(currentPageList)
+
+          // Update the UI with the latest state
+          onConfluenceListUpdate(updatedPageList)
         }
         catch (error) {
           console.error(`Failed to upload file ${fileItem.file.name}:`, error)
-          // 更新失败状态
-          currentPageList = currentPageList.map((page, index) => {
+
+          // Update our local copy with the error state
+          updatedPageList = updatedPageList.map((page, index) => {
             if (index === pageIndex) {
               return {
                 ...page,
@@ -169,11 +175,13 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
             }
             return page
           })
-          onConfluenceListUpdate(currentPageList)
+
+          // Update the UI with the error state
+          onConfluenceListUpdate(updatedPageList)
         }
       }
 
-      return currentPageList
+      return updatedPageList
     },
     [fileUpload, onConfluenceListUpdate],
   )
