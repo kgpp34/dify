@@ -951,7 +951,9 @@ const StepTwo = ({
                     <div className='flex items-center text-sm leading-6 font-medium text-gray-800'>
                       <span className={cn(s.fileIcon, confluencePages.length)} />
                       {/* 显示第一个 FileItem 的 fileID */}
-                      {confluencePages[0].children[0]?.fileID || 'No File ID'}
+                      {confluencePages.length > 0 && confluencePages[0].children.length > 0 && confluencePages[0].children[0]?.fileID
+                        ? confluencePages[0].children[0].fileID
+                        : 'No File ID'}
                       {/* 显示剩余 children 的数量 */}
                       {confluencePages.length > 1 && (
                         <span className={s.sourceCount}>

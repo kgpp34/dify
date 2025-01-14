@@ -87,8 +87,11 @@ const DatasetUpdateForm = ({ datasetId }: DatasetUpdateFormProps) => {
   }
 
   const nextStep = useCallback(() => {
-    setStep(step + 1)
-  }, [step, setStep])
+    if (step === 1 && confluencePages.length > 0) {
+      setDataSourceType(DataSourceType.CONFLUENCE);
+    }
+    setStep(step + 1);
+  }, [step, setStep, confluencePages.length]); // 添加 confluencePages.length
 
   const changeStep = useCallback((delta: number) => {
     setStep(step + delta)
