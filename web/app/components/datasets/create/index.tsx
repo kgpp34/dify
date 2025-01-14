@@ -52,6 +52,9 @@ const DatasetUpdateForm = ({ datasetId }: DatasetUpdateFormProps) => {
   const [confluencePages, setConfluencePages] = useState<ConfluencePage[]>([]) // 新增：管理 Confluence 页面
   const updateConfluencePages = (value: ConfluencePage[]) => {
     setConfluencePages(value)
+    if (value.length > 0) {
+      setDataSourceType(DataSourceType.CONFLUENCE);
+    }
   }
 
   const updateFileList = (preparedFiles: FileItem[]) => {
