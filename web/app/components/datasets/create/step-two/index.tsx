@@ -95,7 +95,7 @@ const StepTwo = ({
   datasetId,
   indexingType,
   dataSourceType: inCreatePageDataSourceType,
-  files,
+  files = [],
   notionPages = [],
   websitePages = [],
   confluencePages = [],
@@ -115,7 +115,7 @@ const StepTwo = ({
 
   const { dataset: currentDataset, mutateDatasetRes } = useDatasetDetailContext()
   const isInCreatePage = !datasetId || (datasetId && !currentDataset?.data_source_type)
-  const dataSourceType = isInCreatePage ? inCreatePageDataSourceType : currentDataset?.data_source_type
+  const dataSourceType = isInCreatePage ? inCreatePageDataSourceType : confluencePages.length > 0 && files.length === 0 ? DataSourceType.CONFLUENCE : currentDataset?.data_source_type
 
   console.log('StepTwo inCreatePageDataSourceType:', inCreatePageDataSourceType)
   console.log('StepTwo files:', files)
