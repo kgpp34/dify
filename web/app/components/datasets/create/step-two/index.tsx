@@ -117,7 +117,10 @@ const StepTwo = ({
   const isInCreatePage = !datasetId || (datasetId && !currentDataset?.data_source_type)
   const dataSourceType = isInCreatePage ? inCreatePageDataSourceType : currentDataset?.data_source_type
 
- 
+  console.log('StepTwo inCreatePageDataSourceType:', inCreatePageDataSourceType)
+  console.log('StepTwo files:', files)
+  console.log('StepTwo confluencePages:', confluencePages)
+  console.log('StepTwo datasourceType:', dataSourceType)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const [scrolled, setScrolled] = useState(false)
