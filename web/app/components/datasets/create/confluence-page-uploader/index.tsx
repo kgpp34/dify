@@ -21,6 +21,7 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
   const { notify } = useContext(ToastContext)
   const [urls, setUrls] = useState<string[]>([])
   const [inputValue, setInputValue] = useState('')
+  const uploadTracker = useRef(new Map<string, number>())
 
   // 创建一个 ref 来保存最新的 confluencePageList
   const confluencePageListRef = useRef(confluencePageList)
@@ -47,21 +48,23 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
       const formData = new FormData()
       formData.append('file', fileItem.file)
 
+      // Initialize progress for this file
+      uploadTracker.current.set(fileItem.fileID, 0)
+
       const onProgress = (e: ProgressEvent) => {
         if (e.lengthComputable) {
           const percent = Math.floor((e.loaded / e.total) * 100)
-          console.log(`File ${fileItem.file.name} progress: ${percent}%`)
+          uploadTracker.current.set(fileItem.fileID, percent)
 
-          // 使用 ref 中的最新 confluencePageList
+          // Create a new page list with updated progress for all files
           const updatedPageList = confluencePageListRef.current.map((page, idx) =>
             idx === pageIndex
               ? {
                 ...page,
-                children: page.children.map(child =>
-                  child.fileID === fileItem.fileID
-                    ? { ...child, progress: percent }
-                    : child,
-                ),
+                children: page.children.map(child => ({
+                  ...child,
+                  progress: uploadTracker.current.get(child.fileID) ?? child.progress,
+                })),
               }
               : page,
           )
@@ -80,21 +83,17 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
         '?source=datasets',
       )
         .then((response) => {
-          const updatedFileItem = {
-            ...fileItem,
-            progress: 100,
-            file: response,
-          }
+          uploadTracker.current.set(fileItem.fileID, 100)
 
           const updatedPageList = confluencePageListRef.current.map((page, idx) =>
             idx === pageIndex
               ? {
                 ...page,
-                children: page.children.map(child =>
-                  child.fileID === fileItem.fileID
-                    ? updatedFileItem
-                    : child,
-                ),
+                children: page.children.map(child => ({
+                  ...child,
+                  progress: uploadTracker.current.get(child.fileID) ?? child.progress,
+                  ...(child.fileID === fileItem.fileID ? { file: response } : {}),
+                })),
               }
               : page,
           )
@@ -104,16 +103,15 @@ const ConfluencePageUploader: React.FC<ConfluencePageUploaderProps> = ({
           console.error(err)
           notify({ type: 'error', message: 'File upload failed' })
 
-          const updatedFileItem = { ...fileItem, progress: -2 }
+          uploadTracker.current.set(fileItem.fileID, -2)
           const updatedPageList = confluencePageListRef.current.map((page, idx) =>
             idx === pageIndex
               ? {
                 ...page,
-                children: page.children.map(child =>
-                  child.fileID === fileItem.fileID
-                    ? updatedFileItem
-                    : child,
-                ),
+                children: page.children.map(child => ({
+                  ...child,
+                  progress: uploadTracker.current.get(child.fileID) ?? child.progress,
+                })),
               }
               : page,
           )
