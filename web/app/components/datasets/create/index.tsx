@@ -91,7 +91,7 @@ const DatasetUpdateForm = ({ datasetId }: DatasetUpdateFormProps) => {
       setDataSourceType(DataSourceType.CONFLUENCE)
 
     setStep(step + 1)
-  }, [step, setStep, confluencePages.length])// 添加 confluencePages.length
+  }, [step, setStep])// 添加 confluencePages.length
 
   const changeStep = useCallback((delta: number) => {
     setStep(step + delta)
