@@ -1,7 +1,10 @@
 """Abstract interface for document loader implementations."""
 
+from typing import Any, Optional
+
 from core.rag.index_processor.constant.index_type import IndexType
 from core.rag.index_processor.index_processor_base import BaseIndexProcessor
+from core.rag.index_processor.processor.custom_index_processor import CustomParagraphIndexProcessor
 from core.rag.index_processor.processor.paragraph_index_processor import ParagraphIndexProcessor
 from core.rag.index_processor.processor.parent_child_index_processor import ParentChildIndexProcessor
 from core.rag.index_processor.processor.qa_index_processor import QAIndexProcessor
@@ -10,8 +13,18 @@ from core.rag.index_processor.processor.qa_index_processor import QAIndexProcess
 class IndexProcessorFactory:
     """IndexProcessorInit."""
 
-    def __init__(self, index_type: str | None):
+    def __init__(self, index_type: str | None, config_options: Optional[dict[str, Any]] = None):
+        """
+        初始化索引处理器工厂。
+
+        Args:
+            index_type: 索引类型
+            config_options: 配置选项，可包含如下字段：
+                - server_address: 自定义处理器服务地址（用于CustomIndexProcessor）
+                - request_timeout: 请求超时时间（用于CustomIndexProcessor）
+        """
         self._index_type = index_type
+        self._config_options = config_options or {}
 
     def init_index_processor(self) -> BaseIndexProcessor:
         """Init index processor."""
@@ -25,5 +38,14 @@ class IndexProcessorFactory:
             return QAIndexProcessor()
         elif self._index_type == IndexType.PARENT_CHILD_INDEX:
             return ParentChildIndexProcessor()
+        elif self._index_type == IndexType.CUSTOM_PARAGRAPH_INDEX:
+            server_address = self._config_options.get("server_address")
+            if not server_address:
+                raise ValueError("Server address must be specified for custom paragraph index processor.")
+
+            return CustomParagraphIndexProcessor(
+                server_address=server_address,
+                request_timeout=self._config_options.get("request_timeout", 30),
+            )
         else:
             raise ValueError(f"Index type {self._index_type} is not supported.")

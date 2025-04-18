@@ -214,3 +214,55 @@ class FileService:
         generator = storage.load(upload_file.key)
 
         return generator, upload_file.mime_type
+
+    @staticmethod
+    def get_unused_files_by_tenant_and_user(tenant_id: str, user_id: str):
+        """
+        获取指定租户和用户创建的未使用文件列表
+
+        Args:
+            tenant_id: 租户ID
+            user_id: 用户ID
+
+        Returns:
+            未使用的文件列表
+        """
+        unused_files = (
+            db.session.query(UploadFile)
+            .filter(UploadFile.tenant_id == tenant_id, UploadFile.created_by == user_id, UploadFile.used == False)
+            .all()
+        )
+
+        return unused_files
+
+    @staticmethod
+    def delete_file(file_id: str):
+        """
+        删除指定 ID 的文件记录及其在存储中的文件。
+
+        Args:
+            file_id: 要删除的文件 ID
+
+        Raises:
+            NotFound: 如果文件未找到
+            ValueError: 如果文件已被使用
+        """
+        upload_file = db.session.query(UploadFile).filter(UploadFile.id == file_id).first()
+
+        if not upload_file:
+            raise NotFound("File not found")
+
+        # 检查文件是否已被使用
+        if upload_file.used:
+            raise ValueError("Cannot delete file that is in use")
+
+        # 从存储中删除文件
+        try:
+            storage.delete(upload_file.key)
+        except Exception as e:
+            # 最好记录日志，但即使存储删除失败，也继续删除数据库记录
+            print(f"Error deleting file from storage {upload_file.key}: {e}")
+
+        # 从数据库中删除记录
+        db.session.delete(upload_file)
+        db.session.commit()

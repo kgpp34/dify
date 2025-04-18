@@ -25,6 +25,10 @@ const translation = {
     apiKeyPlaceholder: '从 jina.ai 获取 API Key',
     getApiKeyLinkText: '从 jina.ai 获取您的免费 API Key',
   },
+  unusedFiles: {
+    title: '未使用文件提醒',
+    message: '您有 {{count}} 个上传的文件尚未使用，请确认是否需要添加到数据集中。',
+  },
   stepOne: {
     filePreview: '文件预览',
     pagePreview: '页面预览',
@@ -104,6 +108,15 @@ const translation = {
   },
   stepTwo: {
     segmentation: '分段设置',
+    segmentationType: {
+      builtIn: '内置分段设置',
+      custom: '外置分段设置',
+    },
+    customTextModel: {
+      apiEndpoint: '用户外置分段策略API',
+      apiEndpointPlaceholder: '请输入API地址',
+      apiEndpointTip: '请输入完整的分段策略API地址，API需要返回分段后的文本数组',
+    },
     auto: '自动分段与清洗',
     autoDescription: '自动设置分段规则与预处理规则，如果不了解这些参数建议选择此项',
     custom: '自定义',
@@ -129,7 +142,7 @@ const translation = {
     rules: '文本预处理规则',
     removeExtraSpaces: '替换掉连续的空格、换行符和制表符',
     removeUrlEmails: '删除所有 URL 和电子邮件地址',
-    removeStopwords: '去除停用词，例如 “a”，“an”，“the” 等',
+    removeStopwords: '去除停用词，例如 "a"，"an"，"the" 等',
     preview: '预览',
     previewChunk: '预览块',
     reset: '重置',
@@ -175,7 +188,7 @@ const translation = {
     indexSettingTip: '要更改索引方法和 embedding 模型，请转到',
     retrievalSettingTip: '要更改检索方法，请转到',
     datasetSettingLink: '知识库设置。',
-    previewChunkTip: '点击左侧的“预览块”按钮来加载预览',
+    previewChunkTip: '点击左侧的"预览块"按钮来加载预览',
     previewChunkCount: '{{count}} 预估块',
     switch: '切换',
     qaSwitchHighQualityTipTitle: 'Q&A 格式需要高质量的索引方法',

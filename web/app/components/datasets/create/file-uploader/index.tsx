@@ -221,8 +221,9 @@ const FileUploader = ({
     if (fileUploader.current)
       fileUploader.current.value = ''
 
-    fileListRef.current = fileListRef.current.filter(item => item.fileID !== fileID)
-    onFileListUpdate?.([...fileListRef.current])
+    const updatedFileList = fileListRef.current.filter(item => item.fileID !== fileID)
+    fileListRef.current = updatedFileList
+    onFileListUpdate?.(updatedFileList)
   }
   const fileChangeHandle = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = [...(e.target.files ?? [])] as File[]
@@ -232,6 +233,10 @@ const FileUploader = ({
   const { theme } = useTheme()
   const chartColor = useMemo(() => theme === Theme.dark ? '#5289ff' : '#296dff', [theme])
 
+  // Sync fileListRef with props.fileList when it changes
+  useEffect(() => {
+    fileListRef.current = [...fileList]
+  }, [fileList])
   useEffect(() => {
     dropRef.current?.addEventListener('dragenter', handleDragEnter)
     dropRef.current?.addEventListener('dragover', handleDragOver)

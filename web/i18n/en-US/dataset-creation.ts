@@ -20,6 +20,10 @@ const translation = {
     apiKeyPlaceholder: 'API key from watercrawl.dev',
     getApiKeyLinkText: 'Get your API key from watercrawl.dev',
   },
+  unusedFiles: {
+    title: 'Unused Files Reminder',
+    message: 'You have {{count}} uploaded files that are not being used. Please confirm if you need to add them to the dataset.',
+  },
   jinaReader: {
     configJinaReader: 'Configure Jina Reader',
     apiKeyPlaceholder: 'API key from jina.ai',
