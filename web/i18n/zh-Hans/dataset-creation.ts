@@ -51,6 +51,8 @@ const translation = {
       cancel: '取消',
       change: '更改文件',
       failed: '上传失败',
+      deleteError: '删除失败',
+      deleteSuccess: '删除成功',
     },
     notionSyncTitle: 'Notion 未绑定',
     notionSyncTip: '同步 Notion 内容前，须先绑定 Notion 空间',

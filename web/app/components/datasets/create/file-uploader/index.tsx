@@ -12,7 +12,7 @@ import SimplePieChart from '@/app/components/base/simple-pie-chart'
 
 import { upload } from '@/service/base'
 import { fetchFileUploadConfig } from '@/service/common'
-import { fetchSupportFileTypes } from '@/service/datasets'
+import { deleteFile, fetchSupportFileTypes } from '@/service/datasets'
 import I18n from '@/context/i18n'
 import { LanguagesSupported } from '@/i18n/language'
 import { IS_CE_EDITION } from '@/config'
@@ -217,13 +217,35 @@ const FileUploader = ({
       fileUploader.current.click()
   }
 
-  const removeFile = (fileID: string) => {
+  const removeFile = async (fileID: string) => {
     if (fileUploader.current)
       fileUploader.current.value = ''
 
-    const updatedFileList = fileListRef.current.filter(item => item.fileID !== fileID)
-    fileListRef.current = updatedFileList
-    onFileListUpdate?.(updatedFileList)
+    try {
+      // 查找文件项
+      const fileItem = fileListRef.current.find(item => item.fileID === fileID)
+      // 如果文件已上传到服务器（有id），则调用删除接口
+      if (fileItem?.file?.id) {
+        await deleteFile(fileItem.file.id)
+        // 删除成功后通知用户
+        notify({
+          type: 'success',
+          message: t('datasetCreation.stepOne.uploader.deleteSuccess', { fileName: fileItem.file.name }),
+          duration: 1000,
+        })
+      }
+      // 更新本地文件列表
+      const updatedFileList = fileListRef.current.filter(item => item.fileID !== fileID)
+      fileListRef.current = updatedFileList
+      onFileListUpdate?.(updatedFileList)
+    }
+    catch (error) {
+      notify({
+        type: 'error',
+        message: t('datasetCreation.stepOne.uploader.deleteError'),
+      })
+      console.error('删除文件失败:', error)
+    }
   }
   const fileChangeHandle = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = [...(e.target.files ?? [])] as File[]

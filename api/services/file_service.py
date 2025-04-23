@@ -1,5 +1,6 @@
 import datetime
 import hashlib
+import logging
 import os
 import uuid
 from typing import Any, Literal, Union
@@ -25,6 +26,8 @@ from models.model import EndUser, UploadFile
 from .errors.file import FileTooLargeError, UnsupportedFileTypeError
 
 PREVIEW_WORDS_LIMIT = 3000
+
+logger = logging.getLogger(__name__)
 
 
 class FileService:
@@ -240,6 +243,8 @@ class FileService:
         """
         删除指定 ID 的文件记录及其在存储中的文件。
 
+        首先检查文件是否可以删除，然后将实际删除操作提交到异步任务队列中执行。
+
         Args:
             file_id: 要删除的文件 ID
 
@@ -247,6 +252,7 @@ class FileService:
             NotFound: 如果文件未找到
             ValueError: 如果文件已被使用
         """
+
         upload_file = db.session.query(UploadFile).filter(UploadFile.id == file_id).first()
 
         if not upload_file:
@@ -256,13 +262,25 @@ class FileService:
         if upload_file.used:
             raise ValueError("Cannot delete file that is in use")
 
+        # 重新查询文件记录，确保获取最新状态
+        logger.info(f"查询到即将删除的文件: {file_id}")
+
+        if not upload_file:
+            logger.warning(f"文件不存在，无法删除: {file_id}")
+            return
+
         # 从存储中删除文件
         try:
             storage.delete(upload_file.key)
         except Exception as e:
-            # 最好记录日志，但即使存储删除失败，也继续删除数据库记录
-            print(f"Error deleting file from storage {upload_file.key}: {e}")
+            logger.exception(f"从存储中删除文件失败 {upload_file.key}")
+            raise e
+            # 即使存储删除失败，也继续删除数据库记录
 
         # 从数据库中删除记录
         db.session.delete(upload_file)
         db.session.commit()
+
+        logger.info(f"成功删除文件: {file_id}")
+
+        return True

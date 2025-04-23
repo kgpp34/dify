@@ -292,3 +292,8 @@ export const retryErrorDocs: Fetcher<CommonResponse, { datasetId: string; docume
 export const fetchUnusedFiles = () => {
   return get<any>('files/unused')
 }
+
+// 删除文件
+export const deleteFile = (fileId: string) => {
+  return del<CommonResponse>(`files/${fileId}`)
+}

@@ -51,6 +51,8 @@ const translation = {
       cancel: 'Cancel',
       change: 'Change',
       failed: 'Upload failed',
+      deleteError: 'Delete failed',
+      deleteSuccess: 'Delete successfully',
     },
     notionSyncTitle: 'Notion is not connected',
     notionSyncTip: 'To sync with Notion, connection to Notion must be established first.',
