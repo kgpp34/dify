@@ -5,7 +5,7 @@ from werkzeug.exceptions import Forbidden
 import services
 from controllers.files.error import UnsupportedFileTypeError
 from controllers.inner_api.plugin.wraps import get_user
-from controllers.remote_api import api  # 这里导入的api需要有明确的类型
+from controllers.remote_api import api
 from controllers.service_api.app.error import FileTooLargeError
 from fields.file_fields import file_fields
 from services.file_service import FileService
