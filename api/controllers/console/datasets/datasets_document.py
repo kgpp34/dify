@@ -12,6 +12,7 @@ from werkzeug.exceptions import Forbidden, NotFound
 import services
 from controllers.console import api
 from controllers.console.app.error import (
+    FileMarkError,
     ProviderModelCurrentlyNotSupportError,
     ProviderNotInitializeError,
     ProviderQuotaExceededError,
@@ -137,6 +138,23 @@ class GetProcessRuleApi(Resource):
                 rules = dataset_process_rule.rules_dict
 
         return {"mode": mode, "rules": rules, "limits": limits}
+
+
+def mark_file_used(args):
+    if args["info_list"]["data_source_type"] == "upload_file":
+        file_ids = args["info_list"]["file_info_list"]["file_ids"]
+        file_details = (
+            db.session.query(UploadFile)
+            .filter(UploadFile.tenant_id == current_user.current_tenant_id, UploadFile.id.in_(file_ids))
+            .all()
+        )
+
+        # mark file used
+        for file in file_details:
+            file.used = True
+            file.used_at = datetime.now(UTC).replace(tzinfo=None)
+
+        db.session.commit()
 
 
 class DatasetDocumentListApi(Resource):
@@ -294,6 +312,12 @@ class DatasetDocumentListApi(Resource):
         except ModelCurrentlyNotSupportError:
             raise ProviderModelCurrentlyNotSupportError()
 
+        try:
+            mark_file_used(args)
+        except Exception:
+            logging.exception("mark file used error")
+            raise FileMarkError()
+
         return {"documents": documents, "batch": batch}
 
     @setup_required
@@ -384,6 +408,12 @@ class DatasetInitApi(Resource):
             raise ProviderQuotaExceededError()
         except ModelCurrentlyNotSupportError:
             raise ProviderModelCurrentlyNotSupportError()
+
+        try:
+            mark_file_used(args)
+        except Exception:
+            logging.exception("mark file used error")
+            raise FileMarkError()
 
         response = {"dataset": dataset, "documents": documents, "batch": batch}
 
@@ -477,7 +507,8 @@ class DocumentBatchIndexingEstimateApi(DocumentResource):
                 info_list.append(file_id)
             # format document notion info
             elif (
-                data_source_info and "notion_workspace_id" in data_source_info and "notion_page_id" in data_source_info
+                    data_source_info and "notion_workspace_id"
+                    in data_source_info and "notion_page_id" in data_source_info
             ):
                 pages = []
                 page = {"page_id": data_source_info["notion_page_id"], "type": data_source_info["type"]}
