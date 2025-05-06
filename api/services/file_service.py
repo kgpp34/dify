@@ -239,6 +239,21 @@ class FileService:
         return unused_files
 
     @staticmethod
+    def mark_file_used(file_ids: list[str]):
+        if file_ids is not None and len(file_ids) > 0:
+            file_details = (
+                db.session.query(UploadFile)
+                .filter(UploadFile.tenant_id == current_user.current_tenant_id, UploadFile.id.in_(file_ids))
+                .all()
+            )
+
+            # mark file used
+            for file in file_details:
+                file.used = True
+
+            db.session.commit()
+
+    @staticmethod
     def delete_file(file_id: str):
         """
         删除指定 ID 的文件记录及其在存储中的文件。
