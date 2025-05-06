@@ -55,6 +55,7 @@ from libs.login import login_required
 from models import Dataset, DatasetProcessRule, Document, DocumentSegment, UploadFile
 from services.dataset_service import DatasetService, DocumentService
 from services.entities.knowledge_entities.knowledge_entities import KnowledgeConfig
+from services.file_service import FileService
 from tasks.add_document_to_index_task import add_document_to_index_task
 from tasks.remove_document_from_index_task import remove_document_from_index_task
 
@@ -138,23 +139,6 @@ class GetProcessRuleApi(Resource):
                 rules = dataset_process_rule.rules_dict
 
         return {"mode": mode, "rules": rules, "limits": limits}
-
-
-def mark_file_used(args):
-    if args["info_list"]["data_source_type"] == "upload_file":
-        file_ids = args["info_list"]["file_info_list"]["file_ids"]
-        file_details = (
-            db.session.query(UploadFile)
-            .filter(UploadFile.tenant_id == current_user.current_tenant_id, UploadFile.id.in_(file_ids))
-            .all()
-        )
-
-        # mark file used
-        for file in file_details:
-            file.used = True
-            file.used_at = datetime.now(UTC).replace(tzinfo=None)
-
-        db.session.commit()
 
 
 class DatasetDocumentListApi(Resource):
@@ -313,7 +297,26 @@ class DatasetDocumentListApi(Resource):
             raise ProviderModelCurrentlyNotSupportError()
 
         try:
-            mark_file_used(args)
+            # 检查是否存在必要的键
+            if "info_list" in args and isinstance(args["info_list"], dict):
+                info_list = args["info_list"]
+
+                # 检查数据源类型
+                if "data_source_type" in info_list and info_list["data_source_type"] == "upload_file":
+
+                    # 检查文件信息列表是否存在
+                    if "file_info_list" in info_list and isinstance(info_list["file_info_list"], dict):
+                        file_info_list = info_list["file_info_list"]
+
+                        # 检查文件ID列表是否存在
+                        if "file_ids" in file_info_list and isinstance(file_info_list["file_ids"], list) and \
+                                file_info_list["file_ids"]:
+                            # 标记文件为已使用
+                            FileService.mark_file_used(file_info_list["file_ids"])
+                        else:
+                            logging.warning("No valid file_ids found in file_info_list")
+                    else:
+                        logging.warning("No valid file_info_list found in info_list")
         except Exception:
             logging.exception("mark file used error")
             raise FileMarkError()
@@ -410,7 +413,26 @@ class DatasetInitApi(Resource):
             raise ProviderModelCurrentlyNotSupportError()
 
         try:
-            mark_file_used(args)
+            # 检查是否存在必要的键
+            if "info_list" in args and isinstance(args["info_list"], dict):
+                info_list = args["info_list"]
+
+                # 检查数据源类型
+                if "data_source_type" in info_list and info_list["data_source_type"] == "upload_file":
+
+                    # 检查文件信息列表是否存在
+                    if "file_info_list" in info_list and isinstance(info_list["file_info_list"], dict):
+                        file_info_list = info_list["file_info_list"]
+
+                        # 检查文件ID列表是否存在
+                        if "file_ids" in file_info_list and isinstance(file_info_list["file_ids"], list) and \
+                                file_info_list["file_ids"]:
+                            # 标记文件为已使用
+                            FileService.mark_file_used(file_info_list["file_ids"])
+                        else:
+                            logging.warning("No valid file_ids found in file_info_list")
+                    else:
+                        logging.warning("No valid file_info_list found in info_list")
         except Exception:
             logging.exception("mark file used error")
             raise FileMarkError()
