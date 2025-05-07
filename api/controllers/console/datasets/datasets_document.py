@@ -298,25 +298,19 @@ class DatasetDocumentListApi(Resource):
 
         try:
             # 检查是否存在必要的键
-            if "info_list" in args and isinstance(args["info_list"], dict):
-                info_list = args["info_list"]
-
-                # 检查数据源类型
-                if "data_source_type" in info_list and info_list["data_source_type"] == "upload_file":
-
-                    # 检查文件信息列表是否存在
-                    if "file_info_list" in info_list and isinstance(info_list["file_info_list"], dict):
-                        file_info_list = info_list["file_info_list"]
-
-                        # 检查文件ID列表是否存在
-                        if "file_ids" in file_info_list and isinstance(file_info_list["file_ids"], list) and \
-                                file_info_list["file_ids"]:
-                            # 标记文件为已使用
-                            FileService.mark_file_used(file_info_list["file_ids"])
-                        else:
-                            logging.warning("No valid file_ids found in file_info_list")
-                    else:
-                        logging.warning("No valid file_info_list found in info_list")
+            if (
+                knowledge_config is not None
+                and knowledge_config.data_source is not None
+                and knowledge_config.data_source.info_list is not None
+                and knowledge_config.data_source.info_list.file_info_list is not None
+                and knowledge_config.data_source.info_list.file_info_list.file_ids is not None
+            ):
+                logging.info(
+                    f"files marked as used, filesIds ->{knowledge_config.data_source.info_list.file_info_list.file_ids}"
+                )
+                FileService.mark_file_used(knowledge_config.data_source.info_list.file_info_list.file_ids)
+            else:
+                logging.warning("file ids not exist")
         except Exception:
             logging.exception("mark file used error")
             raise FileMarkError()
@@ -380,6 +374,24 @@ class DatasetInitApi(Resource):
         if not current_user.is_dataset_editor:
             raise Forbidden()
         knowledge_config = KnowledgeConfig(**args)
+        try:
+            # 检查是否存在必要的键
+            if (
+                knowledge_config is not None
+                and knowledge_config.data_source is not None
+                and knowledge_config.data_source.info_list is not None
+                and knowledge_config.data_source.info_list.file_info_list is not None
+                and knowledge_config.data_source.info_list.file_info_list.file_ids is not None
+            ):
+                logging.info(
+                    f"files marked as used, filesIds ->{knowledge_config.data_source.info_list.file_info_list.file_ids}"
+                )
+                FileService.mark_file_used(knowledge_config.data_source.info_list.file_info_list.file_ids)
+            else:
+                logging.warning("file ids not exist")
+        except Exception:
+            logging.exception("mark file used error")
+            raise FileMarkError()
         if knowledge_config.indexing_technique == "high_quality":
             if knowledge_config.embedding_model is None or knowledge_config.embedding_model_provider is None:
                 raise ValueError("embedding model and embedding model provider are required for high quality indexing.")
@@ -411,31 +423,6 @@ class DatasetInitApi(Resource):
             raise ProviderQuotaExceededError()
         except ModelCurrentlyNotSupportError:
             raise ProviderModelCurrentlyNotSupportError()
-
-        try:
-            # 检查是否存在必要的键
-            if "info_list" in args and isinstance(args["info_list"], dict):
-                info_list = args["info_list"]
-
-                # 检查数据源类型
-                if "data_source_type" in info_list and info_list["data_source_type"] == "upload_file":
-
-                    # 检查文件信息列表是否存在
-                    if "file_info_list" in info_list and isinstance(info_list["file_info_list"], dict):
-                        file_info_list = info_list["file_info_list"]
-
-                        # 检查文件ID列表是否存在
-                        if "file_ids" in file_info_list and isinstance(file_info_list["file_ids"], list) and \
-                                file_info_list["file_ids"]:
-                            # 标记文件为已使用
-                            FileService.mark_file_used(file_info_list["file_ids"])
-                        else:
-                            logging.warning("No valid file_ids found in file_info_list")
-                    else:
-                        logging.warning("No valid file_info_list found in info_list")
-        except Exception:
-            logging.exception("mark file used error")
-            raise FileMarkError()
 
         response = {"dataset": dataset, "documents": documents, "batch": batch}
 
@@ -529,8 +516,7 @@ class DocumentBatchIndexingEstimateApi(DocumentResource):
                 info_list.append(file_id)
             # format document notion info
             elif (
-                    data_source_info and "notion_workspace_id"
-                    in data_source_info and "notion_page_id" in data_source_info
+                data_source_info and "notion_workspace_id" in data_source_info and "notion_page_id" in data_source_info
             ):
                 pages = []
                 page = {"page_id": data_source_info["notion_page_id"], "type": data_source_info["type"]}
