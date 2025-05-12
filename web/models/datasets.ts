@@ -353,6 +353,8 @@ export type CreateDocumentReq = DocumentReq & {
 
 export type IndexingEstimateParams = DocumentReq & Partial<DataSource> & {
   dataset_id: string
+  strategy_type?: string
+  custom_strategy_url?: string
 }
 
 export type DataSource = {

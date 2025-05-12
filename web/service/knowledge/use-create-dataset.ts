@@ -60,6 +60,8 @@ type GetFileIndexingEstimateParamsOptionBase = {
 type GetFileIndexingEstimateParamsOptionFile = GetFileIndexingEstimateParamsOptionBase & {
   dataSourceType: DataSourceType.FILE
   files: CustomFile[]
+  strategyType: string
+  customStrategyUrl?: string
 }
 
 const getFileIndexingEstimateParamsForFile = ({
@@ -70,6 +72,8 @@ const getFileIndexingEstimateParamsForFile = ({
   indexingTechnique,
   processRule,
   dataset_id,
+  strategyType,
+  customStrategyUrl,
 }: GetFileIndexingEstimateParamsOptionFile): IndexingEstimateParams => {
   return {
     info_list: {
@@ -83,6 +87,8 @@ const getFileIndexingEstimateParamsForFile = ({
     doc_form: docForm,
     doc_language: docLanguage,
     dataset_id,
+    strategy_type: strategyType,
+    custom_strategy_url: customStrategyUrl,
   }
 }
 

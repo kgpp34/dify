@@ -199,6 +199,13 @@ const translation = {
     notAvailableForQA: '不支持 Q&A 索引',
     parentChildDelimiterTip: '文本分隔符是用于分隔文本的字符。建议用 \n\n 将原始文档划分为较大的父级片段。您也可以自定义特殊分隔符。',
     parentChildChunkDelimiterTip: '文本分隔符是用于分隔文本的字符。建议使用 \n 将父级片段拆分为较小的子级片段。您也可以自定义特殊分隔符。',
+    strategyType: '策略类型',
+    builtInStrategy: '内置策略',
+    builtInStrategyTip: '使用内置的文档处理策略',
+    customStrategy: '外置策略',
+    customStrategyTip: '使用外置的文档处理策略',
+    customStrategyUrl: '外置策略URL',
+    customStrategyUrlPlaceholder: '请输入外置策略URL',
   },
   stepThree: {
     creationTitle: '🎉 知识库已创建',
