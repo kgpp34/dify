@@ -23,6 +23,11 @@ export enum ChunkingMode {
   parentChild = 'hierarchical_model', // Parent-Child
 }
 
+export enum SplitStrategy {
+  internal = 'internal',
+  external = 'external',
+}
+
 export type MetadataInDoc = {
   value: string
   id: string
@@ -342,6 +347,7 @@ export type DocumentReq = {
   doc_form: ChunkingMode
   doc_language: string
   process_rule: ProcessRule
+  split_strategy?: SplitStrategyDetail
 }
 
 export type CreateDocumentReq = DocumentReq & {
@@ -353,8 +359,6 @@ export type CreateDocumentReq = DocumentReq & {
 
 export type IndexingEstimateParams = DocumentReq & Partial<DataSource> & {
   dataset_id: string
-  strategy_type?: string
-  custom_strategy_url?: string
 }
 
 export type DataSource = {
@@ -396,6 +400,11 @@ export type createDocumentResponse = {
 export type PrecessRule = {
   mode: ProcessMode
   rules: Rules
+}
+
+export type SplitStrategyDetail = {
+  type: SplitStrategy
+  external_strategy_url?: string
 }
 
 export type FullDocumentDetail = SimpleDocumentDetail & {

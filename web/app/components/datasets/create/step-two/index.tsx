@@ -33,6 +33,7 @@ import LanguageSelect from './language-select'
 import { DelimiterInput, MaxLengthInput, OverlapInput } from './inputs'
 import cn from '@/utils/classnames'
 import type { CrawlOptions, CrawlResultItem, CreateDocumentReq, CustomFile, DocumentItem, FullDocumentDetail, ParentMode, PreProcessingRule, ProcessRule, Rules, createDocumentResponse } from '@/models/datasets'
+import { SplitStrategy } from '@/models/datasets'
 import { ChunkingMode, DataSourceType, ProcessMode } from '@/models/datasets'
 
 import Button from '@/app/components/base/button'
@@ -97,8 +98,6 @@ export enum IndexingType {
   QUALIFIED = 'high_quality',
   ECONOMICAL = 'economy',
 }
-
-type StrategyType = 'built-in' | 'custom'
 
 const DEFAULT_SEGMENT_IDENTIFIER = '\\n\\n'
 const DEFAULT_MAXIMUM_CHUNK_LENGTH = 500
@@ -180,7 +179,7 @@ const StepTwo = ({
     return isAPIKeySet ? IndexingType.QUALIFIED : IndexingType.ECONOMICAL
   })
 
-  const [strategyType, setStrategyType] = useState<StrategyType>('built-in')
+  const [strategyType, setStrategyType] = useState<SplitStrategy>(SplitStrategy.internal)
   const [customStrategyUrl, setCustomStrategyUrl] = useState('')
 
   const [previewFile, setPreviewFile] = useState<DocumentItem>(
@@ -260,7 +259,7 @@ const StepTwo = ({
   }
 
   const fileIndexingEstimateQuery = useFetchFileIndexingEstimateForFile({
-    docForm: strategyType === 'custom' ? ChunkingMode.text : currentDocForm,
+    docForm: strategyType === SplitStrategy.external ? ChunkingMode.text : currentDocForm,
     docLanguage,
     dataSourceType: DataSourceType.FILE,
     files: previewFile
@@ -269,8 +268,10 @@ const StepTwo = ({
     indexingTechnique: getIndexing_technique() as any,
     processRule: getProcessRule(),
     dataset_id: datasetId!,
-    strategyType,
-    customStrategyUrl: strategyType === 'custom' ? customStrategyUrl : undefined,
+    split_strategy: {
+      type: strategyType,
+      external_strategy_url: strategyType === SplitStrategy.external ? customStrategyUrl : undefined,
+    },
   })
   const notionIndexingEstimateQuery = useFetchFileIndexingEstimateForNotion({
     docForm: currentDocForm,
@@ -477,6 +478,13 @@ const StepTwo = ({
           websitePages,
         })
       }
+
+      if (strategyType === SplitStrategy.external) {
+        params.split_strategy = {
+          type: strategyType,
+          external_strategy_url: customStrategyUrl,
+        }
+      }
     }
     return params
   }
@@ -610,9 +618,9 @@ const StepTwo = ({
               icon={<RiSettings4Line className='h-4 w-4' />}
               title={t('datasetCreation.stepTwo.builtInStrategy')}
               description={t('datasetCreation.stepTwo.builtInStrategyTip')}
-              isChosen={strategyType === 'built-in'}
+              isChosen={strategyType === SplitStrategy.internal}
               onChosen={() => {
-                setStrategyType('built-in')
+                setStrategyType(SplitStrategy.internal)
                 handleChangeDocform(ChunkingMode.text)
               }}
             />
@@ -621,15 +629,15 @@ const StepTwo = ({
               icon={<RiGlobalLine className='h-4 w-4' />}
               title={t('datasetCreation.stepTwo.customStrategy')}
               description={t('datasetCreation.stepTwo.customStrategyTip')}
-              isChosen={strategyType === 'custom'}
+              isChosen={strategyType === SplitStrategy.external}
               onChosen={() => {
-                setStrategyType('custom')
-                handleChangeDocform(ChunkingMode.custom)
+                setStrategyType(SplitStrategy.external)
+                handleChangeDocform(ChunkingMode.text)
               }}
             />
           </div>
         </div>
-        {strategyType === 'built-in' ? (
+        {strategyType === SplitStrategy.internal ? (
           <>
             {((isInUpload && [ChunkingMode.text, ChunkingMode.qa].includes(currentDataset!.doc_form))
               || isUploadInEmptyDataset
