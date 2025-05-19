@@ -80,7 +80,8 @@ const InstallForm = () => {
     fetchSetupStatus().then((res: SetupStatusResponse) => {
       if (res.step === 'finished') {
         localStorage.setItem('setup_status', 'finished')
-        window.location.href = '/signin'
+        // 多租户限制，默认不进入登录界面
+        // window.location.href = '/signin'
       }
       else {
         fetchInitValidateStatus().then((res: InitValidateStatusResponse) => {

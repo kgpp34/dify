@@ -5,10 +5,10 @@ from configs import dify_config
 from libs.helper import StrLen, email, extract_remote_ip
 from libs.password import valid_password
 from models.model import DifySetup, db
-from services.account_service import RegisterService, TenantService
+from services.account_service import RegisterService
 
 from . import api
-from .error import AlreadySetupError, NotInitValidateError
+from .error import NotInitValidateError
 from .init_validate import get_init_validate_status
 from .wraps import only_edition_self_hosted
 
@@ -24,14 +24,14 @@ class SetupApi(Resource):
 
     @only_edition_self_hosted
     def post(self):
-        # is set up
-        if get_setup_status():
-            raise AlreadySetupError()
-
-        # is tenant created
-        tenant_count = TenantService.get_tenant_count()
-        if tenant_count > 0:
-            raise AlreadySetupError()
+        # # is set up 允许多次创建管理员账户
+        # if get_setup_status():
+        #     raise AlreadySetupError()
+        #
+        # # is tenant created
+        # tenant_count = TenantService.get_tenant_count()
+        # if tenant_count > 0:
+        #     raise AlreadySetupError()
 
         if not get_init_validate_status():
             raise NotInitValidateError()
