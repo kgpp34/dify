@@ -1,6 +1,6 @@
+import json
 from typing import Optional
 
-import requests
 from core.rag.datasource.keyword.keyword_factory import Keyword
 from core.rag.datasource.retrieval_service import RetrievalService
 from core.rag.datasource.vdb.vector_factory import Vector
@@ -10,19 +10,22 @@ from libs.http_client import HttpClient
 from models import Document, Dataset
 from core.rag.models.document import Document
 
+from core.rag.extractor.entity.external_response import ResponseData, OutputResult, DocumentResult
+
+from core.rag.extractor.entity.external_response_type import ExternalResponseEnum
+
 
 class ExternalIndexProcessor(BaseIndexProcessor):
 
-    def __init__(self, server_address: str, request_timeout: int = 300000):
-        self._http_client = HttpClient(base_url=server_address, timeout=request_timeout)
-        self.api_key = "app-u25lJyWklpiesnRnBmao3Z9S"
+    def __init__(self, server_address: str):
+        self._http_client = HttpClient(base_url=server_address)
         self.document = None
 
     def extract(self, extract_setting: ExtractSetting, **kwargs) -> list[Document]:
-        server_address = self._http_client.base_url
         upload_file_id = extract_setting.upload_file.id
+        api_key = "app-u25lJyWklpiesnRnBmao3Z9S"
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
         }
         data = {
@@ -36,28 +39,23 @@ class ExternalIndexProcessor(BaseIndexProcessor):
             "response_mode": "blocking",
             "user": "abc-123",
         }
-        response = requests.post(server_address, headers=headers, json=data)
-        if response.status_code == 200:
-            response_data  = response.json()
-            print(response_data)
-            outputs = response_data.get('data', {}).get('outputs', {})
-            if outputs:
-                result = outputs.get("result", {})
-                documents = []
-                for doc_data in result.get("documents", []):
-                    doc = Document(
-                        page_content=doc_data.get("page_content", "test"),
-                        metadata=doc_data.get("metadata", {})
-                    )
-                    documents.append(doc)
-                if documents == []:
-                    doc = Document(
-                        page_content="test",
-                        metadata={}
-                    )
-                    documents.append(doc)
-                self.document = documents
-                return documents
+
+        response = self._http_client.post(endpoint="", headers=headers, data=json.dumps(data))
+        parsed_response = ResponseData.from_dict(response)
+        outputs = parsed_response.data.get(ExternalResponseEnum.OUTPUTS, {})
+        if outputs:
+            output_result = OutputResult.from_dict(outputs)
+            documents = []
+            for doc_data in output_result.result.get(ExternalResponseEnum.DOCUMENTS, []):
+                doc = DocumentResult.from_dict(doc_data)
+                documents.append(Document(page_content=doc.page_content, metadata=doc.metadata))
+
+            if not documents:
+                documents.append(Document(page_content="test", metadata={}))
+
+            self.document = documents
+            return documents
+
         return None
 
     def transform(self, documents: list[Document], **kwargs) -> list[Document]:

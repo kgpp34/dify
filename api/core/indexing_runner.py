@@ -291,7 +291,6 @@ class IndexingRunner:
                     model_type=ModelType.TEXT_EMBEDDING,
                 )
         preview_texts = []  # type: ignore
-
         total_segments = 0
         index_type = doc_form
         index_processor = IndexProcessorFactory(index_type, config_options=index_processor_config).init_index_processor()
@@ -357,7 +356,6 @@ class IndexingRunner:
             file_detail = (
                 db.session.query(UploadFile).filter(UploadFile.id == data_source_info["upload_file_id"]).one_or_none()
             )
-
             if file_detail:
                 extract_setting = ExtractSetting(
                     datasource_type="upload_file", upload_file=file_detail, document_model=dataset_document.doc_form
