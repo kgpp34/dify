@@ -240,6 +240,7 @@ class IndexingRunner:
         doc_language: str = "English",
         dataset_id: Optional[str] = None,
         indexing_technique: str = "economy",
+        split_strategy: Optional[str] = None
     ) -> IndexingEstimate:
         """
         Estimate the indexing for the document.
@@ -251,6 +252,19 @@ class IndexingRunner:
             batch_upload_limit = dify_config.BATCH_UPLOAD_LIMIT
             if count > batch_upload_limit:
                 raise ValueError(f"You have reached the batch upload limit of {batch_upload_limit}.")
+        external_strategy_url = None
+        # set external strategy url
+        if split_strategy:
+            try:
+                external_strategy_url = split_strategy.get("external_strategy_url")
+            except Exception as e:
+                logging.error(f"Failed to parse split_strategy: {str(e)}")
+        # 创建 index_processor
+        index_type = doc_form
+        index_processor_config = {}
+        if external_strategy_url:
+            index_processor_config["server_address"] = external_strategy_url
+
 
         embedding_model_instance = None
         if dataset_id:
@@ -280,13 +294,13 @@ class IndexingRunner:
 
         total_segments = 0
         index_type = doc_form
-        index_processor = IndexProcessorFactory(index_type).init_index_processor()
+        index_processor = IndexProcessorFactory(index_type, config_options=index_processor_config).init_index_processor()
         for extract_setting in extract_settings:
             # extract
             processing_rule = DatasetProcessRule(
                 mode=tmp_processing_rule["mode"], rules=json.dumps(tmp_processing_rule["rules"])
             )
-            text_docs = index_processor.extract(extract_setting, process_rule_mode=tmp_processing_rule["mode"])
+            text_docs = index_processor.extract(extract_setting, process_rule_mode=tmp_processing_rule["mode"], server_address=external_strategy_url)
             documents = index_processor.transform(
                 text_docs,
                 embedding_model_instance=embedding_model_instance,

@@ -21,6 +21,12 @@ export enum ChunkingMode {
   text = 'text_model', // General text
   qa = 'qa_model', // General QA
   parentChild = 'hierarchical_model', // Parent-Child
+  external  = 'external_model',
+}
+
+export enum SplitStrategy {
+  internal = 'internal',
+  external = 'external',
 }
 
 export type MetadataInDoc = {
@@ -342,6 +348,7 @@ export type DocumentReq = {
   doc_form: ChunkingMode
   doc_language: string
   process_rule: ProcessRule
+  split_strategy?: SplitStrategyDetail
 }
 
 export type CreateDocumentReq = DocumentReq & {
@@ -394,6 +401,11 @@ export type createDocumentResponse = {
 export type PrecessRule = {
   mode: ProcessMode
   rules: Rules
+}
+
+export type SplitStrategyDetail = {
+  type: SplitStrategy
+  external_strategy_url?: string
 }
 
 export type FullDocumentDetail = SimpleDocumentDetail & {
