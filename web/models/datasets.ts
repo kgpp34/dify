@@ -28,6 +28,11 @@ export enum SplitStrategy {
   external = 'external',
 }
 
+export enum ExternalStrategyType {
+  internal_workflow = 'internal_workflow',
+  custom_service = 'custom_service',
+}
+
 export type MetadataInDoc = {
   value: string
   id: string
@@ -402,9 +407,15 @@ export type PrecessRule = {
   rules: Rules
 }
 
+export type ExternalStrategyDesc = {
+  url: string
+  type: ExternalStrategyType
+  api_key?: string
+}
+
 export type SplitStrategyDetail = {
   type: SplitStrategy
-  external_strategy_url?: string
+  external_strategy_desc?: ExternalStrategyDesc
 }
 
 export type FullDocumentDetail = SimpleDocumentDetail & {
