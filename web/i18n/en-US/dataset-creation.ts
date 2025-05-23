@@ -201,6 +201,9 @@ const translation = {
     customStrategyTip: 'Use a custom document processing strategy',
     customStrategyUrl: 'Custom Strategy URL',
     customStrategyUrlPlaceholder: 'Enter your custom strategy URL',
+    useInternalWorkflow: 'Use internal workflow',
+    apiKey: 'Dify Workflow API Key',
+    apiKeyPlaceholder: 'Enter your Dify workflow API Key',
   },
   stepThree: {
     creationTitle: '🎉 Knowledge created',

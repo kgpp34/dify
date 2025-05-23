@@ -206,6 +206,9 @@ const translation = {
     customStrategyTip: '使用外置的文档处理策略',
     customStrategyUrl: '外置策略URL',
     customStrategyUrlPlaceholder: '请输入外置策略URL',
+    useInternalWorkflow: '使用Dify内置工作流',
+    apiKey: 'Dify工作流API Key',
+    apiKeyPlaceholder: '请输入Dify工作流API Key',
   },
   stepThree: {
     creationTitle: '🎉 知识库已创建',
