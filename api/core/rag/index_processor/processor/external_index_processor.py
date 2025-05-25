@@ -17,15 +17,15 @@ from core.rag.extractor.entity.external_response_type import ExternalResponseEnu
 
 class ExternalIndexProcessor(BaseIndexProcessor):
 
-    def __init__(self, server_address: str):
+    def __init__(self, server_address: str, api_key: str):
         self._http_client = HttpClient(base_url=server_address)
+        self.api_key = api_key
         self.document = None
 
     def extract(self, extract_setting: ExtractSetting, **kwargs) -> list[Document]:
         upload_file_id = extract_setting.upload_file.id
-        api_key = "app-u25lJyWklpiesnRnBmao3Z9S"
         headers = {
-            "Authorization": f"Bearer {api_key}",
+            "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
         data = {
@@ -63,15 +63,21 @@ class ExternalIndexProcessor(BaseIndexProcessor):
         return documents
 
     def load(self, dataset: Dataset, documents: list[Document], with_keywords: bool = True, **kwargs):
+        print("dataset")
+        print(dataset)
         if dataset.indexing_technique == "high_quality":
+            print("high_quality")
             vector = Vector(dataset)
             vector.create(documents)
         if with_keywords:
             keywords_list = kwargs.get("keywords_list")
+            print("keywords_list")
             keyword = Keyword(dataset)
             if keywords_list and len(keywords_list) > 0:
+                print("keywords_list and > 0")
                 keyword.add_texts(documents, keywords_list=keywords_list)
             else:
+                print("keywords_list and < 0")
                 keyword.add_texts(documents)
 
     def clean(self, dataset: Dataset, node_ids: Optional[list[str]], with_keywords: bool = True, **kwargs):

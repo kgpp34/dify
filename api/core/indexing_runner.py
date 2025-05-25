@@ -252,18 +252,19 @@ class IndexingRunner:
             batch_upload_limit = dify_config.BATCH_UPLOAD_LIMIT
             if count > batch_upload_limit:
                 raise ValueError(f"You have reached the batch upload limit of {batch_upload_limit}.")
-        external_strategy_url = None
+        external_strategy_desc = None
         # set external strategy url
         if split_strategy:
             try:
-                external_strategy_url = split_strategy.get("external_strategy_url")
+                external_strategy_desc = split_strategy.get("external_strategy_desc")
             except Exception as e:
                 logging.error(f"Failed to parse split_strategy: {str(e)}")
         # 创建 index_processor
         index_type = doc_form
         index_processor_config = {}
-        if external_strategy_url:
-            index_processor_config["server_address"] = external_strategy_url
+        if external_strategy_desc:
+            index_processor_config["server_address"] = external_strategy_desc.get("url")
+            index_processor_config["api_key"] = external_strategy_desc.get("api_key")
 
 
         embedding_model_instance = None
@@ -299,7 +300,7 @@ class IndexingRunner:
             processing_rule = DatasetProcessRule(
                 mode=tmp_processing_rule["mode"], rules=json.dumps(tmp_processing_rule["rules"])
             )
-            text_docs = index_processor.extract(extract_setting, process_rule_mode=tmp_processing_rule["mode"], server_address=external_strategy_url)
+            text_docs = index_processor.extract(extract_setting, process_rule_mode=tmp_processing_rule["mode"])
             documents = index_processor.transform(
                 text_docs,
                 embedding_model_instance=embedding_model_instance,

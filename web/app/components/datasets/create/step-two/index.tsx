@@ -33,7 +33,7 @@ import LanguageSelect from './language-select'
 import { DelimiterInput, MaxLengthInput, OverlapInput } from './inputs'
 import cn from '@/utils/classnames'
 import type { CrawlOptions, CrawlResultItem, CreateDocumentReq, CustomFile, DocumentItem, FullDocumentDetail, ParentMode, PreProcessingRule, ProcessRule, Rules, createDocumentResponse } from '@/models/datasets'
-import { SplitStrategy } from '@/models/datasets'
+import { ExternalStrategyType, SplitStrategy } from '@/models/datasets'
 import { ChunkingMode, DataSourceType, ProcessMode } from '@/models/datasets'
 
 import Button from '@/app/components/base/button'
@@ -179,8 +179,11 @@ const StepTwo = ({
     return isAPIKeySet ? IndexingType.QUALIFIED : IndexingType.ECONOMICAL
   })
 
+  // External Split Strategy
   const [strategyType, setStrategyType] = useState<SplitStrategy>(SplitStrategy.internal)
   const [customStrategyUrl, setCustomStrategyUrl] = useState('')
+  const [externalSplitStrategyType, setExternalSplitStrategyType] = useState<ExternalStrategyType>(ExternalStrategyType.internal_workflow)
+  const [externalSplitStrategyApiKey, setExternalSplitStrategyApiKey] = useState('')
 
   const [previewFile, setPreviewFile] = useState<DocumentItem>(
     (datasetId && documentDetail)
@@ -270,7 +273,11 @@ const StepTwo = ({
     dataset_id: datasetId!,
     split_strategy: {
       type: strategyType,
-      external_strategy_url: strategyType === SplitStrategy.external ? customStrategyUrl : undefined,
+      external_strategy_desc: strategyType === SplitStrategy.external ? {
+        url: customStrategyUrl,
+        type: externalSplitStrategyType,
+        api_key: externalSplitStrategyType === ExternalStrategyType.internal_workflow ? externalSplitStrategyApiKey : undefined,
+      } : undefined,
     },
   })
   const notionIndexingEstimateQuery = useFetchFileIndexingEstimateForNotion({
@@ -482,7 +489,10 @@ const StepTwo = ({
       if (strategyType === SplitStrategy.external) {
         params.split_strategy = {
           type: strategyType,
-          external_strategy_url: customStrategyUrl,
+          external_strategy_desc: {
+            url: customStrategyUrl,
+            type: ExternalStrategyType.custom_service,
+          },
         }
       }
     }
@@ -916,6 +926,36 @@ const StepTwo = ({
                   placeholder={t('datasetCreation.stepTwo.customStrategyUrlPlaceholder')}
                   className='h-9 rounded-lg border border-components-panel-border bg-components-panel-bg px-3 text-sm'
                 />
+              </div>
+              <div className='flex flex-col gap-2'>
+                <div className='flex items-center py-0.5'>
+                  <div className='flex items-center' onClick={() => {
+                    setExternalSplitStrategyType(
+                      externalSplitStrategyType === ExternalStrategyType.internal_workflow
+                        ? ExternalStrategyType.custom_service
+                        : ExternalStrategyType.internal_workflow,
+                    )
+                  }}>
+                    <Checkbox
+                      checked={externalSplitStrategyType === ExternalStrategyType.internal_workflow}
+                    />
+                    <label className="system-sm-regular ml-2 cursor-pointer text-text-secondary">
+                      {t('datasetCreation.stepTwo.useInternalWorkflow')}
+                    </label>
+                  </div>
+                </div>
+                {externalSplitStrategyType === ExternalStrategyType.internal_workflow && (
+                  <div className='flex flex-col gap-2'>
+                    <TextLabel>{t('datasetCreation.stepTwo.apiKey')}</TextLabel>
+                    <input
+                      type="password"
+                      value={externalSplitStrategyApiKey}
+                      onChange={e => setExternalSplitStrategyApiKey(e.target.value)}
+                      placeholder={t('datasetCreation.stepTwo.apiKeyPlaceholder')}
+                      className='h-9 rounded-lg border border-components-panel-border bg-components-panel-bg px-3 text-sm'
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </OptionCard>

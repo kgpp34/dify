@@ -420,7 +420,6 @@ class DatasetIndexingEstimateApi(Resource):
                 .filter(UploadFile.tenant_id == current_user.current_tenant_id, UploadFile.id.in_(file_ids))
                 .all()
             )
-
             if file_details is None:
                 raise NotFound("File not found.")
 

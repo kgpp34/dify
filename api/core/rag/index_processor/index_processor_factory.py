@@ -21,7 +21,6 @@ class IndexProcessorFactory:
             index_type: 索引类型
             config_options: 配置选项，可包含如下字段：
                 - server_address: 自定义处理器服务地址（用于CustomIndexProcessor）
-                - request_timeout: 请求超时时间（用于CustomIndexProcessor）
         """
         self._index_type = index_type
         self._config_options = config_options or {}
@@ -40,8 +39,9 @@ class IndexProcessorFactory:
             return ParentChildIndexProcessor()
         elif self._index_type == IndexType.EXTERNAL_INDEX:
             server_address = self._config_options.get("server_address")
+            api_key = self._config_options.get("api_key")
             if not server_address:
                 raise ValueError("Server address must be not null.")
-            return ExternalIndexProcessor(server_address=server_address)
+            return ExternalIndexProcessor(server_address=server_address, api_key=api_key)
         else:
             raise ValueError(f"Index type {self._index_type} is not supported.")
