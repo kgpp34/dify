@@ -8,12 +8,14 @@ import StepTwo from './step-two'
 import StepThree from './step-three'
 import { TopBar } from './top-bar'
 import { DataSourceType } from '@/models/datasets'
-import type { CrawlOptions, CrawlResultItem, DataSet, FileItem, createDocumentResponse } from '@/models/datasets'
+import type { CrawlOptions, CrawlResultItem, CustomFile, DataSet, FileItem, createDocumentResponse } from '@/models/datasets'
 import { fetchDataSource } from '@/service/common'
-import { fetchDatasetDetail } from '@/service/datasets'
+import { fetchDatasetDetail, fetchUnusedFiles } from '@/service/datasets'
 import { DataSourceProvider, type NotionPage } from '@/models/common'
 import { useModalContext } from '@/context/modal-context'
 import { useDefaultModel } from '@/app/components/header/account-setting/model-provider-page/hooks'
+import { useContext } from 'use-context-selector'
+import { ToastContext } from '@/app/components/base/toast'
 
 type DatasetUpdateFormProps = {
   datasetId?: string
@@ -32,15 +34,17 @@ const DEFAULT_CRAWL_OPTIONS: CrawlOptions = {
 const DatasetUpdateForm = ({ datasetId }: DatasetUpdateFormProps) => {
   const { t } = useTranslation()
   const { setShowAccountSettingModal } = useModalContext()
+  const { notify } = useContext(ToastContext)
   const [hasConnection, setHasConnection] = useState(true)
   const [dataSourceType, setDataSourceType] = useState<DataSourceType>(DataSourceType.FILE)
   const [step, setStep] = useState(1)
   const [indexingTypeCache, setIndexTypeCache] = useState('')
   const [retrievalMethodCache, setRetrievalMethodCache] = useState('')
   const [fileList, setFiles] = useState<FileItem[]>([])
-  const [result, setResult] = useState<createDocumentResponse | undefined>()
+  const [result, setResult] = useState<any>()
   const [hasError, setHasError] = useState(false)
   const { data: embeddingsDefaultModel } = useDefaultModel(ModelTypeEnum.textEmbedding)
+  const [initialUnusedFilesFetched, setInitialUnusedFilesFetched] = useState(false)
 
   const [notionPages, setNotionPages] = useState<NotionPage[]>([])
   const updateNotionPages = (value: NotionPage[]) => {
@@ -98,6 +102,53 @@ const DatasetUpdateForm = ({ datasetId }: DatasetUpdateFormProps) => {
     const hasConnection = data.filter(item => item.provider === 'notion') || []
     setHasConnection(hasConnection.length > 0)
   }
+
+  // 获取未使用的文件
+  const fetchUnusedFilesData = useCallback(async () => {
+    try {
+      const unusedFiles = await fetchUnusedFiles()
+      // 如果有未使用的文件，显示提示
+      if (unusedFiles && unusedFiles.length > 0) {
+        notify({
+          type: 'info',
+          message: t('datasetCreation.unusedFiles.message', { count: unusedFiles.length }),
+          duration: 5000,
+        })
+
+        // 将未使用的文件转换为FileItem格式
+        const unusedFileItems: FileItem[] = unusedFiles.map((file: CustomFile) => ({
+          fileID: file.id,
+          file: {
+            ...file,
+            id: file.id,
+            name: file.name,
+            size: file.size,
+            mime_type: file.mime_type,
+            extension: file.extension,
+          } as CustomFile,
+          progress: 100,
+        }))
+
+        // 函数式更新，确保基于最新的 fileList
+        setFiles((prevFiles) => {
+          const existingFileIds = prevFiles.map(item => item.fileID)
+          const newFileItems = unusedFileItems.filter(item => !existingFileIds.includes(item.fileID))
+          return [...prevFiles, ...newFileItems]
+        })
+      }
+    }
+    catch (error) {
+      console.error('获取未使用文件失败:', error)
+    }
+  }, [notify, t, setFiles])
+
+  // 当step变为1时或组件首次挂载时获取未使用文件
+  useEffect(() => {
+    if (step === 1 && !initialUnusedFilesFetched) {
+      fetchUnusedFilesData()
+      setInitialUnusedFilesFetched(true)
+    }
+  }, [step, initialUnusedFilesFetched, fetchUnusedFilesData])
 
   useEffect(() => {
     checkNotionConnection()

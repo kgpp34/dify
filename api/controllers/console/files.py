@@ -3,7 +3,7 @@ from typing import Literal
 from flask import request
 from flask_login import current_user  # type: ignore
 from flask_restful import Resource, marshal_with  # type: ignore
-from werkzeug.exceptions import Forbidden
+from werkzeug.exceptions import Forbidden, NotFound
 
 import services
 from configs import dify_config
@@ -100,3 +100,49 @@ class FileSupportTypeApi(Resource):
     @account_initialization_required
     def get(self):
         return {"allowed_extensions": DOCUMENT_EXTENSIONS}
+
+
+class UnusedFilesApi(Resource):
+    """获取当前用户创建的未使用文件列表"""
+
+    @setup_required
+    @login_required
+    @account_initialization_required
+    @marshal_with(file_fields)
+    def get(self):
+        """获取当前登录用户创建的未使用文件列表"""
+        tenant_id = current_user.current_tenant_id
+        user_id = current_user.id
+
+        unused_files = FileService.get_unused_files_by_tenant_and_user(tenant_id, user_id)
+
+        return unused_files, 200
+
+
+class FileDeleteApi(Resource):
+    """删除指定的文件"""
+
+    @setup_required
+    @login_required
+    @account_initialization_required
+    def delete(self, file_id):
+        """删除指定ID的文件
+
+        Args:
+            file_id: 要删除的文件ID
+        """
+        file_id_str = str(file_id)
+
+        try:
+            # 调用文件服务删除文件
+            FileService.delete_file(file_id_str)
+            return {"result": "success"}, 200
+        except NotFound:
+            # 文件未找到
+            return {"error": "文件未找到"}, 404
+        except ValueError as e:
+            # 文件正在使用中，不能删除
+            return {"error": str(e)}, 403
+        except Exception as e:
+            # 其他未预期的错误
+            return {"error": f"删除文件时发生错误: {str(e)}"}, 500

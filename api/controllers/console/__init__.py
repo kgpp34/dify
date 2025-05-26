@@ -22,7 +22,7 @@ from .explore.workflow import (
     InstalledAppWorkflowRunApi,
     InstalledAppWorkflowTaskStopApi,
 )
-from .files import FileApi, FilePreviewApi, FileSupportTypeApi
+from .files import FileApi, FileDeleteApi, FilePreviewApi, FileSupportTypeApi, UnusedFilesApi
 from .remote_files import RemoteFileInfoApi, RemoteFileUploadApi
 
 bp = Blueprint("console", __name__, url_prefix="/console/api")
@@ -32,6 +32,10 @@ api = ExternalApi(bp)
 api.add_resource(FileApi, "/files/upload")
 api.add_resource(FilePreviewApi, "/files/<uuid:file_id>/preview")
 api.add_resource(FileSupportTypeApi, "/files/support-type")
+api.add_resource(FileDeleteApi, "/files/<uuid:file_id>")
+
+# Unused File
+api.add_resource(UnusedFilesApi, "/files/unused")
 
 # Remote files
 api.add_resource(RemoteFileInfoApi, "/remote-files/<path:url>")

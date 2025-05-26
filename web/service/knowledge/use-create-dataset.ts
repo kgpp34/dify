@@ -3,7 +3,7 @@ import type { MutationOptions } from '@tanstack/react-query'
 import { useMutation } from '@tanstack/react-query'
 import { createDocument, createFirstDocument, fetchDefaultProcessRule, fetchFileIndexingEstimate } from '../datasets'
 import type { IndexingType } from '@/app/components/datasets/create/step-two'
-import type { ChunkingMode, CrawlOptions, CrawlResultItem, CreateDocumentReq, CustomFile, DataSourceType, FileIndexingEstimateResponse, IndexingEstimateParams, NotionInfo, ProcessRule, ProcessRuleResponse, createDocumentResponse } from '@/models/datasets'
+import type { ChunkingMode, CrawlOptions, CrawlResultItem, CreateDocumentReq, CustomFile, DataSourceType, FileIndexingEstimateResponse, IndexingEstimateParams, NotionInfo, ProcessRule, ProcessRuleResponse, SplitStrategyDetail, createDocumentResponse } from '@/models/datasets'
 import type { DataSourceProvider, NotionPage } from '@/models/common'
 
 export const getNotionInfo = (
@@ -55,6 +55,7 @@ type GetFileIndexingEstimateParamsOptionBase = {
   indexingTechnique: IndexingType
   processRule: ProcessRule
   dataset_id: string
+  split_strategy?: SplitStrategyDetail
 }
 
 type GetFileIndexingEstimateParamsOptionFile = GetFileIndexingEstimateParamsOptionBase & {
@@ -70,6 +71,7 @@ const getFileIndexingEstimateParamsForFile = ({
   indexingTechnique,
   processRule,
   dataset_id,
+  split_strategy,
 }: GetFileIndexingEstimateParamsOptionFile): IndexingEstimateParams => {
   return {
     info_list: {
@@ -83,6 +85,7 @@ const getFileIndexingEstimateParamsForFile = ({
     doc_form: docForm,
     doc_language: docLanguage,
     dataset_id,
+    split_strategy,
   }
 }
 

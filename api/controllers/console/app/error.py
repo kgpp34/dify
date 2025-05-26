@@ -127,3 +127,9 @@ class InvokeRateLimitError(BaseHTTPException):
     error_code = "rate_limit_error"
     description = "Rate Limit Error"
     code = 429
+
+
+class FileMarkError(BaseHTTPException):
+    error_code = "mark_file_used_error"
+    description = "Mark File Unused Error"
+    code = 400

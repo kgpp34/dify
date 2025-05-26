@@ -37,5 +37,9 @@ else:
     app = create_app()
     celery = app.extensions["celery"]
 
+    from controllers.remote_api import bp as remote_api_bp
+
+    app.register_blueprint(remote_api_bp)
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)

@@ -12,6 +12,7 @@ from werkzeug.exceptions import Forbidden, NotFound
 import services
 from controllers.console import api
 from controllers.console.app.error import (
+    FileMarkError,
     ProviderModelCurrentlyNotSupportError,
     ProviderNotInitializeError,
     ProviderQuotaExceededError,
@@ -54,6 +55,7 @@ from libs.login import login_required
 from models import Dataset, DatasetProcessRule, Document, DocumentSegment, UploadFile
 from services.dataset_service import DatasetService, DocumentService
 from services.entities.knowledge_entities.knowledge_entities import KnowledgeConfig
+from services.file_service import FileService
 from tasks.add_document_to_index_task import add_document_to_index_task
 from tasks.remove_document_from_index_task import remove_document_from_index_task
 
@@ -294,6 +296,25 @@ class DatasetDocumentListApi(Resource):
         except ModelCurrentlyNotSupportError:
             raise ProviderModelCurrentlyNotSupportError()
 
+        try:
+            # 检查是否存在必要的键
+            if (
+                knowledge_config is not None
+                and knowledge_config.data_source is not None
+                and knowledge_config.data_source.info_list is not None
+                and knowledge_config.data_source.info_list.file_info_list is not None
+                and knowledge_config.data_source.info_list.file_info_list.file_ids is not None
+            ):
+                logging.info(
+                    f"files marked as used, filesIds ->{knowledge_config.data_source.info_list.file_info_list.file_ids}"
+                )
+                FileService.mark_file_used(knowledge_config.data_source.info_list.file_info_list.file_ids)
+            else:
+                logging.warning("file ids not exist")
+        except Exception:
+            logging.exception("mark file used error")
+            raise FileMarkError()
+
         return {"documents": documents, "batch": batch}
 
     @setup_required
@@ -353,6 +374,24 @@ class DatasetInitApi(Resource):
         if not current_user.is_dataset_editor:
             raise Forbidden()
         knowledge_config = KnowledgeConfig(**args)
+        try:
+            # 检查是否存在必要的键
+            if (
+                knowledge_config is not None
+                and knowledge_config.data_source is not None
+                and knowledge_config.data_source.info_list is not None
+                and knowledge_config.data_source.info_list.file_info_list is not None
+                and knowledge_config.data_source.info_list.file_info_list.file_ids is not None
+            ):
+                logging.info(
+                    f"files marked as used, filesIds ->{knowledge_config.data_source.info_list.file_info_list.file_ids}"
+                )
+                FileService.mark_file_used(knowledge_config.data_source.info_list.file_info_list.file_ids)
+            else:
+                logging.warning("file ids not exist")
+        except Exception:
+            logging.exception("mark file used error")
+            raise FileMarkError()
         if knowledge_config.indexing_technique == "high_quality":
             if knowledge_config.embedding_model is None or knowledge_config.embedding_model_provider is None:
                 raise ValueError("embedding model and embedding model provider are required for high quality indexing.")

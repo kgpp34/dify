@@ -287,3 +287,13 @@ export const getErrorDocs: Fetcher<ErrorDocsResponse, { datasetId: string }> = (
 export const retryErrorDocs: Fetcher<CommonResponse, { datasetId: string; document_ids: string[] }> = ({ datasetId, document_ids }) => {
   return post<CommonResponse>(`/datasets/${datasetId}/retry`, { body: { document_ids } })
 }
+
+// 获取未使用的文件列表
+export const fetchUnusedFiles = () => {
+  return get<any>('files/unused')
+}
+
+// 删除文件
+export const deleteFile = (fileId: string) => {
+  return del<CommonResponse>(`files/${fileId}`)
+}
