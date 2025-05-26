@@ -1,9 +1,10 @@
 'use client'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { v4 as uuid4 } from 'uuid'
 import { useTranslation } from 'react-i18next'
 import { useContext } from 'use-context-selector'
 import useSWR from 'swr'
-import { RiDeleteBinLine, RiUploadCloud2Line } from '@remixicon/react'
+import { RiDeleteBinLine, RiLinkM, RiUploadCloud2Line } from '@remixicon/react'
 import DocumentFileIcon from '../../common/document-file-icon'
 import cn from '@/utils/classnames'
 import type { CustomFile as File, FileItem } from '@/models/datasets'
@@ -48,6 +49,11 @@ const FileUploader = ({
   const dragRef = useRef<HTMLDivElement>(null)
   const fileUploader = useRef<HTMLInputElement>(null)
   const hideUpload = notSupportBatchUpload && fileList.length > 0
+
+  // Confluence相关状态
+  const [confluenceUrl, setConfluenceUrl] = useState('')
+  const [confluenceLoading, setConfluenceLoading] = useState(false)
+  const [uploadMode, setUploadMode] = useState<'file' | 'confluence'>('file')
 
   const { data: fileUploadConfigResponse } = useSWR({ url: '/files/upload' }, fetchFileUploadConfig)
   const { data: supportFileTypesResponse } = useSWR({ url: '/files/support-type' }, fetchSupportFileTypes)
@@ -182,6 +188,64 @@ const FileUploader = ({
     uploadMultipleFiles(preparedFiles)
   }, [prepareFileList, uploadMultipleFiles, notify, t, fileList])
 
+  // 处理 Confluence URL 输入
+  const handleConfluenceUrlSubmit = useCallback(
+    async () => {
+      if (!confluenceUrl.trim()) {
+        notify({ type: 'error', message: '请输入Confluence页面URL' })
+        return
+      }
+
+      const pageIdMatch = confluenceUrl.match(/pageId=(\d+)/)
+      if (!pageIdMatch) {
+        notify({ type: 'error', message: 'Invalid Confluence Page URL' })
+        return
+      }
+
+      const pageId = pageIdMatch[1]
+
+      setConfluenceLoading(true)
+
+      try {
+        const response = await fetch(`/confluence2md/page/${pageId}`)
+        if (!response.ok)
+          throw new Error('Failed to convert Confluence page to Markdown')
+
+        const textContent = await response.text()
+        const sections = textContent.split(/<!--\s*Page:\s*(.*?)\s*-->/)
+        const files = []
+        for (let i = 1; i < sections.length; i += 2) {
+          const name = sections[i].trim()
+          const content = sections[i + 1].trim()
+          if (name && content)
+            files.push({ name, content })
+        }
+
+        const newFiles = files.map(file => ({
+          fileID: uuid4(),
+          file: new File([file.content], `${file.name}.md`, { type: 'text/markdown' }),
+          progress: -1,
+        }))
+
+        const updatedFileList = [...fileListRef.current, ...newFiles]
+        prepareFileList(updatedFileList)
+        fileListRef.current = updatedFileList
+        uploadMultipleFiles(newFiles)
+
+        notify({ type: 'success', message: `成功导入${files.length}个Confluence页面` })
+        setConfluenceUrl('')
+      }
+      catch (err) {
+        notify({ type: 'error', message: '转换Confluence页面失败，请检查URL是否正确' })
+        console.error(err)
+      }
+      finally {
+        setConfluenceLoading(false)
+      }
+    },
+    [confluenceUrl, notify, prepareFileList, uploadMultipleFiles],
+  )
+
   const handleDragEnter = (e: DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -288,7 +352,38 @@ const FileUploader = ({
 
       <div className={cn('mb-1 text-sm font-semibold leading-6 text-text-secondary', titleClassName)}>{t('datasetCreation.stepOne.uploader.title')}</div>
 
+      {/* 模式切换按钮 */}
       {!hideUpload && (
+        <div className="mb-3 flex rounded-lg bg-components-panel-bg p-0.5">
+          <button
+            onClick={() => setUploadMode('file')}
+            className={cn(
+              'flex flex-1 items-center justify-center rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors',
+              uploadMode === 'file'
+                ? 'bg-components-button-primary-bg text-components-button-primary-text shadow-sm'
+                : 'text-text-tertiary hover:text-text-secondary',
+            )}
+          >
+            <RiUploadCloud2Line className="mr-1.5 h-4 w-4" />
+            文件上传
+          </button>
+          <button
+            onClick={() => setUploadMode('confluence')}
+            className={cn(
+              'flex flex-1 items-center justify-center rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors',
+              uploadMode === 'confluence'
+                ? 'bg-components-button-primary-bg text-components-button-primary-text shadow-sm'
+                : 'text-text-tertiary hover:text-text-secondary',
+            )}
+          >
+            <RiLinkM className="mr-1.5 h-4 w-4" />
+            Confluence 导入
+          </button>
+        </div>
+      )}
+
+      {/* 文件上传区域 */}
+      {!hideUpload && uploadMode === 'file' && (
         <div ref={dropRef} className={cn('relative mb-2 box-border flex min-h-20 max-w-[640px] flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-components-dropzone-border bg-components-dropzone-bg px-4 py-3 text-xs leading-4 text-text-tertiary', dragging && 'border-components-dropzone-border-accent bg-components-dropzone-bg-accent')}>
           <div className="flex min-h-5 items-center justify-center text-sm leading-4 text-text-secondary">
             <RiUploadCloud2Line className='mr-2 size-5' />
@@ -307,8 +402,45 @@ const FileUploader = ({
           {dragging && <div ref={dragRef} className='absolute left-0 top-0 h-full w-full' />}
         </div>
       )}
-      <div className='max-w-[640px] cursor-default space-y-1'>
 
+      {/* Confluence URL 上传区域 */}
+      {!hideUpload && uploadMode === 'confluence' && (
+        <div className="mb-2">
+          <div className={cn('relative box-border flex min-h-20 max-w-[640px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-components-dropzone-border bg-components-dropzone-bg px-4 py-3')}>
+            <div className="flex w-full gap-2">
+              <input
+                type="text"
+                value={confluenceUrl}
+                onChange={e => setConfluenceUrl(e.target.value)}
+                placeholder="输入 Confluence 页面 URL (包含 pageId 参数)"
+                className="focus:border-components-input-border-focus flex-1 rounded-md border border-transparent bg-white/50 px-3 py-1.5 text-sm text-text-primary placeholder:text-text-placeholder focus:bg-white focus:outline-none"
+                disabled={confluenceLoading}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter')
+                    handleConfluenceUrlSubmit()
+                }}
+              />
+              <button
+                onClick={handleConfluenceUrlSubmit}
+                disabled={confluenceLoading || !confluenceUrl.trim()}
+                className="flex shrink-0 items-center gap-1.5 rounded-md bg-primary-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+              >
+                {confluenceLoading ? (
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                ) : (
+                  <RiLinkM className="h-3.5 w-3.5" />
+                )}
+                {confluenceLoading ? '导入中' : '导入'}
+              </button>
+            </div>
+            <div className="text-center text-xs leading-4 text-text-tertiary">
+              支持 Confluence 页面 URL，系统将自动提取页面内容并转换为文本文件
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className='max-w-[640px] cursor-default space-y-1'>
         {fileList.map((fileItem, index) => (
           <div
             key={`${fileItem.fileID}-${index}`}

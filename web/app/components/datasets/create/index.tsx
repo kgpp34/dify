@@ -44,6 +44,7 @@ const DatasetUpdateForm = ({ datasetId }: DatasetUpdateFormProps) => {
   const [result, setResult] = useState<any>()
   const [hasError, setHasError] = useState(false)
   const { data: embeddingsDefaultModel } = useDefaultModel(ModelTypeEnum.textEmbedding)
+  const [initialUnusedFilesFetched, setInitialUnusedFilesFetched] = useState(false)
 
   const [notionPages, setNotionPages] = useState<NotionPage[]>([])
   const updateNotionPages = (value: NotionPage[]) => {
@@ -103,7 +104,7 @@ const DatasetUpdateForm = ({ datasetId }: DatasetUpdateFormProps) => {
   }
 
   // 获取未使用的文件
-  const fetchUnusedFilesData = async () => {
+  const fetchUnusedFilesData = useCallback(async () => {
     try {
       const unusedFiles = await fetchUnusedFiles()
       // 如果有未使用的文件，显示提示
@@ -139,13 +140,15 @@ const DatasetUpdateForm = ({ datasetId }: DatasetUpdateFormProps) => {
     catch (error) {
       console.error('获取未使用文件失败:', error)
     }
-  }
+  }, [notify, t, setFiles])
 
   // 当step变为1时或组件首次挂载时获取未使用文件
   useEffect(() => {
-    if (step === 1)
+    if (step === 1 && !initialUnusedFilesFetched) {
       fetchUnusedFilesData()
-  }, [step])
+      setInitialUnusedFilesFetched(true)
+    }
+  }, [step, initialUnusedFilesFetched, fetchUnusedFilesData])
 
   useEffect(() => {
     checkNotionConnection()
