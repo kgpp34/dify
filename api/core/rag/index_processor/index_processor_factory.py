@@ -41,8 +41,9 @@ class IndexProcessorFactory:
         elif self._index_type == IndexType.EXTERNAL_INDEX:
             server_address = self._config_options.get("server_address")
             api_key = self._config_options.get("api_key")
+            user = self._config_options.get("user")
             if not server_address:
                 raise ValueError("Server address must be not null.")
-            return ExternalIndexProcessor(server_address=server_address, api_key=api_key)
+            return ExternalIndexProcessor(server_address=server_address, api_key=api_key, user=user)
         else:
             raise ValueError(f"Index type {self._index_type} is not supported.")

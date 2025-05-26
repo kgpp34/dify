@@ -265,8 +265,7 @@ class IndexingRunner:
         if external_strategy_desc:
             index_processor_config["server_address"] = external_strategy_desc.get("url")
             index_processor_config["api_key"] = external_strategy_desc.get("api_key")
-
-
+            index_processor_config["user"] = current_user.name
         embedding_model_instance = None
         if dataset_id:
             dataset = Dataset.query.filter_by(id=dataset_id).first()

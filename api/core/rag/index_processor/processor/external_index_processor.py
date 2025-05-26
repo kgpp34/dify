@@ -1,6 +1,9 @@
+import base64
 import json
+import logging
 from typing import Optional
 
+import requests
 from core.rag.datasource.keyword.keyword_factory import Keyword
 from core.rag.datasource.retrieval_service import RetrievalService
 from core.rag.datasource.vdb.vector_factory import Vector
@@ -13,34 +16,39 @@ from core.rag.models.document import Document
 from core.rag.extractor.entity.external_response import ResponseData, OutputResult, DocumentResult
 
 from core.rag.extractor.entity.external_response_type import ExternalResponseEnum
+from extensions.ext_storage import storage
+from extensions.storage.opendal_storage import OpenDALStorage
+from extensions.ext_storage import Storage
+from extensions.storage.storage_type import StorageType
 
 
 class ExternalIndexProcessor(BaseIndexProcessor):
 
-    def __init__(self, server_address: str, api_key: str):
+    def __init__(self, server_address: str, api_key: str, user: str):
         self._http_client = HttpClient(base_url=server_address)
+        self.server_address = server_address
         self.api_key = api_key
+        self.user = user
         self.document = None
 
     def extract(self, extract_setting: ExtractSetting, **kwargs) -> list[Document]:
-        upload_file_id = extract_setting.upload_file.id
+        upload_file = extract_setting.upload_file
+        storage = OpenDALStorage(scheme="fs")
+        file_bytes: bytes = storage.load_once(upload_file.key)
+        file_base64 = base64.b64encode(file_bytes).decode('utf-8')
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
         data = {
-            "inputs": {
-                "orig_mail": [{
-                    "transfer_method": "local_file",
-                    "upload_file_id": upload_file_id,
-                    "type": "document"
-                }]
-            },
-            "response_mode": "blocking",
-            "user": "abc-123",
+            "transfer_method": "base64",
+            "file_name": upload_file.name,
+            "file_data": file_base64,
+            "user": self.user,
         }
-
+        logging.info(f"Request to {self.server_address} with data: {data}")
         response = self._http_client.post(endpoint="", headers=headers, data=json.dumps(data))
+        logging.info(f"Response from {self.server_address}: {response}")
         parsed_response = ResponseData.from_dict(response)
         outputs = parsed_response.data.get(ExternalResponseEnum.OUTPUTS, {})
         if outputs:
@@ -49,9 +57,6 @@ class ExternalIndexProcessor(BaseIndexProcessor):
             for doc_data in output_result.result.get(ExternalResponseEnum.DOCUMENTS, []):
                 doc = DocumentResult.from_dict(doc_data)
                 documents.append(Document(page_content=doc.page_content, metadata=doc.metadata))
-
-            if not documents:
-                documents.append(Document(page_content="test", metadata={}))
 
             self.document = documents
             return documents
@@ -63,21 +68,15 @@ class ExternalIndexProcessor(BaseIndexProcessor):
         return documents
 
     def load(self, dataset: Dataset, documents: list[Document], with_keywords: bool = True, **kwargs):
-        print("dataset")
-        print(dataset)
         if dataset.indexing_technique == "high_quality":
-            print("high_quality")
             vector = Vector(dataset)
             vector.create(documents)
         if with_keywords:
             keywords_list = kwargs.get("keywords_list")
-            print("keywords_list")
             keyword = Keyword(dataset)
             if keywords_list and len(keywords_list) > 0:
-                print("keywords_list and > 0")
                 keyword.add_texts(documents, keywords_list=keywords_list)
             else:
-                print("keywords_list and < 0")
                 keyword.add_texts(documents)
 
     def clean(self, dataset: Dataset, node_ids: Optional[list[str]], with_keywords: bool = True, **kwargs):
