@@ -13,7 +13,7 @@ from libs.http_client import HttpClient
 from models import Document, Dataset
 from core.rag.models.document import Document
 
-from core.rag.extractor.entity.external_response import ResponseData, OutputResult, DocumentResult
+from core.rag.extractor.entity.external_response import ResponseData, DocumentResult
 
 from core.rag.extractor.entity.external_response_type import ExternalResponseEnum
 from extensions.ext_storage import storage
