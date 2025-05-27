@@ -24,44 +24,33 @@ from extensions.storage.storage_type import StorageType
 
 class ExternalIndexProcessor(BaseIndexProcessor):
 
-    def __init__(self, server_address: str, api_key: str, user: str):
+    def __init__(self, server_address: str):
         self._http_client = HttpClient(base_url=server_address)
         self.server_address = server_address
-        self.api_key = api_key
-        self.user = user
         self.document = None
 
     def extract(self, extract_setting: ExtractSetting, **kwargs) -> list[Document]:
         upload_file = extract_setting.upload_file
-        storage = OpenDALStorage(scheme="fs")
-        file_bytes: bytes = storage.load_once(upload_file.key)
+        file_bytes = storage.load_once(upload_file.key)
         file_base64 = base64.b64encode(file_bytes).decode('utf-8')
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
         data = {
             "transfer_method": "base64",
             "file_name": upload_file.name,
             "file_data": file_base64,
-            "user": self.user,
         }
         logging.info(f"Request to {self.server_address} with data: {data}")
         response = self._http_client.post(endpoint="", headers=headers, data=json.dumps(data))
         logging.info(f"Response from {self.server_address}: {response}")
         parsed_response = ResponseData.from_dict(response)
-        outputs = parsed_response.data.get(ExternalResponseEnum.OUTPUTS, {})
-        if outputs:
-            output_result = OutputResult.from_dict(outputs)
-            documents = []
-            for doc_data in output_result.result.get(ExternalResponseEnum.DOCUMENTS, []):
-                doc = DocumentResult.from_dict(doc_data)
-                documents.append(Document(page_content=doc.page_content, metadata=doc.metadata))
-
-            self.document = documents
-            return documents
-
-        return None
+        documents = []
+        for doc_data in parsed_response.data.get(ExternalResponseEnum.DOCUMENTS, []):
+            doc = DocumentResult.from_dict(doc_data)
+            documents.append(Document(page_content=doc.page_content, metadata=doc.metadata))
+        self.document = documents
+        return documents
 
     def transform(self, documents: list[Document], **kwargs) -> list[Document]:
         documents = self.document

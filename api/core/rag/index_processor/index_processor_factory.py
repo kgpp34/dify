@@ -4,7 +4,6 @@ from typing import Any, Optional
 
 from core.rag.index_processor.constant.index_type import IndexType
 from core.rag.index_processor.index_processor_base import BaseIndexProcessor
-from core.rag.index_processor.processor.custom_index_processor import CustomParagraphIndexProcessor
 from core.rag.index_processor.processor.paragraph_index_processor import ParagraphIndexProcessor
 from core.rag.index_processor.processor.parent_child_index_processor import ParentChildIndexProcessor
 from core.rag.index_processor.processor.qa_index_processor import QAIndexProcessor
@@ -40,10 +39,8 @@ class IndexProcessorFactory:
             return ParentChildIndexProcessor()
         elif self._index_type == IndexType.EXTERNAL_INDEX:
             server_address = self._config_options.get("server_address")
-            api_key = self._config_options.get("api_key")
-            user = self._config_options.get("user")
             if not server_address:
                 raise ValueError("Server address must be not null.")
-            return ExternalIndexProcessor(server_address=server_address, api_key=api_key, user=user)
+            return ExternalIndexProcessor(server_address=server_address)
         else:
             raise ValueError(f"Index type {self._index_type} is not supported.")
