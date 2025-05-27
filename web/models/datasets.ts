@@ -29,11 +29,6 @@ export enum SplitStrategy {
   external = 'external',
 }
 
-export enum SplitStrategy {
-  internal = 'internal',
-  external = 'external',
-}
-
 export enum ExternalStrategyType {
   internal_workflow = 'internal_workflow',
   custom_service = 'custom_service',
