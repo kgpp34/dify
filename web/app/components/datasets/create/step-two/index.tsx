@@ -263,7 +263,7 @@ const StepTwo = ({
   }
 
   const fileIndexingEstimateQuery = useFetchFileIndexingEstimateForFile({
-    docForm: strategyType === SplitStrategy.external ? ChunkingMode.text : currentDocForm,
+    docForm: strategyType === SplitStrategy.external ? ChunkingMode.external : currentDocForm,
     docLanguage,
     dataSourceType: DataSourceType.FILE,
     files: previewFile
@@ -643,7 +643,7 @@ const StepTwo = ({
               isChosen={strategyType === SplitStrategy.external}
               onChosen={() => {
                 setStrategyType(SplitStrategy.external)
-                handleChangeDocform(ChunkingMode.text)
+                handleChangeDocform(ChunkingMode.external)
               }}
             />
           </div>

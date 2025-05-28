@@ -408,6 +408,7 @@ class DatasetIndexingEstimateApi(Resource):
         parser.add_argument(
             "doc_language", type=str, default="English", required=False, nullable=False, location="json"
         )
+        parser.add_argument("split_strategy", type=dict, default="auto", required=False, nullable=False, location="json")
         args = parser.parse_args()
         # validate args
         DocumentService.estimate_args_validate(args)
@@ -419,7 +420,6 @@ class DatasetIndexingEstimateApi(Resource):
                 .filter(UploadFile.tenant_id == current_user.current_tenant_id, UploadFile.id.in_(file_ids))
                 .all()
             )
-
             if file_details is None:
                 raise NotFound("File not found.")
 
@@ -473,6 +473,7 @@ class DatasetIndexingEstimateApi(Resource):
                 args["doc_language"],
                 args["dataset_id"],
                 args["indexing_technique"],
+                args["split_strategy"]
             )
         except LLMBadRequestError:
             raise ProviderNotInitializeError(

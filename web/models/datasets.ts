@@ -21,6 +21,7 @@ export enum ChunkingMode {
   text = 'text_model', // General text
   qa = 'qa_model', // General QA
   parentChild = 'hierarchical_model', // Parent-Child
+  external  = 'external_model',
 }
 
 export enum SplitStrategy {
