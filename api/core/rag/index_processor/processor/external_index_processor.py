@@ -3,54 +3,53 @@ import json
 import logging
 from typing import Optional
 
-import requests
 from core.rag.datasource.keyword.keyword_factory import Keyword
 from core.rag.datasource.retrieval_service import RetrievalService
 from core.rag.datasource.vdb.vector_factory import Vector
+from core.rag.extractor.entity.external_response import DocumentResult, ResponseData
+from core.rag.extractor.entity.external_response_type import ExternalResponseEnum
 from core.rag.extractor.entity.extract_setting import ExtractSetting
 from core.rag.index_processor.index_processor_base import BaseIndexProcessor
-from libs.http_client import HttpClient
-from models import Document, Dataset
 from core.rag.models.document import Document
-
-from core.rag.extractor.entity.external_response import ResponseData, DocumentResult
-
-from core.rag.extractor.entity.external_response_type import ExternalResponseEnum
 from extensions.ext_storage import storage
-from extensions.storage.opendal_storage import OpenDALStorage
-from extensions.ext_storage import Storage
-from extensions.storage.storage_type import StorageType
+from libs.http_client import HttpClient
+
+# from models import Document, Dataset
+from models import Dataset
 
 
 class ExternalIndexProcessor(BaseIndexProcessor):
-
     def __init__(self, server_address: str):
         self._http_client = HttpClient(base_url=server_address)
         self.server_address = server_address
-        self.document = None
+        self.document: list[Document] = []
 
     def extract(self, extract_setting: ExtractSetting, **kwargs) -> list[Document]:
         upload_file = extract_setting.upload_file
-        file_bytes = storage.load_once(upload_file.key)
-        file_base64 = base64.b64encode(file_bytes).decode('utf-8')
+        file_base64 = None
+        file_name = None
+        if upload_file:
+            file_bytes = storage.load_once(upload_file.key)
+            file_name = upload_file.name
+            file_base64 = base64.b64encode(file_bytes).decode("utf-8")
         headers = {
             "Content-Type": "application/json",
         }
-        data = {
-            "transfer_method": "base64",
-            "file_name": upload_file.name,
-            "file_data": file_base64,
-        }
-        logging.info(f"Request to {self.server_address} with data: {data}")
-        response = self._http_client.post(endpoint="", headers=headers, data=json.dumps(data))
-        logging.info(f"Response from {self.server_address}: {response}")
-        parsed_response = ResponseData.from_dict(response)
-        documents = []
-        for doc_data in parsed_response.data.get(ExternalResponseEnum.DOCUMENTS, []):
-            doc = DocumentResult.from_dict(doc_data)
-            documents.append(Document(page_content=doc.page_content, metadata=doc.metadata))
-        self.document = documents
-        return documents
+        data = {"transfer_method": "base64", "file_name": file_name, "file_data": file_base64}
+        try:
+            response = self._http_client.post(endpoint="", headers=headers, data=json.dumps(data))
+            parsed_response = ResponseData.from_dict(response)
+            documents = []
+            document_str = parsed_response.data.get(ExternalResponseEnum.DOCUMENTS, [])
+            document_list = json.loads(document_str)
+            for doc_data in document_list:
+                doc = DocumentResult.from_dict(doc_data)
+                documents.append(Document(page_content=doc.page_content, metadata=doc.metadata))
+            self.document = documents
+            return documents
+        except Exception as e:
+            logging.exception(f"Failed to extract documents from {self.server_address}: {e}")
+            raise e
 
     def transform(self, documents: list[Document], **kwargs) -> list[Document]:
         documents = self.document
@@ -83,13 +82,13 @@ class ExternalIndexProcessor(BaseIndexProcessor):
                 keyword.delete()
 
     def retrieve(
-            self,
-            retrieval_method: str,
-            query: str,
-            dataset: Dataset,
-            top_k: int,
-            score_threshold: float,
-            reranking_model: dict,
+        self,
+        retrieval_method: str,
+        query: str,
+        dataset: Dataset,
+        top_k: int,
+        score_threshold: float,
+        reranking_model: dict,
     ) -> list[Document]:
         # Set search parameters.
         results = RetrievalService.retrieve(

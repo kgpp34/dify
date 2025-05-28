@@ -1784,7 +1784,7 @@ class SegmentService:
                     VectorService.generate_child_chunks(
                         segment, document, dataset, embedding_model_instance, processing_rule, True
                     )
-                elif document.doc_form in (IndexType.PARAGRAPH_INDEX, IndexType.QA_INDEX):
+                elif document.doc_form in (IndexType.PARAGRAPH_INDEX, IndexType.QA_INDEX, IndexType.EXTERNAL_INDEX):
                     if args.enabled or keyword_changed:
                         # update segment vector index
                         VectorService.update_segment_vector(args.keywords, segment, dataset)
@@ -1858,7 +1858,7 @@ class SegmentService:
                     VectorService.generate_child_chunks(
                         segment, document, dataset, embedding_model_instance, processing_rule, True
                     )
-                elif document.doc_form in (IndexType.PARAGRAPH_INDEX, IndexType.QA_INDEX):
+                elif document.doc_form in (IndexType.PARAGRAPH_INDEX, IndexType.QA_INDEX, IndexType.EXTERNAL_INDEX):
                     # update segment vector index
                     VectorService.update_segment_vector(args.keywords, segment, dataset)
 
