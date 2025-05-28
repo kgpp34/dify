@@ -37,7 +37,7 @@ class ExternalIndexProcessor(BaseIndexProcessor):
         }
         data = {"transfer_method": "base64", "file_name": file_name, "file_data": file_base64}
         try:
-            response = self._http_client.post(endpoint="", headers=headers, data=json.dumps(data))
+            response = self._http_client.post(endpoint="", headers=headers, json_data=data)
             parsed_response = ResponseData.from_dict(response)
             documents = []
             document_str = parsed_response.data.get(ExternalResponseEnum.DOCUMENTS, [])
@@ -48,7 +48,7 @@ class ExternalIndexProcessor(BaseIndexProcessor):
             self.document = documents
             return documents
         except Exception as e:
-            logging.exception(f"Failed to extract documents from {self.server_address}: {e}")
+            logging.exception(f"Failed to extract documents from {self.server_address}")
             raise e
 
     def transform(self, documents: list[Document], **kwargs) -> list[Document]:

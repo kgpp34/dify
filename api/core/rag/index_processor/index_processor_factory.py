@@ -4,10 +4,10 @@ from typing import Any, Optional
 
 from core.rag.index_processor.constant.index_type import IndexType
 from core.rag.index_processor.index_processor_base import BaseIndexProcessor
+from core.rag.index_processor.processor.external_index_processor import ExternalIndexProcessor
 from core.rag.index_processor.processor.paragraph_index_processor import ParagraphIndexProcessor
 from core.rag.index_processor.processor.parent_child_index_processor import ParentChildIndexProcessor
 from core.rag.index_processor.processor.qa_index_processor import QAIndexProcessor
-from core.rag.index_processor.processor.external_index_processor import ExternalIndexProcessor
 
 
 class IndexProcessorFactory:
