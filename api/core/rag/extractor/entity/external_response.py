@@ -9,7 +9,7 @@ class DocumentResult:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DocumentResult":
         return cls(
-            page_content=data.get("page_content", "test"),
+            page_content=data.get("page_content", {}),
             metadata=data.get("metadata", {}),
         )
 
