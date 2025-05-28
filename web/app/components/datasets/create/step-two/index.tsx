@@ -6,6 +6,7 @@ import { useContext } from 'use-context-selector'
 import {
   RiAlertFill,
   RiArrowLeftLine,
+  RiExternalLinkLine,
   RiGlobalLine,
   RiSearchEyeLine,
   RiSettings4Line,
@@ -182,7 +183,7 @@ const StepTwo = ({
   // External Split Strategy
   const [strategyType, setStrategyType] = useState<SplitStrategy>(SplitStrategy.internal)
   const [customStrategyUrl, setCustomStrategyUrl] = useState('')
-  const [externalSplitStrategyType, setExternalSplitStrategyType] = useState<ExternalStrategyType>(ExternalStrategyType.internal_workflow)
+  const [externalSplitStrategyType, setExternalSplitStrategyType] = useState<ExternalStrategyType>(ExternalStrategyType.custom_service)
   const [externalSplitStrategyApiKey, setExternalSplitStrategyApiKey] = useState('')
 
   const [previewFile, setPreviewFile] = useState<DocumentItem>(
@@ -918,7 +919,25 @@ const StepTwo = ({
           >
             <div className='flex flex-col gap-y-4'>
               <div className='flex flex-col gap-2'>
-                <TextLabel>{t('datasetCreation.stepTwo.customStrategyUrl')}</TextLabel>
+                <div className='flex items-center justify-between'>
+                  <TextLabel>{t('datasetCreation.stepTwo.customStrategyUrl')}</TextLabel>
+                  <Link
+                    href={(() => {
+                      const url = process.env.NEXT_PUBLIC_EXTERNAL_STRATEGY_DOCS_URL || '#'
+                      // 如果URL不是以http://或https://开头，且不是#，则添加http://前缀
+                      if (url !== '#' && !url.startsWith('http://') && !url.startsWith('https://'))
+                        return `http://${url}`
+
+                      return url
+                    })()}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='hover:text-text-accent-hover flex items-center text-xs text-text-accent'
+                  >
+                    <RiExternalLinkLine className='mr-0.5 h-3 w-3' />
+                    {t('datasetCreation.stepTwo.customStrategyDocsLearnMore')}
+                  </Link>
+                </div>
                 <input
                   type="text"
                   value={customStrategyUrl}
@@ -930,16 +949,20 @@ const StepTwo = ({
               <div className='flex flex-col gap-2'>
                 <div className='flex items-center py-0.5'>
                   <div className='flex items-center' onClick={() => {
-                    setExternalSplitStrategyType(
-                      externalSplitStrategyType === ExternalStrategyType.internal_workflow
-                        ? ExternalStrategyType.custom_service
-                        : ExternalStrategyType.internal_workflow,
-                    )
+                    if (strategyType !== SplitStrategy.external) {
+                      setExternalSplitStrategyType(
+                        externalSplitStrategyType === ExternalStrategyType.internal_workflow
+                          ? ExternalStrategyType.custom_service
+                          : ExternalStrategyType.internal_workflow,
+                      )
+                    }
                   }}>
                     <Checkbox
                       checked={externalSplitStrategyType === ExternalStrategyType.internal_workflow}
+                      disabled={strategyType === SplitStrategy.external}
                     />
-                    <label className="system-sm-regular ml-2 cursor-pointer text-text-secondary">
+                    <label className={cn('system-sm-regular ml-2 cursor-pointer text-text-secondary',
+                      strategyType === SplitStrategy.external && 'cursor-not-allowed opacity-50')}>
                       {t('datasetCreation.stepTwo.useInternalWorkflow')}
                     </label>
                   </div>
@@ -953,6 +976,7 @@ const StepTwo = ({
                       onChange={e => setExternalSplitStrategyApiKey(e.target.value)}
                       placeholder={t('datasetCreation.stepTwo.apiKeyPlaceholder')}
                       className='h-9 rounded-lg border border-components-panel-border bg-components-panel-bg px-3 text-sm'
+                      disabled={strategyType === SplitStrategy.external}
                     />
                   </div>
                 )}

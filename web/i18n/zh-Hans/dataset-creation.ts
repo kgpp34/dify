@@ -209,6 +209,7 @@ const translation = {
     useInternalWorkflow: '使用Dify内置工作流',
     apiKey: 'Dify工作流API Key',
     apiKeyPlaceholder: '请输入Dify工作流API Key',
+    customStrategyDocsLearnMore: '了解更多',
   },
   stepThree: {
     creationTitle: '🎉 知识库已创建',

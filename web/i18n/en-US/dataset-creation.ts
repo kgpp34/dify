@@ -204,6 +204,7 @@ const translation = {
     useInternalWorkflow: 'Use internal workflow',
     apiKey: 'Dify Workflow API Key',
     apiKeyPlaceholder: 'Enter your Dify workflow API Key',
+    customStrategyDocsLearnMore: 'Learn more',
   },
   stepThree: {
     creationTitle: '🎉 Knowledge created',
