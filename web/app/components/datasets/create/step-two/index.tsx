@@ -1287,6 +1287,19 @@ const StepTwo = ({
               )
             })
           )}
+          {currentDocForm === ChunkingMode.external && estimate?.preview && (
+            estimate?.preview.map((item, index) => {
+              return (
+                <ChunkContainer
+                  key={item.content || `chunk-${index}`}
+                  label={`Chunk-${index + 1}`}
+                  characterCount={item.content?.length || 0}
+                >
+                  {item.content || '内容为空'}
+                </ChunkContainer>
+              )
+            })
+          )}
           {currentEstimateMutation.isIdle && (
             <div className='flex h-full w-full items-center justify-center'>
               <div className='flex flex-col items-center justify-center gap-3'>
