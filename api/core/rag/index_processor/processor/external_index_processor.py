@@ -40,9 +40,8 @@ class ExternalIndexProcessor(BaseIndexProcessor):
             response = self._http_client.post(endpoint="", headers=headers, json_data=data)
             parsed_response = ResponseData.from_dict(response)
             documents = []
-            document_str = parsed_response.data.get(ExternalResponseEnum.DOCUMENTS, [])
-            document_list = json.loads(document_str)
-            for doc_data in document_list:
+            document = parsed_response.data.get(ExternalResponseEnum.DOCUMENTS, [])
+            for doc_data in document:
                 doc = DocumentResult.from_dict(doc_data)
                 documents.append(Document(page_content=doc.page_content, metadata=doc.metadata))
             self.document = documents
