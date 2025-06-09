@@ -108,3 +108,7 @@ if context.is_offline_mode():
 else:
     run_migrations_online()
 
+
+# 在文件开头添加
+import monkey_patch  # noqa: F401  # 激活 Kingbase 支持
+
