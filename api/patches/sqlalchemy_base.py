@@ -3130,10 +3130,8 @@ class PGDialect(default.DefaultDialect):
         m = re.match(r".*(?:Kingbase|KingbaseES)\s*V(\d{3})R(\d{3})C(\d{3})", v)
 
         if m:
-            major = int(m.group(1))
-            minor = int(m.group(2))
-            patch = int(m.group(3))
-            return tuple(major, minor, patch)
+            # 修复：使用与PostgreSQL一致的返回格式
+            return tuple([int(x) for x in m.group(1, 2, 3) if x is not None])
 
         m = re.match(
             r".*(?:PostgreSQL|Enter priseDB) "
