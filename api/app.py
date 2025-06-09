@@ -36,7 +36,6 @@ else:
     app = create_app()
     celery = app.extensions["celery"]
     import kingbase_dialect_path  # noqa: F401  # 激活 Kingbase 支持
-
     from controllers.remote_api import bp as remote_api_bp
 
     app.register_blueprint(remote_api_bp)
