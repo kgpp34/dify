@@ -19,6 +19,7 @@ else:
     # If you are using debugpy and set GEVENT_SUPPORT=True, you can debug with gevent.
     if (flask_debug := os.environ.get("FLASK_DEBUG", "0")) and flask_debug.lower() in {"false", "0", "no"}:
         from gevent import monkey  # type: ignore
+
         # gevent
         monkey.patch_all()
 
@@ -35,7 +36,7 @@ else:
 
     app = create_app()
     celery = app.extensions["celery"]
-    import kingbase_dialect_path  # noqa: F401  # 激活 Kingbase 支持
+    # import kingbase_dialect_path  # 激活 Kingbase 支持
     from controllers.remote_api import bp as remote_api_bp
 
     app.register_blueprint(remote_api_bp)

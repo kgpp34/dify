@@ -78,6 +78,9 @@ RUN python -c "import tiktoken; tiktoken.encoding_for_model('gpt2')"
 # Copy source code
 COPY . /app/api/
 
+# 应用 SQLAlchemy 补丁
+RUN python patch_sqlalchemy.py
+
 # Copy entrypoint
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

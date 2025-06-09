@@ -99,7 +99,7 @@ def initialize_extensions(app: DifyApp):
 
 def create_migrations_app():
     app = create_flask_app_with_configs()
-    import kingbase_dialect_path  # noqa: F401  # 激活 Kingbase 支持
+    # import kingbase_dialect_path  # 激活 Kingbase 支持
     from extensions import ext_database, ext_migrate
 
     # Initialize only required extensions
