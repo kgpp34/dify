@@ -1122,11 +1122,16 @@ class DocumentService:
                         position += 1
                 db.session.commit()
 
+                try:
+                    server_address = knowledge_config.split_strategy.get("external_strategy_desc").get("url")
+                except:
+                    server_address = None
+
                 # trigger async task
                 if document_ids:
-                    document_indexing_task.delay(dataset.id, document_ids)
+                    document_indexing_task.delay(dataset.id, document_ids, server_address)
                 if duplicate_document_ids:
-                    duplicate_document_indexing_task.delay(dataset.id, duplicate_document_ids)
+                    duplicate_document_indexing_task.delay(dataset.id, duplicate_document_ids, server_address)
 
         return documents, batch
 

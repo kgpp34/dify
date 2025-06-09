@@ -13,7 +13,7 @@ from services.feature_service import FeatureService
 
 
 @shared_task(queue="dataset")
-def document_indexing_task(dataset_id: str, document_ids: list):
+def document_indexing_task(dataset_id: str, document_ids: list, server_address: str):
     """
     Async process document
     :param dataset_id:
@@ -75,7 +75,7 @@ def document_indexing_task(dataset_id: str, document_ids: list):
 
     try:
         indexing_runner = IndexingRunner()
-        indexing_runner.run(documents)
+        indexing_runner.run(documents, {"server_address": server_address})
         end_at = time.perf_counter()
         logging.info(click.style("Processed dataset: {} latency: {}".format(dataset_id, end_at - start_at), fg="green"))
     except DocumentIsPausedError as ex:

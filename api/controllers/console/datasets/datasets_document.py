@@ -8,6 +8,7 @@ from flask_login import current_user  # type: ignore
 from flask_restful import Resource, fields, marshal, marshal_with, reqparse  # type: ignore
 from sqlalchemy import asc, desc
 from werkzeug.exceptions import Forbidden, NotFound
+from typing import Any, Optional, cast
 
 import services
 from controllers.console import api
@@ -248,7 +249,6 @@ class DatasetDocumentListApi(Resource):
     @cloud_edition_billing_rate_limit_check("knowledge")
     def post(self, dataset_id):
         dataset_id = str(dataset_id)
-
         dataset = DatasetService.get_dataset(dataset_id)
 
         if not dataset:
@@ -278,9 +278,13 @@ class DatasetDocumentListApi(Resource):
         parser.add_argument(
             "doc_language", type=str, default="English", required=False, nullable=False, location="json"
         )
+        parser.add_argument(
+            "split_strategy", type=dict, default="auto", required=False, nullable=False, location="json"
+        )
         args = parser.parse_args()
         knowledge_config = KnowledgeConfig(**args)
-
+        print("knowledge_config")
+        print(knowledge_config)
         if not dataset.indexing_technique and not knowledge_config.indexing_technique:
             raise ValueError("indexing_technique is required.")
 

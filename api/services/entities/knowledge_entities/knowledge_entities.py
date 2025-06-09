@@ -128,6 +128,7 @@ class KnowledgeConfig(BaseModel):
     embedding_model: Optional[str] = None
     embedding_model_provider: Optional[str] = None
     name: Optional[str] = None
+    split_strategy: dict = None
 
 
 class SegmentUpdateArgs(BaseModel):
