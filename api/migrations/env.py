@@ -110,5 +110,5 @@ else:
 
 
 # 在文件开头添加
-import monkey_patch  # noqa: F401  # 激活 Kingbase 支持
+import kingbase_dialect_path  # noqa: F401  # 激活 Kingbase 支持
 

@@ -51,7 +51,7 @@ class KingbasePGDialect(base.PGDialect):
         minor = int(m.group(2)) if m.group(2) else 0
         patch = int(m.group(3)) if m.group(3) else 0
         version_tuple = (major, minor, patch)
-        logger.info(f"[KingbasePGDialect] 检测到 PostgreSQL 数据库，版本: {version_tuple}")
+        logger.info(f"[KingbasePGDialect] 检测到 PostgreSQL 数据 库，版本: {version_tuple}")
         return version_tuple
 
 
