@@ -46,12 +46,16 @@ class KingbasePGDialect(base.PGDialect):
             logger.error(f"[KingbasePGDialect] 无法解析版本字符串: '{v}'")
             raise AssertionError(f"Could not determine version from string '{v}'")
 
-        version_tuple = tuple([int(x) for x in m.group(1, 2, 3) if x is not None])
+        # 确保始终返回三元组，缺失的版本号用0填充
+        major = int(m.group(1)) if m.group(1) else 0
+        minor = int(m.group(2)) if m.group(2) else 0
+        patch = int(m.group(3)) if m.group(3) else 0
+        version_tuple = (major, minor, patch)
         logger.info(f"[KingbasePGDialect] 检测到 PostgreSQL 数据库，版本: {version_tuple}")
         return version_tuple
 
 
 # 替换原始的 PGDialect
-logger.info("[KingbasePGDialect] 正在应用 Kingbase 支持补丁")
+logger.info("[KingbasePGDialect] 正在应用 Kingbase Dialect")
 base.PGDialect = KingbasePGDialect  # type: ignore[misc]
-logger.info("[KingbasePGDialect] Kingbase 支持补丁已应用")
+logger.info("[KingbasePGDialect] Kingbase Dialect 已应用")
