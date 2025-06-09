@@ -1,6 +1,9 @@
 import os
 import sys
 
+# 在其他导入之前添加
+import monkey_patch  # noqa: F401  # 激活 Kingbase 支持
+
 
 def is_db_command():
     if len(sys.argv) > 1 and sys.argv[0].endswith("flask") and sys.argv[1] == "db":

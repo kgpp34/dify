@@ -922,14 +922,7 @@ const StepTwo = ({
                 <div className='flex items-center justify-between'>
                   <TextLabel>{t('datasetCreation.stepTwo.customStrategyUrl')}</TextLabel>
                   <Link
-                    href={(() => {
-                      const url = process.env.NEXT_PUBLIC_EXTERNAL_STRATEGY_DOCS_URL || '#'
-                      // 如果URL不是以http://或https://开头，且不是#，则添加http://前缀
-                      if (url !== '#' && !url.startsWith('http://') && !url.startsWith('https://'))
-                        return `http://${url}`
-
-                      return url
-                    })()}
+                    href="http://agile.cffex.net/confluence/pages/viewpage.action?pageId=98469434"
                     target='_blank'
                     rel='noopener noreferrer'
                     className='hover:text-text-accent-hover flex items-center text-xs text-text-accent'

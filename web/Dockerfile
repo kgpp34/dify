@@ -47,6 +47,7 @@ ENV MARKETPLACE_URL=https://marketplace.dify.ai
 ENV PORT=3000
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PM2_INSTANCES=2
+ENV EXTERNAL_STRATEGY_DOCS_URL=http://agile.cffex.net/confluence/pages/viewpage.action?pageId=98469434
 
 # set timezone
 ENV TZ=UTC
