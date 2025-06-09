@@ -78,8 +78,8 @@ RUN python -c "import tiktoken; tiktoken.encoding_for_model('gpt2')"
 # Copy source code
 COPY . /app/api/
 
-# 应用 SQLAlchemy 补丁
-RUN python patch_sqlalchemy.py
+# 替换 SQLAlchemy PostgreSQL dialect 文件
+RUN cp /app/api/patches/sqlalchemy_base.py ${VIRTUAL_ENV}/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/base.py
 
 # Copy entrypoint
 COPY docker/entrypoint.sh /entrypoint.sh
