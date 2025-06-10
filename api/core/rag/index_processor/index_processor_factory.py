@@ -13,7 +13,9 @@ from core.rag.index_processor.processor.qa_index_processor import QAIndexProcess
 class IndexProcessorFactory:
     """IndexProcessorInit."""
 
-    def __init__(self, index_type: str | None, config_options: Optional[dict[str, Any]] = None):
+    def __init__(
+        self, index_type: str | None, config_options: Optional[dict[str, Any]] = None, clean: Optional[bool] = False
+    ):
         """
         初始化索引处理器工厂。
 
@@ -21,9 +23,11 @@ class IndexProcessorFactory:
             index_type: 索引类型
             config_options: 配置选项，可包含如下字段：
                 - server_address: 自定义处理器服务地址（用于CustomIndexProcessor）
+            clean: 是否是clean index processor
         """
         self._index_type = index_type
         self._config_options = config_options or {}
+        self._clean_flag = clean or False
 
     def init_index_processor(self) -> BaseIndexProcessor:
         """Init index processor."""
@@ -38,9 +42,19 @@ class IndexProcessorFactory:
         elif self._index_type == IndexType.PARENT_CHILD_INDEX:
             return ParentChildIndexProcessor()
         elif self._index_type == IndexType.EXTERNAL_INDEX:
-            server_address = self._config_options.get("server_address")
-            if not server_address:
-                raise ValueError("Server address must be not null.")
+            server_address: str | None = None
+            # validate server address
+            if self._clean_flag is False or self._clean_flag is None:
+                server_address = self._config_options.get("server_address")
+                if not server_address:
+                    raise ValueError("External Split Strategy API Endpoint must be not null.")
+
+            # 确保 server_address 不为 None
+            if server_address is None:
+                # 为 clean 模式提供默认值或抛出异常
+                raise ValueError("Server address is required for ExternalIndexProcessor")
+
             return ExternalIndexProcessor(server_address=server_address)
+
         else:
             raise ValueError(f"Index type {self._index_type} is not supported.")

@@ -63,7 +63,7 @@ def clean_dataset_task(
             # Specify the index type before initializing the index processor
             if doc_form is None:
                 raise ValueError("Index type must be specified.")
-            index_processor = IndexProcessorFactory(doc_form).init_index_processor()
+            index_processor = IndexProcessorFactory(doc_form, clean=True).init_index_processor()
             index_processor.clean(dataset, None, with_keywords=True, delete_child_chunks=True)
 
             for document in documents:

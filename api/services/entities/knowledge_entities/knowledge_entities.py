@@ -116,6 +116,16 @@ class MetaDataConfig(BaseModel):
     doc_metadata: dict
 
 
+class ExternalStrategyDesc(BaseModel):
+    type: Optional[str] = None
+    url: Optional[str] = None
+
+
+class SplitStrategy(BaseModel):
+    type: Optional[str] = None
+    external_strategy_desc: Optional[ExternalStrategyDesc] = None
+
+
 class KnowledgeConfig(BaseModel):
     original_document_id: Optional[str] = None
     duplicate: bool = True
@@ -128,6 +138,7 @@ class KnowledgeConfig(BaseModel):
     embedding_model: Optional[str] = None
     embedding_model_provider: Optional[str] = None
     name: Optional[str] = None
+    split_strategy: Optional[SplitStrategy] = None
 
 
 class SegmentUpdateArgs(BaseModel):

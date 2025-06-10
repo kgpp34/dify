@@ -278,6 +278,7 @@ class DatasetDocumentListApi(Resource):
         parser.add_argument(
             "doc_language", type=str, default="English", required=False, nullable=False, location="json"
         )
+        parser.add_argument("split_strategy", type=dict, required=False, nullable=False, location="json")
         args = parser.parse_args()
         knowledge_config = KnowledgeConfig(**args)
 
@@ -368,6 +369,7 @@ class DatasetInitApi(Resource):
         parser.add_argument("retrieval_model", type=dict, required=False, nullable=False, location="json")
         parser.add_argument("embedding_model", type=str, required=False, nullable=True, location="json")
         parser.add_argument("embedding_model_provider", type=str, required=False, nullable=True, location="json")
+        parser.add_argument("split_strategy", type=dict, required=False, nullable=False, location="json")
         args = parser.parse_args()
 
         # The role of the current user in the ta table must be admin, owner, or editor, or dataset_operator

@@ -1,5 +1,4 @@
 import base64
-import json
 import logging
 from typing import Optional
 
@@ -38,10 +37,10 @@ class ExternalIndexProcessor(BaseIndexProcessor):
         data = {"transfer_method": "base64", "file_name": file_name, "file_data": file_base64}
         try:
             response = self._http_client.post(endpoint="", headers=headers, json_data=data)
+            # todo: these logic is full junior level, must to optimize
             parsed_response = ResponseData.from_dict(response)
             documents = []
-            document_str = parsed_response.data.get(ExternalResponseEnum.DOCUMENTS, [])
-            document_list = json.loads(document_str)
+            document_list = parsed_response.data.get(ExternalResponseEnum.DOCUMENTS, [])
             for doc_data in document_list:
                 doc = DocumentResult.from_dict(doc_data)
                 documents.append(Document(page_content=doc.page_content, metadata=doc.metadata))

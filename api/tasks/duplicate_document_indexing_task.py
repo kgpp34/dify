@@ -1,6 +1,7 @@
 import datetime
 import logging
 import time
+from typing import Any
 
 import click
 from celery import shared_task  # type: ignore
@@ -10,18 +11,22 @@ from core.indexing_runner import DocumentIsPausedError, IndexingRunner
 from core.rag.index_processor.index_processor_factory import IndexProcessorFactory
 from extensions.ext_database import db
 from models.dataset import Dataset, Document, DocumentSegment
+from services.entities.knowledge_entities.knowledge_entities import SplitStrategy
 from services.feature_service import FeatureService
 
 
 @shared_task(queue="dataset")
-def duplicate_document_indexing_task(dataset_id: str, document_ids: list):
+def duplicate_document_indexing_task(dataset_id: str, document_ids: list, split_strategy_dict: dict):
     """
     Async process document
     :param dataset_id:
     :param document_ids:
+    :param split_strategy_dict:
 
-    Usage: duplicate_document_indexing_task.delay(dataset_id, document_ids)
+    Usage: duplicate_document_indexing_task.delay(dataset_id, document_ids, split_strategy_dict)
     """
+    split_strategy = SplitStrategy(**split_strategy_dict) if split_strategy_dict else None
+
     documents = []
     start_at = time.perf_counter()
 
@@ -91,9 +96,19 @@ def duplicate_document_indexing_task(dataset_id: str, document_ids: list):
             db.session.add(document)
     db.session.commit()
 
+    index_processor_config: dict[str, Any] = {}
+    # 如果外置策略存在，则设置外置切分策略server地址
+    if split_strategy and split_strategy.external_strategy_desc:
+        index_processor_config["server_address"] = split_strategy.external_strategy_desc.url
+        logging.info(
+            click.style(
+                "documents: {} split strategy config: {}".format(document_ids, index_processor_config), fg="green"
+            )
+        )
+
     try:
         indexing_runner = IndexingRunner()
-        indexing_runner.run(documents)
+        indexing_runner.run(documents, index_processor_config)
         end_at = time.perf_counter()
         logging.info(click.style("Processed dataset: {} latency: {}".format(dataset_id, end_at - start_at), fg="green"))
     except DocumentIsPausedError as ex:

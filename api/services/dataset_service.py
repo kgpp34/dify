@@ -1122,11 +1122,16 @@ class DocumentService:
                         position += 1
                 db.session.commit()
 
+                # serialize split_strategy
+                split_strategy_dict = (
+                    knowledge_config.split_strategy.model_dump() if knowledge_config.split_strategy else None
+                )
+
                 # trigger async task
                 if document_ids:
-                    document_indexing_task.delay(dataset.id, document_ids)
+                    document_indexing_task.delay(dataset.id, document_ids, split_strategy_dict)
                 if duplicate_document_ids:
-                    duplicate_document_indexing_task.delay(dataset.id, duplicate_document_ids)
+                    duplicate_document_indexing_task.delay(dataset.id, duplicate_document_ids, split_strategy_dict)
 
         return documents, batch
 
