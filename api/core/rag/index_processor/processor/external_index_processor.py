@@ -1,5 +1,6 @@
 import base64
 import logging
+import uuid
 from typing import Optional
 
 from core.rag.datasource.keyword.keyword_factory import Keyword
@@ -11,6 +12,7 @@ from core.rag.extractor.entity.extract_setting import ExtractSetting
 from core.rag.index_processor.index_processor_base import BaseIndexProcessor
 from core.rag.models.document import Document
 from extensions.ext_storage import storage
+from libs import helper
 from libs.http_client import HttpClient
 
 # from models import Document, Dataset
@@ -43,6 +45,12 @@ class ExternalIndexProcessor(BaseIndexProcessor):
             document_list = parsed_response.data.get(ExternalResponseEnum.DOCUMENTS, [])
             for doc_data in document_list:
                 doc = DocumentResult.from_dict(doc_data)
+                if doc.metadata is None:
+                    doc.metadata = {}
+                if "doc_id" not in doc.metadata:
+                    doc.metadata["doc_id"] = str(uuid.uuid4())
+                if "doc_hash" not in doc.metadata:
+                    doc.metadata["doc_hash"] = helper.generate_text_hash(doc.page_content)
                 documents.append(Document(page_content=doc.page_content, metadata=doc.metadata))
             self.document = documents
             return documents
