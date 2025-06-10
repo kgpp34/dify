@@ -48,12 +48,6 @@ class IndexProcessorFactory:
                 server_address = self._config_options.get("server_address")
                 if not server_address:
                     raise ValueError("External Split Strategy API Endpoint must be not null.")
-
-            # 确保 server_address 不为 None
-            if server_address is None:
-                # 为 clean 模式提供默认值或抛出异常
-                raise ValueError("Server address is required for ExternalIndexProcessor")
-
             return ExternalIndexProcessor(server_address=server_address)
 
         else:
