@@ -64,7 +64,9 @@ def enable_segment_to_index_task(segment_id: str):
             logging.info(click.style("Segment {} document status is invalid, pass.".format(segment.id), fg="cyan"))
             return
 
-        index_processor = IndexProcessorFactory(dataset_document.doc_form).init_index_processor()
+        index_processor = IndexProcessorFactory(
+            dataset_document.doc_form, dataset_document.external_index_processor_config
+        ).init_index_processor()
         if dataset_document.doc_form == IndexType.PARENT_CHILD_INDEX:
             child_chunks = segment.get_child_chunks()
             if child_chunks:

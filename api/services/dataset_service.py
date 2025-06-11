@@ -1017,6 +1017,9 @@ class DocumentService:
                             account,
                             file_name,
                             batch,
+                            split_strategy=knowledge_config.split_strategy.model_dump()
+                            if knowledge_config.split_strategy
+                            else None,
                         )
                         db.session.add(document)
                         db.session.flush()
@@ -1074,6 +1077,9 @@ class DocumentService:
                                     account,
                                     truncated_page_name,
                                     batch,
+                                    split_strategy=knowledge_config.split_strategy.model_dump()
+                                    if knowledge_config.split_strategy
+                                    else None,
                                 )
                                 db.session.add(document)
                                 db.session.flush()
@@ -1114,6 +1120,9 @@ class DocumentService:
                             account,
                             document_name,
                             batch,
+                            split_strategy=knowledge_config.split_strategy.model_dump()
+                            if knowledge_config.split_strategy
+                            else None,
                         )
                         db.session.add(document)
                         db.session.flush()
@@ -1122,16 +1131,11 @@ class DocumentService:
                         position += 1
                 db.session.commit()
 
-                # serialize split_strategy
-                split_strategy_dict = (
-                    knowledge_config.split_strategy.model_dump() if knowledge_config.split_strategy else None
-                )
-
                 # trigger async task
                 if document_ids:
-                    document_indexing_task.delay(dataset.id, document_ids, split_strategy_dict)
+                    document_indexing_task.delay(dataset.id, document_ids)
                 if duplicate_document_ids:
-                    duplicate_document_indexing_task.delay(dataset.id, duplicate_document_ids, split_strategy_dict)
+                    duplicate_document_indexing_task.delay(dataset.id, duplicate_document_ids)
 
         return documents, batch
 
@@ -1156,6 +1160,7 @@ class DocumentService:
         account: Account,
         name: str,
         batch: str,
+        split_strategy: dict | None = None,
     ):
         document = Document(
             tenant_id=dataset.tenant_id,
@@ -1170,6 +1175,7 @@ class DocumentService:
             created_by=account.id,
             doc_form=document_form,
             doc_language=document_language,
+            split_strategy=json.dumps(split_strategy) if split_strategy else None,
         )
         doc_metadata = {}
         if dataset.built_in_field_enabled:
@@ -1615,7 +1621,13 @@ class SegmentService:
 
             # save vector index
             try:
-                VectorService.create_segments_vector([args["keywords"]], [segment_document], dataset, document.doc_form)
+                VectorService.create_segments_vector(
+                    [args["keywords"]],
+                    [segment_document],
+                    dataset,
+                    document.doc_form,
+                    document.external_index_processor_config,
+                )
             except Exception as e:
                 logging.exception("create segment index failed")
                 segment_document.enabled = False
@@ -1697,7 +1709,13 @@ class SegmentService:
             db.session.add(document)
             try:
                 # save vector index
-                VectorService.create_segments_vector(keywords_list, pre_segment_data_list, dataset, document.doc_form)
+                VectorService.create_segments_vector(
+                    keywords_list,
+                    pre_segment_data_list,
+                    dataset,
+                    document.doc_form,
+                    document.external_index_processor_config,
+                )
             except Exception as e:
                 logging.exception("create segment index failed")
                 for segment_document in segment_data_list:

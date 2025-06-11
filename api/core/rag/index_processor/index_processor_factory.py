@@ -14,7 +14,10 @@ class IndexProcessorFactory:
     """IndexProcessorInit."""
 
     def __init__(
-        self, index_type: str | None, config_options: Optional[dict[str, Any]] = None, clean: Optional[bool] = False
+        self,
+        index_type: str | None,
+        config_options: Optional[dict[str, Any]] = None,
+        skip_validate_split: Optional[bool] = False,
     ):
         """
         初始化索引处理器工厂。
@@ -23,11 +26,11 @@ class IndexProcessorFactory:
             index_type: 索引类型
             config_options: 配置选项，可包含如下字段：
                 - server_address: 自定义处理器服务地址（用于CustomIndexProcessor）
-            clean: 是否是clean index processor
+            skip_validate_split: 是否是跳过验证外置策略校验
         """
         self._index_type = index_type
         self._config_options = config_options or {}
-        self._clean_flag = clean or False
+        self._skip_validate_split = skip_validate_split or False
 
     def init_index_processor(self) -> BaseIndexProcessor:
         """Init index processor."""
@@ -44,10 +47,19 @@ class IndexProcessorFactory:
         elif self._index_type == IndexType.EXTERNAL_INDEX:
             server_address: str | None = None
             # validate server address
-            if self._clean_flag is False or self._clean_flag is None:
+            if self._skip_validate_split is False or self._skip_validate_split is None:
                 server_address = self._config_options.get("server_address")
                 if not server_address:
                     raise ValueError("External Split Strategy API Endpoint must be not null.")
+            else:
+                # 如果跳过校验，仍然尝试获取server_address，但不强制要求
+                server_address = self._config_options.get("server_address")
+
+            # 由于ExternalIndexProcessor要求server_address为str类型，我们需要提供一个默认值
+            if server_address is None:
+                # 当跳过校验且没有提供server_address时，使用空字符串或默认值
+                server_address = ""
+
             return ExternalIndexProcessor(server_address=server_address)
 
         else:

@@ -70,7 +70,8 @@ def create_segment_to_index_task(segment_id: str, keywords: Optional[list[str]] 
             return
 
         index_type = dataset.doc_form
-        index_processor = IndexProcessorFactory(index_type).init_index_processor()
+        config_options = dataset_document.external_index_processor_config
+        index_processor = IndexProcessorFactory(index_type, config_options=config_options).init_index_processor()
         index_processor.load(dataset, [document])
 
         # update segment to completed

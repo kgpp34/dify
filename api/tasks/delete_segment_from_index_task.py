@@ -34,7 +34,8 @@ def delete_segment_from_index_task(index_node_ids: list, dataset_id: str, docume
             return
 
         index_type = dataset_document.doc_form
-        index_processor = IndexProcessorFactory(index_type).init_index_processor()
+        config_options = dataset_document.external_index_processor_config
+        index_processor = IndexProcessorFactory(index_type, config_options=config_options).init_index_processor()
         index_processor.clean(dataset, index_node_ids, with_keywords=True, delete_child_chunks=True)
 
         end_at = time.perf_counter()
