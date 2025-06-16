@@ -137,7 +137,7 @@ class Dataset(db.Model):  # type: ignore[name-defined]
     @property
     def word_count(self):
         return (
-            Document.query.with_entities(func.coalesce(func.sum(Document.word_count)))
+            Document.query.with_entities(func.coalesce(func.sum(Document.word_count, 0)))
             .filter(Document.dataset_id == self.id)
             .scalar()
         )
@@ -446,7 +446,7 @@ class Document(db.Model):  # type: ignore[name-defined]
     @property
     def hit_count(self):
         return (
-            DocumentSegment.query.with_entities(func.coalesce(func.sum(DocumentSegment.hit_count)))
+            DocumentSegment.query.with_entities(func.coalesce(func.sum(DocumentSegment.hit_count), 0))
             .filter(DocumentSegment.document_id == self.id)
             .scalar()
         )
