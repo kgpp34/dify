@@ -10,6 +10,9 @@ import { login } from '@/service/common'
 import Input from '@/app/components/base/input'
 import I18NContext from '@/context/i18n'
 import { noop } from 'lodash-es'
+import { apiPrefix } from '@/config'
+import classNames from '@/utils/classnames'
+import { getPurifyHref } from '@/utils'
 
 type MailAndPasswordAuthProps = {
   isInvite: boolean
@@ -30,6 +33,13 @@ export default function MailAndPasswordAuth({ isInvite, isEmailSetup, allowRegis
   const [password, setPassword] = useState('')
 
   const [isLoading, setIsLoading] = useState(false)
+  const getOAuthLink = (href: string) => {
+    const url = getPurifyHref(`${apiPrefix}${href}`)
+    if (searchParams.has('invite_token'))
+      return `${url}?${searchParams.toString()}`
+
+    return url
+  }
   const handleEmailPasswordLogin = async () => {
     if (!email) {
       Toast.notify({ type: 'error', message: t('login.error.emailEmpty') })
@@ -170,5 +180,22 @@ export default function MailAndPasswordAuth({ isInvite, isEmailSetup, allowRegis
         className="w-full"
       >{t('login.signBtn')}</Button>
     </div>
+
+    <div className='mb-2'>
+       <a href={getOAuthLink('/oauth/login/custom')}>
+      <Button
+        tabIndex={3}
+        variant='secondary'
+        className="w-full"
+        type="button"
+      >
+        <>
+          <span className="w-5 h-5 mr-2">🔑</span>
+          <span>{t('login.signInWithOAuth2')}</span>
+        </>
+      </Button>
+    </a>
+    </div>
+
   </form>
 }

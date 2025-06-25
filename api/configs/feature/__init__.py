@@ -550,6 +550,16 @@ class AuthConfig(BaseSettings):
         default=None,
     )
 
+    CUSTOM_CLIENT_ID: Optional[str] = Field(
+        description="CUSTOM OAuth client ID",
+        default=None,
+    )
+
+    CUSTOM_CLIENT_SECRET: Optional[str] = Field(
+        description="CUSTOM OAuth client secret",
+        default=None,
+    )
+
     ACCESS_TOKEN_EXPIRE_MINUTES: PositiveInt = Field(
         description="Expiration time for access tokens in minutes",
         default=60,

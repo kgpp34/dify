@@ -14,10 +14,10 @@ from constants.languages import languages
 from events.tenant_event import tenant_was_created
 from extensions.ext_database import db
 from libs.helper import extract_remote_ip
-from libs.oauth import GitHubOAuth, GoogleOAuth, OAuthUserInfo
-from models import Account
+from libs.oauth import GitHubOAuth, GoogleOAuth, OAuthUserInfo, CustomOAuth
+from models import Account, Tenant
 from models.account import AccountStatus
-from services.account_service import AccountService, RegisterService, TenantService
+from services.account_service import AccountService, RegisterService, TenantService, _get_dept_from_token
 from services.errors.account import AccountNotFoundError, AccountRegisterError
 from services.errors.workspace import WorkSpaceNotAllowedCreateError, WorkSpaceNotFoundError
 from services.feature_service import FeatureService
@@ -43,8 +43,16 @@ def get_oauth_providers():
                 client_secret=dify_config.GOOGLE_CLIENT_SECRET,
                 redirect_uri=dify_config.CONSOLE_API_URL + "/console/api/oauth/authorize/google",
             )
+        if not dify_config.CUSTOM_CLIENT_ID or not dify_config.CUSTOM_CLIENT_SECRET:
+            custom_oauth = None
+        else:
+            custom_oauth = CustomOAuth(
+                client_id=dify_config.CUSTOM_CLIENT_ID,
+                client_secret=dify_config.CUSTOM_CLIENT_SECRET,
+                redirect_uri=dify_config.CONSOLE_API_URL + "/console/api/oauth/authorize/custom",
+            )
 
-        OAUTH_PROVIDERS = {"github": github_oauth, "google": google_oauth}
+        OAUTH_PROVIDERS = {"github": github_oauth, "google": google_oauth, "custom": custom_oauth}
         return OAUTH_PROVIDERS
 
 
@@ -77,36 +85,22 @@ class OAuthCallback(Resource):
 
         try:
             token = oauth_provider.get_access_token(code)
+            dept = _get_dept_from_token( token)
             user_info = oauth_provider.get_user_info(token)
         except requests.exceptions.RequestException as e:
             error_text = e.response.text if e.response else str(e)
             logging.exception(f"An error occurred during the OAuth process with {provider}: {error_text}")
             return {"error": "OAuth process failed"}, 400
 
-        if invite_token and RegisterService.is_valid_invite_token(invite_token):
-            invitation = RegisterService._get_invitation_by_token(token=invite_token)
-            if invitation:
-                invitation_email = invitation.get("email", None)
-                if invitation_email != user_info.email:
-                    return redirect(f"{dify_config.CONSOLE_WEB_URL}/signin?message=Invalid invitation token.")
-
-            return redirect(f"{dify_config.CONSOLE_WEB_URL}/signin/invite-settings?invite_token={invite_token}")
-
-        try:
-            account = _generate_account(provider, user_info)
-        except AccountNotFoundError:
-            return redirect(f"{dify_config.CONSOLE_WEB_URL}/signin?message=Account not found.")
-        except (WorkSpaceNotFoundError, WorkSpaceNotAllowedCreateError):
-            return redirect(
-                f"{dify_config.CONSOLE_WEB_URL}/signin"
-                "?message=Workspace not found, please contact system admin to invite you to join in a workspace."
+        account = db.session.query(Account).filter(Account.email == user_info.email).first()
+        if not account:
+            account = RegisterService.register(
+                email=user_info.email, password=user_info.email, name=user_info.name, language="zh-Hans", status=AccountStatus.ACTIVE, is_setup=True
             )
-        except AccountRegisterError as e:
-            return redirect(f"{dify_config.CONSOLE_WEB_URL}/signin?message={e.description}")
-
-        # Check account status
-        if account.status == AccountStatus.BANNED.value:
-            return redirect(f"{dify_config.CONSOLE_WEB_URL}/signin?message=Account is banned.")
+            tenant_name = dept + "'s Workspace"
+            tenant = db.session.query(Tenant).filter(Tenant.name == tenant_name).first()
+            TenantService.create_tenant_member(tenant, account, "admin")
+            TenantService.switch_tenant(account, tenant.id)
 
         if account.status == AccountStatus.PENDING.value:
             account.status = AccountStatus.ACTIVE.value
@@ -150,17 +144,17 @@ def _generate_account(provider: str, user_info: OAuthUserInfo):
     if account:
         tenant = TenantService.get_join_tenants(account)
         if not tenant:
-            if not FeatureService.get_system_features().is_allow_create_workspace:
-                raise WorkSpaceNotAllowedCreateError()
-            else:
-                tenant = TenantService.create_tenant(f"{account.name}'s Workspace")
-                TenantService.create_tenant_member(tenant, account, role="owner")
-                account.current_tenant = tenant
-                tenant_was_created.send(tenant)
+            # if not FeatureService.get_system_features().is_allow_create_workspace:
+            #     raise WorkSpaceNotAllowedCreateError()
+            # else:
+            tenant = TenantService.create_tenant(f"{account.name}'s Workspace")
+            TenantService.create_tenant_member(tenant, account, role="owner")
+            account.current_tenant = tenant
+            tenant_was_created.send(tenant)
 
     if not account:
-        if not FeatureService.get_system_features().is_allow_register:
-            raise AccountNotFoundError()
+        # if not FeatureService.get_system_features().is_allow_register:
+        #     raise AccountNotFoundError()
         account_name = user_info.name or "Dify"
         account = RegisterService.register(
             email=user_info.email, name=account_name, password=None, open_id=user_info.id, provider=provider

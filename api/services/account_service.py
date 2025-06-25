@@ -204,10 +204,10 @@ class AccountService:
         is_setup: Optional[bool] = False,
     ) -> Account:
         """create account"""
-        if not FeatureService.get_system_features().is_allow_register and not is_setup:
-            from controllers.console.error import AccountNotFound
-
-            raise AccountNotFound()
+        # if not FeatureService.get_system_features().is_allow_register and not is_setup:
+        #     from controllers.console.error import AccountNotFound
+        #
+        #     raise AccountNotFound()
 
         if dify_config.BILLING_ENABLED and BillingService.is_email_in_freeze(email):
             raise AccountRegisterError(
@@ -940,6 +940,7 @@ class RegisterService:
         with Session(db.engine) as session:
             account = session.query(Account).filter_by(email=email).first()
 
+        # look
         if not account:
             TenantService.check_member_permission(tenant, inviter, None, "add")
             name = email.split("@")[0]
@@ -1048,7 +1049,6 @@ class RegisterService:
             email_hash = sha256(email.encode()).hexdigest()
             cache_key = f"member_invite_token:{workspace_id}, {email_hash}:{token}"
             account_id = redis_client.get(cache_key)
-
             if not account_id:
                 return None
 
@@ -1069,3 +1069,26 @@ class RegisterService:
 def _generate_refresh_token(length: int = 64):
     token = secrets.token_hex(length)
     return token
+
+
+def _get_dept_from_token(token: str):
+    parts = token.strip().split('.')
+    header_b64, payload_b64, signature_b64 = parts
+    payload = decode_base64url(payload_b64)
+    payload_dict = json.loads(payload)
+    groups = payload_dict.get("user", {}).get("groups", [])
+    dept = groups[0].get("name", [])
+    return dept
+
+
+def decode_base64url(data):
+    """Base64Url 解码并返回原始字符串"""
+    # 补全 Base64 长度到 4 的倍数
+    rem = len(data) % 4
+    if rem:
+        data += '=' * (4 - rem)
+    try:
+        decoded_bytes = base64.urlsafe_b64decode(data)
+        return decoded_bytes.decode('utf-8')
+    except Exception as e:
+        return f"[解码错误] 无法解码: {str(e)}"
