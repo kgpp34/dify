@@ -27,9 +27,9 @@ from .. import api
 
 def get_oauth_providers():
     with current_app.app_context():
-        print("get_oauth_providers")
-        print("dify_config.CUSTOM_CLIENT_ID: ", dify_config.CUSTOM_CLIENT_ID)
-        print("dify_config.CUSTOM_CLIENT_SECRET: ", dify_config.CUSTOM_CLIENT_SECRET)
+        logging.info("get_oauth_providers")
+        logging.info("dify_config.CUSTOM_CLIENT_ID: %s", dify_config.CUSTOM_CLIENT_ID)
+        logging.info("dify_config.CUSTOM_CLIENT_SECRET: %s", dify_config.CUSTOM_CLIENT_SECRET)
         if not dify_config.GITHUB_CLIENT_ID or not dify_config.GITHUB_CLIENT_SECRET:
             github_oauth = None
         else:
@@ -47,7 +47,7 @@ def get_oauth_providers():
                 redirect_uri=dify_config.CONSOLE_API_URL + "/console/api/oauth/authorize/google",
             )
         if not dify_config.CUSTOM_CLIENT_ID or not dify_config.CUSTOM_CLIENT_SECRET:
-            print("no CUSTOM_CLIENT_ID or CUSTOM_CLIENT_SECRET")
+            logging.info("no CUSTOM_CLIENT_ID or CUSTOM_CLIENT_SECRET")
             custom_oauth = None
         else:
             custom_oauth = CustomOAuth(
@@ -55,22 +55,23 @@ def get_oauth_providers():
                 client_secret=dify_config.CUSTOM_CLIENT_SECRET,
                 redirect_uri=dify_config.CONSOLE_API_URL + "/console/api/oauth/authorize/custom",
             )
+            logging.info("redirect_uri: %s", custom_oauth.redirect_uri)
         OAUTH_PROVIDERS = {"github": github_oauth, "google": google_oauth, "custom": custom_oauth}
         return OAUTH_PROVIDERS
 
 
 class OAuthLogin(Resource):
     def get(self, provider: str):
-        print("OAuthLogin get")
+        logging.info("OAuthLogin get")
         invite_token = request.args.get("invite_token") or None
         OAUTH_PROVIDERS = get_oauth_providers()
         with current_app.app_context():
             oauth_provider = OAUTH_PROVIDERS.get(provider)
         if not oauth_provider:
-            return {"error": "Invalid provider"}, 400
+            return {"error": "OAuthLogin Invalid provider"}, 400
 
         auth_url = oauth_provider.get_authorization_url(invite_token=invite_token)
-        print("auth_url: ", auth_url)
+        logging.info("auth_url: %s", auth_url)
         return redirect(auth_url)
 
 
@@ -83,7 +84,7 @@ class OAuthCallback(Resource):
             return {"error": "Invalid provider"}, 400
 
         code = request.args.get("code")
-        print("code: ", code)
+        logging.info("code: ", code)
         state = request.args.get("state")
         invite_token = None
         if state:
@@ -91,14 +92,14 @@ class OAuthCallback(Resource):
 
         try:
             token = oauth_provider.get_access_token(code)
-            print("token: ", token)
+            logging.info("token: ", token)
             dept = _get_dept_from_token( token)
-            print("dept: ", dept)
+            logging.info("dept: ", dept)
             user_info = oauth_provider.get_user_info(token)
             user_name = user_info.name
             if user_name[:2].lower() == 'wb':
                 return {"error": "no auth"}, 400
-            print("user_info: ", user_info)
+            logging.info("user_info: %s", user_info)
         except requests.exceptions.RequestException as e:
             error_text = e.response.text if e.response else str(e)
             logging.exception(f"An error occurred during the OAuth process with {provider}: {error_text}")
@@ -106,7 +107,7 @@ class OAuthCallback(Resource):
 
         account = db.session.query(Account).filter(Account.email == user_info.email).first()
         if not account:
-            print("register")
+            logging.info("not account register")
             account = RegisterService.register(
                 email=user_info.email, password=user_info.email, name=user_info.name, language="zh-Hans", status=AccountStatus.ACTIVE, is_setup=True
             )
