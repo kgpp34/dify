@@ -204,10 +204,10 @@ class AccountService:
         is_setup: Optional[bool] = False,
     ) -> Account:
         """create account"""
-        # if not FeatureService.get_system_features().is_allow_register and not is_setup:
-        #     from controllers.console.error import AccountNotFound
-        #
-        #     raise AccountNotFound()
+        if not FeatureService.get_system_features().is_allow_register and not is_setup:
+            from controllers.console.error import AccountNotFound
+
+            raise AccountNotFound()
 
         if dify_config.BILLING_ENABLED and BillingService.is_email_in_freeze(email):
             raise AccountRegisterError(

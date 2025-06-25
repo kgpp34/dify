@@ -144,17 +144,17 @@ def _generate_account(provider: str, user_info: OAuthUserInfo):
     if account:
         tenant = TenantService.get_join_tenants(account)
         if not tenant:
-            # if not FeatureService.get_system_features().is_allow_create_workspace:
-            #     raise WorkSpaceNotAllowedCreateError()
-            # else:
-            tenant = TenantService.create_tenant(f"{account.name}'s Workspace")
-            TenantService.create_tenant_member(tenant, account, role="owner")
-            account.current_tenant = tenant
-            tenant_was_created.send(tenant)
+            if not FeatureService.get_system_features().is_allow_create_workspace:
+                raise WorkSpaceNotAllowedCreateError()
+            else:
+                tenant = TenantService.create_tenant(f"{account.name}'s Workspace")
+                TenantService.create_tenant_member(tenant, account, role="owner")
+                account.current_tenant = tenant
+                tenant_was_created.send(tenant)
 
     if not account:
-        # if not FeatureService.get_system_features().is_allow_register:
-        #     raise AccountNotFoundError()
+        if not FeatureService.get_system_features().is_allow_register:
+            raise AccountNotFoundError()
         account_name = user_info.name or "Dify"
         account = RegisterService.register(
             email=user_info.email, name=account_name, password=None, open_id=user_info.id, provider=provider
