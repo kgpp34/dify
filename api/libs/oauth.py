@@ -135,9 +135,9 @@ class GoogleOAuth(OAuth):
 
 
 class CustomOAuth(OAuth):
-    _AUTH_URL = "http://127.0.0.1:5012/oauth2/authorize"
-    _TOKEN_URL = "http://127.0.0.1:5012/oauth2/token"
-    _USER_INFO_URL = "http://127.0.0.1:5012/userinfo"
+    _AUTH_URL = "http://172.31.69.113:10087/oauth2/authorize"
+    _TOKEN_URL = "http://172.31.69.113:10087/oauth2/token"
+    _USER_INFO_URL = "http://172.31.69.113:10087/userinfo"
 
     def get_authorization_url(self, invite_token: Optional[str] = None):
         params = {
