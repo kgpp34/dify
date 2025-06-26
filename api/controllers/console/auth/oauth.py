@@ -95,6 +95,9 @@ class OAuthCallback(Resource):
             dept = _get_dept_from_token( token)
             print("dept: ", dept)
             user_info = oauth_provider.get_user_info(token)
+            user_name = user_info.name
+            if user_name[:2].lower() == 'wb':
+                return {"error": "no auth"}, 400
             print("user_info: ", user_info)
         except requests.exceptions.RequestException as e:
             error_text = e.response.text if e.response else str(e)
