@@ -91,20 +91,27 @@ class GitHubOAuth(OAuth):
 
 
 class GoogleOAuth(OAuth):
-    _AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-    _TOKEN_URL = "https://oauth2.googleapis.com/token"
-    _USER_INFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
+    _AUTH_URL = "http://172.31.69.113:10087/oauth2/authorize"
+    _TOKEN_URL = "http://172.31.69.113:10087/oauth2/token"
+    _USER_INFO_URL = "http://172.31.69.113:10087/userinfo"
 
     def get_authorization_url(self, invite_token: Optional[str] = None):
         params = {
             "client_id": self.client_id,
             "response_type": "code",
             "redirect_uri": self.redirect_uri,
-            "scope": "openid email",
+            "state": "xyz",
+            "scope": "openid profile email",
         }
         if invite_token:
             params["state"] = invite_token
-        return f"{self._AUTH_URL}?{urllib.parse.urlencode(params)}"
+        query_parts = []
+        for key, value in params.items():
+            key = quote(key)
+            value = quote(value)
+            query_parts.append(f"{key}={value}")
+        query_string = "&".join(query_parts)
+        return f"{self._AUTH_URL}?{query_string}"
 
     def get_access_token(self, code: str):
         data = {

@@ -100,7 +100,7 @@ class OAuthCallback(Resource):
             dept, user_name, email, id = _get_userinfo_from_token(token)
             logging.info("OAuthCallback dept: %s", dept)
             user_info = oauth_provider.get_user_info(token)
-            logging.info("OAuthCallback user_info: %s" ,user_info)
+            logging.info("OAuthCallback user_info: %s", user_info)
         except requests.exceptions.RequestException as e:
             error_text = e.response.text if e.response else str(e)
             logging.exception(f"An error occurred during the OAuth process with {provider}: {error_text}")
