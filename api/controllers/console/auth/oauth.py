@@ -17,7 +17,7 @@ from libs.helper import extract_remote_ip
 from libs.oauth import GitHubOAuth, GoogleOAuth, OAuthUserInfo, CustomOAuth
 from models import Account, Tenant
 from models.account import AccountStatus
-from services.account_service import AccountService, RegisterService, TenantService, _get_dept_from_token
+from services.account_service import AccountService, RegisterService, TenantService, _get_userinfo_from_token
 from services.errors.account import AccountNotFoundError, AccountRegisterError
 from services.errors.workspace import WorkSpaceNotAllowedCreateError, WorkSpaceNotFoundError
 from services.feature_service import FeatureService
@@ -27,9 +27,6 @@ from .. import api
 
 def get_oauth_providers():
     with current_app.app_context():
-        logging.info("get_oauth_providers")
-        logging.info("dify_config.CUSTOM_CLIENT_ID: %s", dify_config.CUSTOM_CLIENT_ID)
-        logging.info("dify_config.CUSTOM_CLIENT_SECRET: %s", dify_config.CUSTOM_CLIENT_SECRET)
         if not dify_config.GITHUB_CLIENT_ID or not dify_config.GITHUB_CLIENT_SECRET:
             github_oauth = None
         else:
@@ -46,37 +43,44 @@ def get_oauth_providers():
                 client_secret=dify_config.GOOGLE_CLIENT_SECRET,
                 redirect_uri=dify_config.CONSOLE_API_URL + "/console/api/oauth/authorize/google",
             )
+        dify_config.CUSTOM_CLIENT_ID = "dify"
+        dify_config.CUSTOM_CLIENT_SECRET = "dify"
+        logging.info("dify_config.CUSTOM_CLIENT_ID: %s", dify_config.CUSTOM_CLIENT_ID)
+        logging.info("dify_config.CUSTOM_CLIENT_SECRET: %s", dify_config.CUSTOM_CLIENT_SECRET)
         if not dify_config.CUSTOM_CLIENT_ID or not dify_config.CUSTOM_CLIENT_SECRET:
-            logging.info("no CUSTOM_CLIENT_ID or CUSTOM_CLIENT_SECRET")
+            logging.info("get_oauth_providers not id or secret")
             custom_oauth = None
         else:
+            logging.info("get_oauth_providers id or secret")
             custom_oauth = CustomOAuth(
                 client_id=dify_config.CUSTOM_CLIENT_ID,
                 client_secret=dify_config.CUSTOM_CLIENT_SECRET,
                 redirect_uri=dify_config.CONSOLE_API_URL + "/console/api/oauth/authorize/custom",
             )
-            logging.info("redirect_uri: %s", custom_oauth.redirect_uri)
+            logging.info("dify_config.CONSOLE_API_URL: %s", dify_config.CONSOLE_API_URL)
         OAUTH_PROVIDERS = {"github": github_oauth, "google": google_oauth, "custom": custom_oauth}
         return OAUTH_PROVIDERS
 
 
 class OAuthLogin(Resource):
     def get(self, provider: str):
-        logging.info("OAuthLogin get")
+        logging.info("OAuthLogin get provider: %s",provider)
         invite_token = request.args.get("invite_token") or None
         OAUTH_PROVIDERS = get_oauth_providers()
         with current_app.app_context():
             oauth_provider = OAUTH_PROVIDERS.get(provider)
         if not oauth_provider:
-            return {"error": "OAuthLogin Invalid provider"}, 400
+            return {"error": "Invalid provider"}, 400
 
         auth_url = oauth_provider.get_authorization_url(invite_token=invite_token)
-        logging.info("auth_url: %s", auth_url)
+        logging.info("OAuthLogin auth_url: %s", auth_url)
         return redirect(auth_url)
 
 
 class OAuthCallback(Resource):
+
     def get(self, provider: str):
+        logging.info("OAuthCallback get provider: %s",provider)
         OAUTH_PROVIDERS = get_oauth_providers()
         with current_app.app_context():
             oauth_provider = OAUTH_PROVIDERS.get(provider)
@@ -84,7 +88,7 @@ class OAuthCallback(Resource):
             return {"error": "Invalid provider"}, 400
 
         code = request.args.get("code")
-        logging.info("code: ", code)
+        logging.info("OAuthCallback code: %s", code)
         state = request.args.get("state")
         invite_token = None
         if state:
@@ -92,14 +96,11 @@ class OAuthCallback(Resource):
 
         try:
             token = oauth_provider.get_access_token(code)
-            logging.info("token: ", token)
-            dept = _get_dept_from_token( token)
-            logging.info("dept: ", dept)
+            logging.info("OAuthCallback token: %s", token)
+            dept, user_name, email, id = _get_userinfo_from_token(token)
+            logging.info("OAuthCallback dept: %s", dept)
             user_info = oauth_provider.get_user_info(token)
-            user_name = user_info.name
-            if user_name[:2].lower() == 'wb':
-                return {"error": "no auth"}, 400
-            logging.info("user_info: %s", user_info)
+            logging.info("OAuthCallback user_info: %s" ,user_info)
         except requests.exceptions.RequestException as e:
             error_text = e.response.text if e.response else str(e)
             logging.exception(f"An error occurred during the OAuth process with {provider}: {error_text}")
@@ -107,9 +108,9 @@ class OAuthCallback(Resource):
 
         account = db.session.query(Account).filter(Account.email == user_info.email).first()
         if not account:
-            logging.info("not account register")
+            logging.info("OAuthCallback not account")
             account = RegisterService.register(
-                email=user_info.email, password=user_info.email, name=user_info.name, language="zh-Hans", status=AccountStatus.ACTIVE, is_setup=True
+                email=user_info.email, name=user_info.name, language="zh-Hans", status=AccountStatus.PENDING, is_setup=True
             )
             tenant_name = dept + "'s Workspace"
             tenant = db.session.query(Tenant).filter(Tenant.name == tenant_name).first()
