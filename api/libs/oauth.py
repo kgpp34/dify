@@ -1,6 +1,7 @@
 import urllib.parse
 from dataclasses import dataclass
 from urllib.parse import quote
+import logging
 from typing import Optional
 
 import requests
@@ -115,7 +116,7 @@ class GoogleOAuth(OAuth):
         }
         headers = {"Accept": "application/json"}
         response = requests.post(self._TOKEN_URL, data=data, headers=headers)
-
+        logging.info("respone.status_code: %s", response.status_code)
         response_json = response.json()
         access_token = response_json.get("access_token")
 
@@ -167,13 +168,13 @@ class CustomOAuth(OAuth):
         }
         headers = {"Accept": "application/json"}
         response = requests.post(self._TOKEN_URL, data=data, headers=headers)
-        response.raise_for_status()
+        # response.raise_for_status()
         return response.json()["access_token"]
 
     def get_raw_user_info(self, token: str):
         headers = {"Authorization": f"Bearer {token}"}
         response = requests.get(self._USER_INFO_URL, headers=headers)
-        response.raise_for_status()
+        # response.raise_for_status()
         return response.json()
 
     def _transform_user_info(self, raw_info: dict) -> OAuthUserInfo:
