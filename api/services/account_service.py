@@ -1071,23 +1071,19 @@ def _generate_refresh_token(length: int = 64):
     return token
 
 
-def _get_userinfo_from_token(token: str):
+def _get_dept_from_token(token: str):
     parts = token.strip().split('.')
     header_b64, payload_b64, signature_b64 = parts
     payload = decode_base64url(payload_b64)
     payload_dict = json.loads(payload)
     groups = payload_dict.get("user", {}).get("groups", [])
     dept = groups[0].get("name", [])
-    user_name = payload_dict.get("user_name", {})
-    email = payload_dict.get("user", {}).get("email")
-    nickName = payload_dict.get("user", {}).get("nickName")
-
-    return dept, user_name, email, nickName
+    return dept
 
 
 def decode_base64url(data):
     """Base64Url 解码并返回原始字符串"""
-    # 补全 Base64 长度到 4 的倍数
+
     rem = len(data) % 4
     if rem:
         data += '=' * (4 - rem)
