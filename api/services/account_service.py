@@ -940,7 +940,6 @@ class RegisterService:
         with Session(db.engine) as session:
             account = session.query(Account).filter_by(email=email).first()
 
-        # look
         if not account:
             TenantService.check_member_permission(tenant, inviter, None, "add")
             name = email.split("@")[0]
