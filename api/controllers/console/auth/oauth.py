@@ -17,7 +17,7 @@ from libs.helper import extract_remote_ip
 from libs.oauth import GitHubOAuth, GoogleOAuth, OAuthUserInfo, CustomOAuth
 from models import Account, Tenant
 from models.account import AccountStatus
-from services.account_service import AccountService, RegisterService, TenantService, _get_userinfo_from_token
+from services.account_service import AccountService, RegisterService, TenantService, _get_dept_from_token
 from services.errors.account import AccountNotFoundError, AccountRegisterError
 from services.errors.workspace import WorkSpaceNotAllowedCreateError, WorkSpaceNotFoundError
 from services.feature_service import FeatureService
@@ -97,10 +97,13 @@ class OAuthCallback(Resource):
         try:
             token = oauth_provider.get_access_token(code)
             logging.info("OAuthCallback token: %s", token)
-            dept, user_name, email, id = _get_userinfo_from_token(token)
+            dept = _get_dept_from_token(token)
             logging.info("OAuthCallback dept: %s", dept)
             user_info = oauth_provider.get_user_info(token)
             logging.info("OAuthCallback user_info: %s", user_info)
+
+            if user_info.name and user_info.name.startswith("wb"):
+                return {"error": "Permission denied"}, 400
         except requests.exceptions.RequestException as e:
             error_text = e.response.text if e.response else str(e)
             logging.exception(f"An error occurred during the OAuth process with {provider}: {error_text}")
@@ -114,7 +117,7 @@ class OAuthCallback(Resource):
             )
             tenant_name = dept + "'s Workspace"
             tenant = db.session.query(Tenant).filter(Tenant.name == tenant_name).first()
-            TenantService.create_tenant_member(tenant, account, "admin")
+            TenantService.create_tenant_member(tenant, account, "normal")
             TenantService.switch_tenant(account, tenant.id)
 
         if account.status == AccountStatus.PENDING.value:
