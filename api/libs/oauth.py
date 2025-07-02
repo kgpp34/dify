@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from urllib.parse import quote
 import logging
 from typing import Optional
+from configs import dify_config
 
 import requests
 
@@ -136,9 +137,9 @@ class GoogleOAuth(OAuth):
 
 
 class CustomOAuth(OAuth):
-    _AUTH_URL = "http://172.31.69.113:10087/oauth2/authorize"
-    _TOKEN_URL = "http://172.31.69.113:10087/oauth2/token"
-    _USER_INFO_URL = "http://172.31.69.113:10087/userinfo"
+    _AUTH_URL = dify_config.ONEDOT_OAUTH_AUTH_URL
+    _TOKEN_URL = dify_config.ONEDOT_OAUTH_TOKEN_URL
+    _USER_INFO_URL = dify_config.ONEDOT_OAUTH_USER_INFO_URL
 
     def get_authorization_url(self, invite_token: Optional[str] = None):
         params = {
