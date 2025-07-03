@@ -77,7 +77,6 @@ class OAuthLogin(Resource):
 
 
 class OAuthCallback(Resource):
-
     def get(self, provider: str):
         logging.info("OAuthCallback get provider: %s",provider)
         OAUTH_PROVIDERS = get_oauth_providers()
