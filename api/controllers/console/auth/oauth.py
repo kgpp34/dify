@@ -17,11 +17,12 @@ from libs.helper import extract_remote_ip
 from libs.oauth import GitHubOAuth, GoogleOAuth, OAuthUserInfo, CustomOAuth
 from models import Account, Tenant
 from models.account import AccountStatus
-from services.account_service import AccountService, RegisterService, TenantService, _get_dept_from_token
+from services.account_service import AccountService, RegisterService, TenantService
 from services.errors.account import AccountNotFoundError, AccountRegisterError
 from services.errors.workspace import WorkSpaceNotAllowedCreateError, WorkSpaceNotFoundError
 from services.feature_service import FeatureService
 
+from core.tools.utils.decode_tool import get_dept_from_token
 from .. import api
 
 
@@ -43,18 +44,16 @@ def get_oauth_providers():
                 client_secret=dify_config.GOOGLE_CLIENT_SECRET,
                 redirect_uri=dify_config.CONSOLE_API_URL + "/console/api/oauth/authorize/google",
             )
-        dify_config.CUSTOM_CLIENT_ID = "dify"
-        dify_config.CUSTOM_CLIENT_SECRET = "dify"
-        logging.info("dify_config.CUSTOM_CLIENT_ID: %s", dify_config.CUSTOM_CLIENT_ID)
-        logging.info("dify_config.CUSTOM_CLIENT_SECRET: %s", dify_config.CUSTOM_CLIENT_SECRET)
-        if not dify_config.CUSTOM_CLIENT_ID or not dify_config.CUSTOM_CLIENT_SECRET:
+        logging.info("dify_config.ONEDOT_OAUTH_CLIENT_ID: %s", dify_config.ONEDOT_OAUTH_CLIENT_ID)
+        logging.info("dify_config.ONEDOT_OAUTH_CLIENT_SECRET: %s", dify_config.ONEDOT_OAUTH_CLIENT_SECRET)
+        if not dify_config.ONEDOT_OAUTH_CLIENT_ID or not dify_config.ONEDOT_OAUTH_CLIENT_SECRET:
             logging.info("get_oauth_providers not id or secret")
             custom_oauth = None
         else:
             logging.info("get_oauth_providers id or secret")
             custom_oauth = CustomOAuth(
-                client_id=dify_config.CUSTOM_CLIENT_ID,
-                client_secret=dify_config.CUSTOM_CLIENT_SECRET,
+                client_id=dify_config.ONEDOT_OAUTH_CLIENT_ID,
+                client_secret=dify_config.ONEDOT_OAUTH_CLIENT_SECRET,
                 redirect_uri=dify_config.CONSOLE_API_URL + "/console/api/oauth/authorize/custom",
             )
             logging.info("dify_config.CONSOLE_API_URL: %s", dify_config.CONSOLE_API_URL)
@@ -97,7 +96,7 @@ class OAuthCallback(Resource):
         try:
             token = oauth_provider.get_access_token(code)
             logging.info("OAuthCallback token: %s", token)
-            dept = _get_dept_from_token(token)
+            dept = get_dept_from_token(token)
             logging.info("OAuthCallback dept: %s", dept)
             user_info = oauth_provider.get_user_info(token)
             logging.info("OAuthCallback user_info: %s", user_info)

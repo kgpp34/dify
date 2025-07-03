@@ -56,8 +56,6 @@ class MemberInviteEmailApi(Resource):
         console_web_url = dify_config.CONSOLE_WEB_URL
         for invitee_email in invitee_emails:
             try:
-                print("inviter", inviter)
-                print("inviter.current_tenant", inviter.current_tenant)
                 token = RegisterService.invite_new_member(
                     inviter.current_tenant, invitee_email, interface_language, role=invitee_role, inviter=inviter
                 )

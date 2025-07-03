@@ -550,14 +550,29 @@ class AuthConfig(BaseSettings):
         default=None,
     )
 
-    CUSTOM_CLIENT_ID: Optional[str] = Field(
-        description="CUSTOM OAuth client ID",
-        default=None,
+    ONEDOT_OAUTH_CLIENT_ID: Optional[str] = Field(
+        description="OneDot OAuth client ID",
+        default="dify",
     )
 
-    CUSTOM_CLIENT_SECRET: Optional[str] = Field(
-        description="CUSTOM OAuth client secret",
-        default=None,
+    ONEDOT_OAUTH_CLIENT_SECRET: Optional[str] = Field(
+        description="OneDot OAuth client secret",
+        default="dify",
+    )
+
+    ONEDOT_OAUTH_AUTH_URL: Optional[str] = Field(
+        description="OneDot OAuth auth url",
+        default="http://172.31.69.113:10087/oauth2/authorize",
+    )
+
+    ONEDOT_OAUTH_TOKEN_URL: Optional[str] = Field(
+        description="OneDot OAuth token url",
+        default="http://172.31.69.113:10087/oauth2/token",
+    )
+
+    ONEDOT_OAUTH_USER_INFO_URL: Optional[str] = Field(
+        description="OneDot OAuth user info url",
+        default="http://172.31.69.113:10087/userinfo",
     )
 
     ACCESS_TOKEN_EXPIRE_MINUTES: PositiveInt = Field(
