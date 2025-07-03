@@ -62,10 +62,8 @@ export default function SocialAuth(props: SocialAuthProps) {
     <div className='w-full'>
       <a href={getOAuthLink('/oauth/login/custom')}>
         <Button
-          tabIndex={3}
-          variant='secondary'
-          className="w-full"
-          type="button"
+          disabled={props.disabled}
+          className='w-full'
         >
           <>
             <span className={
