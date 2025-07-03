@@ -92,27 +92,20 @@ class GitHubOAuth(OAuth):
 
 
 class GoogleOAuth(OAuth):
-    _AUTH_URL = "http://172.31.69.113:10087/oauth2/authorize"
-    _TOKEN_URL = "http://172.31.69.113:10087/oauth2/token"
-    _USER_INFO_URL = "http://172.31.69.113:10087/userinfo"
+    _AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+    _TOKEN_URL = "https://oauth2.googleapis.com/token"
+    _USER_INFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
 
     def get_authorization_url(self, invite_token: Optional[str] = None):
         params = {
             "client_id": self.client_id,
             "response_type": "code",
             "redirect_uri": self.redirect_uri,
-            "state": "xyz",
-            "scope": "openid profile email",
+            "scope": "openid email",
         }
         if invite_token:
             params["state"] = invite_token
-        query_parts = []
-        for key, value in params.items():
-            key = quote(key)
-            value = quote(value)
-            query_parts.append(f"{key}={value}")
-        query_string = "&".join(query_parts)
-        return f"{self._AUTH_URL}?{query_string}"
+        return f"{self._AUTH_URL}?{urllib.parse.urlencode(params)}"
 
     def get_access_token(self, code: str):
         data = {
@@ -124,7 +117,7 @@ class GoogleOAuth(OAuth):
         }
         headers = {"Accept": "application/json"}
         response = requests.post(self._TOKEN_URL, data=data, headers=headers)
-        logging.info("respone.status_code: %s", response.status_code)
+
         response_json = response.json()
         access_token = response_json.get("access_token")
 
@@ -176,13 +169,11 @@ class CustomOAuth(OAuth):
         }
         headers = {"Accept": "application/json"}
         response = requests.post(self._TOKEN_URL, data=data, headers=headers)
-        # response.raise_for_status()
         return response.json()["access_token"]
 
     def get_raw_user_info(self, token: str):
         headers = {"Authorization": f"Bearer {token}"}
         response = requests.get(self._USER_INFO_URL, headers=headers)
-        # response.raise_for_status()
         return response.json()
 
     def _transform_user_info(self, raw_info: dict) -> OAuthUserInfo:
