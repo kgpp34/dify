@@ -3,13 +3,17 @@ import json
 
 
 def get_dept_from_token(token: str):
-    parts = token.strip().split('.')
-    header_b64, payload_b64, signature_b64 = parts
-    payload = decode_base64url(payload_b64)
-    payload_dict = json.loads(payload)
-    groups = payload_dict.get("user", {}).get("groups", [])
-    dept = groups[0].get("name", [])
-    return dept
+    try:
+        parts = token.strip().split('.')
+        header_b64, payload_b64, signature_b64 = parts
+        payload = decode_base64url(payload_b64)
+        payload_dict = json.loads(payload)
+        groups = payload_dict.get("user", {}).get("groups", [])
+        dept = groups[0].get("name", [])
+        return dept
+    except Exception as e:
+        return None
+
 
 
 def decode_base64url(data):

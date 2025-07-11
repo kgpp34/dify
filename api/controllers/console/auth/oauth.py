@@ -78,6 +78,79 @@ class OAuthLogin(Resource):
 
 class OAuthCallback(Resource):
     def get(self, provider: str):
+        OAUTH_PROVIDERS = get_oauth_providers()
+        with current_app.app_context():
+            oauth_provider = OAUTH_PROVIDERS.get(provider)
+        if not oauth_provider:
+            return {"error": "Invalid provider"}, 400
+
+        code = request.args.get("code")
+        state = request.args.get("state")
+        invite_token = None
+        if state:
+            invite_token = state
+
+        try:
+            token = oauth_provider.get_access_token(code)
+            user_info = oauth_provider.get_user_info(token)
+        except requests.exceptions.RequestException as e:
+            error_text = e.response.text if e.response else str(e)
+            logging.exception(f"An error occurred during the OAuth process with {provider}: {error_text}")
+            return {"error": "OAuth process failed"}, 400
+
+        if invite_token and RegisterService.is_valid_invite_token(invite_token):
+            invitation = RegisterService._get_invitation_by_token(token=invite_token)
+            if invitation:
+                invitation_email = invitation.get("email", None)
+                if invitation_email != user_info.email:
+                    return redirect(f"{dify_config.CONSOLE_WEB_URL}/signin?message=Invalid invitation token.")
+
+            return redirect(f"{dify_config.CONSOLE_WEB_URL}/signin/invite-settings?invite_token={invite_token}")
+
+        try:
+            account = _generate_account(provider, user_info)
+        except AccountNotFoundError:
+            return redirect(f"{dify_config.CONSOLE_WEB_URL}/signin?message=Account not found.")
+        except (WorkSpaceNotFoundError, WorkSpaceNotAllowedCreateError):
+            return redirect(
+                f"{dify_config.CONSOLE_WEB_URL}/signin"
+                "?message=Workspace not found, please contact system admin to invite you to join in a workspace."
+            )
+        except AccountRegisterError as e:
+            return redirect(f"{dify_config.CONSOLE_WEB_URL}/signin?message={e.description}")
+
+        # Check account status
+        if account.status == AccountStatus.BANNED.value:
+            return redirect(f"{dify_config.CONSOLE_WEB_URL}/signin?message=Account is banned.")
+
+        if account.status == AccountStatus.PENDING.value:
+            account.status = AccountStatus.ACTIVE.value
+            account.initialized_at = datetime.now(UTC).replace(tzinfo=None)
+            db.session.commit()
+
+        try:
+            TenantService.create_owner_tenant_if_not_exist(account)
+        except Unauthorized:
+            return redirect(f"{dify_config.CONSOLE_WEB_URL}/signin?message=Workspace not found.")
+        except WorkSpaceNotAllowedCreateError:
+            return redirect(
+                f"{dify_config.CONSOLE_WEB_URL}/signin"
+                "?message=Workspace not found, please contact system admin to invite you to join in a workspace."
+            )
+
+        token_pair = AccountService.login(
+            account=account,
+            ip_address=extract_remote_ip(request),
+        )
+
+        return redirect(
+            f"{dify_config.CONSOLE_WEB_URL}?access_token={token_pair.access_token}&refresh_token={token_pair.refresh_token}"
+        )
+
+
+
+class CustomOAuthCallback(Resource):
+    def get(self, provider: str):
         logging.info("OAuthCallback get provider: %s",provider)
         OAUTH_PROVIDERS = get_oauth_providers()
         with current_app.app_context():
@@ -192,4 +265,5 @@ def _generate_account(provider: str, user_info: OAuthUserInfo):
 
 
 api.add_resource(OAuthLogin, "/oauth/login/<provider>")
-api.add_resource(OAuthCallback, "/oauth/authorize/<provider>")
+# api.add_resource(OAuthCallback, "/oauth/authorize/<provider>")
+api.add_resource(CustomOAuthCallback, "/oauth/authorize/<provider>")
