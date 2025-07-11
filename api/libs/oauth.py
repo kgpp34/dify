@@ -1,6 +1,9 @@
 import urllib.parse
 from dataclasses import dataclass
+from urllib.parse import quote
+import logging
 from typing import Optional
+from configs import dify_config
 
 import requests
 
@@ -131,3 +134,51 @@ class GoogleOAuth(OAuth):
 
     def _transform_user_info(self, raw_info: dict) -> OAuthUserInfo:
         return OAuthUserInfo(id=str(raw_info["sub"]), name="", email=raw_info["email"])
+
+
+class CustomOAuth(OAuth):
+    _AUTH_URL = dify_config.ONEDOT_OAUTH_AUTH_URL
+    _TOKEN_URL = dify_config.ONEDOT_OAUTH_TOKEN_URL
+    _USER_INFO_URL = dify_config.ONEDOT_OAUTH_USER_INFO_URL
+
+    def get_authorization_url(self, invite_token: Optional[str] = None):
+        params = {
+            "client_id": self.client_id,
+            "response_type": "code",
+            "redirect_uri": self.redirect_uri,
+            "state": "xyz",
+            "scope": "openid profile email",
+        }
+        if invite_token:
+            params["state"] = invite_token
+        query_parts = []
+        for key, value in params.items():
+            key = quote(key)
+            value = quote(value)
+            query_parts.append(f"{key}={value}")
+        query_string = "&".join(query_parts)
+        return f"{self._AUTH_URL}?{query_string}"
+
+    def get_access_token(self, code: str):
+        data = {
+            "grant_type": "authorization_code",
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "code": code,
+            "redirect_uri": self.redirect_uri,
+        }
+        headers = {"Accept": "application/json"}
+        response = requests.post(self._TOKEN_URL, data=data, headers=headers)
+        return response.json()["access_token"]
+
+    def get_raw_user_info(self, token: str):
+        headers = {"Authorization": f"Bearer {token}"}
+        response = requests.get(self._USER_INFO_URL, headers=headers)
+        return response.json()
+
+    def _transform_user_info(self, raw_info: dict) -> OAuthUserInfo:
+        return OAuthUserInfo(
+            id=str(raw_info["sub"]),
+            name=raw_info.get("name", ""),
+            email=raw_info.get("email")
+        )

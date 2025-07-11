@@ -10,6 +10,9 @@ import { login } from '@/service/common'
 import Input from '@/app/components/base/input'
 import I18NContext from '@/context/i18n'
 import { noop } from 'lodash-es'
+import { apiPrefix } from '@/config'
+import classNames from '@/utils/classnames'
+import { getPurifyHref } from '@/utils'
 
 type MailAndPasswordAuthProps = {
   isInvite: boolean
@@ -170,5 +173,6 @@ export default function MailAndPasswordAuth({ isInvite, isEmailSetup, allowRegis
         className="w-full"
       >{t('login.signBtn')}</Button>
     </div>
+
   </form>
 }

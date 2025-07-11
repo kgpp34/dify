@@ -14,14 +14,15 @@ from constants.languages import languages
 from events.tenant_event import tenant_was_created
 from extensions.ext_database import db
 from libs.helper import extract_remote_ip
-from libs.oauth import GitHubOAuth, GoogleOAuth, OAuthUserInfo
-from models import Account
+from libs.oauth import GitHubOAuth, GoogleOAuth, OAuthUserInfo, CustomOAuth
+from models import Account, Tenant
 from models.account import AccountStatus
 from services.account_service import AccountService, RegisterService, TenantService
 from services.errors.account import AccountNotFoundError, AccountRegisterError
 from services.errors.workspace import WorkSpaceNotAllowedCreateError, WorkSpaceNotFoundError
 from services.feature_service import FeatureService
 
+from core.tools.utils.decode_tool import get_dept_from_token
 from .. import api
 
 
@@ -43,13 +44,26 @@ def get_oauth_providers():
                 client_secret=dify_config.GOOGLE_CLIENT_SECRET,
                 redirect_uri=dify_config.CONSOLE_API_URL + "/console/api/oauth/authorize/google",
             )
-
-        OAUTH_PROVIDERS = {"github": github_oauth, "google": google_oauth}
+        logging.info("dify_config.ONEDOT_OAUTH_CLIENT_ID: %s", dify_config.ONEDOT_OAUTH_CLIENT_ID)
+        logging.info("dify_config.ONEDOT_OAUTH_CLIENT_SECRET: %s", dify_config.ONEDOT_OAUTH_CLIENT_SECRET)
+        if not dify_config.ONEDOT_OAUTH_CLIENT_ID or not dify_config.ONEDOT_OAUTH_CLIENT_SECRET:
+            logging.info("get_oauth_providers not id or secret")
+            custom_oauth = None
+        else:
+            logging.info("get_oauth_providers id or secret")
+            custom_oauth = CustomOAuth(
+                client_id=dify_config.ONEDOT_OAUTH_CLIENT_ID,
+                client_secret=dify_config.ONEDOT_OAUTH_CLIENT_SECRET,
+                redirect_uri=dify_config.CONSOLE_API_URL + "/console/api/oauth/authorize/custom",
+            )
+            logging.info("dify_config.CONSOLE_API_URL: %s", dify_config.CONSOLE_API_URL)
+        OAUTH_PROVIDERS = {"github": github_oauth, "google": google_oauth, "custom": custom_oauth}
         return OAUTH_PROVIDERS
 
 
 class OAuthLogin(Resource):
     def get(self, provider: str):
+        logging.info("OAuthLogin get provider: %s",provider)
         invite_token = request.args.get("invite_token") or None
         OAUTH_PROVIDERS = get_oauth_providers()
         with current_app.app_context():
@@ -58,6 +72,7 @@ class OAuthLogin(Resource):
             return {"error": "Invalid provider"}, 400
 
         auth_url = oauth_provider.get_authorization_url(invite_token=invite_token)
+        logging.info("OAuthLogin auth_url: %s", auth_url)
         return redirect(auth_url)
 
 
@@ -133,6 +148,74 @@ class OAuthCallback(Resource):
         )
 
 
+
+class CustomOAuthCallback(Resource):
+    def get(self, provider: str):
+        logging.info("OAuthCallback get provider: %s",provider)
+        OAUTH_PROVIDERS = get_oauth_providers()
+        with current_app.app_context():
+            oauth_provider = OAUTH_PROVIDERS.get(provider)
+        if not oauth_provider:
+            return {"error": "Invalid provider"}, 400
+
+        code = request.args.get("code")
+        logging.info("OAuthCallback code: %s", code)
+        state = request.args.get("state")
+        invite_token = None
+        if state:
+            invite_token = state
+
+        try:
+            token = oauth_provider.get_access_token(code)
+            logging.info("OAuthCallback token: %s", token)
+            dept = get_dept_from_token(token)
+            logging.info("OAuthCallback dept: %s", dept)
+            user_info = oauth_provider.get_user_info(token)
+            logging.info("OAuthCallback user_info: %s", user_info)
+
+            if user_info.name and user_info.name.startswith("wb"):
+                return {"error": "Permission denied"}, 400
+        except requests.exceptions.RequestException as e:
+            error_text = e.response.text if e.response else str(e)
+            logging.exception(f"An error occurred during the OAuth process with {provider}: {error_text}")
+            return {"error": "OAuth process failed"}, 400
+
+        account = db.session.query(Account).filter(Account.email == user_info.email).first()
+        if not account:
+            logging.info("OAuthCallback not account")
+            account = RegisterService.register(
+                email=user_info.email, name=user_info.name, language="zh-Hans", status=AccountStatus.PENDING, is_setup=True
+            )
+            tenant_name = dept + "'s Workspace"
+            tenant = db.session.query(Tenant).filter(Tenant.name == tenant_name).first()
+            TenantService.create_tenant_member(tenant, account, "normal")
+            TenantService.switch_tenant(account, tenant.id)
+
+        if account.status == AccountStatus.PENDING.value:
+            account.status = AccountStatus.ACTIVE.value
+            account.initialized_at = datetime.now(UTC).replace(tzinfo=None)
+            db.session.commit()
+
+        try:
+            TenantService.create_owner_tenant_if_not_exist(account)
+        except Unauthorized:
+            return redirect(f"{dify_config.CONSOLE_WEB_URL}/signin?message=Workspace not found.")
+        except WorkSpaceNotAllowedCreateError:
+            return redirect(
+                f"{dify_config.CONSOLE_WEB_URL}/signin"
+                "?message=Workspace not found, please contact system admin to invite you to join in a workspace."
+            )
+
+        token_pair = AccountService.login(
+            account=account,
+            ip_address=extract_remote_ip(request),
+        )
+
+        return redirect(
+            f"{dify_config.CONSOLE_WEB_URL}?access_token={token_pair.access_token}&refresh_token={token_pair.refresh_token}"
+        )
+
+
 def _get_account_by_openid_or_email(provider: str, user_info: OAuthUserInfo) -> Optional[Account]:
     account: Optional[Account] = Account.get_by_openid(provider, user_info.id)
 
@@ -182,4 +265,5 @@ def _generate_account(provider: str, user_info: OAuthUserInfo):
 
 
 api.add_resource(OAuthLogin, "/oauth/login/<provider>")
-api.add_resource(OAuthCallback, "/oauth/authorize/<provider>")
+# api.add_resource(OAuthCallback, "/oauth/authorize/<provider>")
+api.add_resource(CustomOAuthCallback, "/oauth/authorize/<provider>")
