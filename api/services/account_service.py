@@ -1048,7 +1048,6 @@ class RegisterService:
             email_hash = sha256(email.encode()).hexdigest()
             cache_key = f"member_invite_token:{workspace_id}, {email_hash}:{token}"
             account_id = redis_client.get(cache_key)
-
             if not account_id:
                 return None
 
@@ -1069,3 +1068,4 @@ class RegisterService:
 def _generate_refresh_token(length: int = 64):
     token = secrets.token_hex(length)
     return token
+

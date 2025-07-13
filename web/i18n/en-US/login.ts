@@ -31,6 +31,7 @@ const translation = {
   withGitHub: 'Continue with GitHub',
   withGoogle: 'Continue with Google',
   withSSO: 'Continue with SSO',
+  withOAuth2: 'onedot_oauth',
   rightTitle: 'Unlock the full potential of LLM',
   rightDesc: 'Effortlessly build visually captivating, operable, and improvable AI applications.',
   tos: 'Terms of Service',
