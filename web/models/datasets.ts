@@ -703,6 +703,7 @@ export enum DocumentActionType {
   archive = 'archive',
   unArchive = 'un_archive',
   delete = 'delete',
+  update = 'update',
 }
 
 export type UpdateDocumentBatchParams = {

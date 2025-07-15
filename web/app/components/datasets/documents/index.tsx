@@ -12,6 +12,7 @@ import List from './list'
 import s from './style.module.css'
 import Loading from '@/app/components/base/loading'
 import Button from '@/app/components/base/button'
+import Switch from '@/app/components/base/switch'
 import Input from '@/app/components/base/input'
 import { get } from '@/service/base'
 import { createDocument } from '@/service/datasets'
@@ -75,6 +76,8 @@ const EmptyElement: FC<{ canAdd: boolean; onClick: () => void; type?: 'upload' |
   </div>
 }
 
+
+
 type IDocumentsProps = {
   datasetId: string
 }
@@ -98,6 +101,7 @@ const Documents: FC<IDocumentsProps> = ({ datasetId }) => {
   const isDataSourceWeb = dataset?.data_source_type === DataSourceType.WEB
   const isDataSourceFile = dataset?.data_source_type === DataSourceType.FILE
   const embeddingAvailable = !!dataset?.embedding_available
+  const [globalUpdateEnabled, setGlobalUpdateEnabled] = useState(true)
 
   const debouncedSearchValue = useDebounce(searchValue, { wait: 500 })
 
@@ -279,6 +283,14 @@ const Documents: FC<IDocumentsProps> = ({ datasetId }) => {
           <div className='flex !h-8 items-center justify-center gap-2'>
             {!isFreePlan && <AutoDisabledDocument datasetId={datasetId} />}
             <IndexFailed datasetId={datasetId} />
+            <div className="flex items-center mr-4">
+              <span className="text-sm mr-2">{t('dataset.patchAutoUpdate')}</span>
+              <Switch
+                defaultValue={globalUpdateEnabled}
+                onChange={(checked) => setGlobalUpdateEnabled(checked)}
+                size="md"
+              />
+            </div>
             {!embeddingAvailable && <StatusWithAction type='warning' description={t('dataset.embeddingModelNotAvailable')} />}
             {embeddingAvailable && (
               <Button variant='secondary' className='shrink-0' onClick={showEditMetadataModal}>
@@ -326,6 +338,7 @@ const Documents: FC<IDocumentsProps> = ({ datasetId }) => {
                 onChange: setCurrPage,
               }}
               onManageMetadata={showEditMetadataModal}
+              globalUpdateEnabled={globalUpdateEnabled}
             />
             : <EmptyElement canAdd={embeddingAvailable} onClick={routeToDocCreate} type={isDataSourceNotion ? 'sync' : 'upload'} />
         }

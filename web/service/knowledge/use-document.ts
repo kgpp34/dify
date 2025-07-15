@@ -86,6 +86,14 @@ export const useDocumentDelete = () => {
   })
 }
 
+export const useDocumentUpdate = () => {
+  return useMutation({
+    mutationFn: ({ datasetId, documentId }: UpdateDocumentBatchParams) => {
+      return post<CommonResponse>(`/datasets/${datasetId}/documents/${documentId}/auto_upgrade`)
+    },
+  })
+}
+
 export const useSyncDocument = () => {
   return useMutation({
     mutationFn: ({ datasetId, documentId }: UpdateDocumentBatchParams) => {

@@ -419,6 +419,7 @@ const DocumentList: FC<IDocumentListProps> = ({
   pagination,
   onUpdate,
   onManageMetadata,
+  globalUpdateEnable,
 }) => {
   const { t } = useTranslation()
   const { formatTime } = useTimestamp()
@@ -487,6 +488,7 @@ const DocumentList: FC<IDocumentListProps> = ({
   const { mutateAsync: enableDocument } = useDocumentEnable()
   const { mutateAsync: disableDocument } = useDocumentDisable()
   const { mutateAsync: deleteDocument } = useDocumentDelete()
+  const handleUpdateDocument = useCallback(async (documentId: string, enabled: boolean) => {}, [datasetId, enableDocument, disableDocument, onUpdate, t])
 
   const handleAction = (actionName: DocumentActionType) => {
     return async () => {
@@ -549,6 +551,7 @@ const DocumentList: FC<IDocumentListProps> = ({
                 </div>
               </td>
               <td className='w-40'>{t('datasetDocuments.list.table.header.status')}</td>
+              <td className='w-20'>{t('datasetDocuments.list.table.header.update')}</td>
               <td className='w-20'>{t('datasetDocuments.list.table.header.action')}</td>
             </tr>
           </thead>
