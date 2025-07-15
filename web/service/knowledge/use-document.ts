@@ -138,3 +138,20 @@ export const useDocumentMetadata = (payload: {
 export const useInvalidDocumentDetailKey = () => {
   return useInvalid(useDocumentDetailKey)
 }
+
+export const useToggleAutoUpgrade = () => {
+  return async (datasetId: string, documentId: string, enable: boolean) => {
+    return post(`/console/api/datasets/${datasetId}/documents/${documentId}/auto_upgrade`, {
+      auto_upgrade: enable,
+    })
+  }
+}
+
+export const useToggleAutoUpgradeBatch = () => {
+  return async (datasetId: string, documentIds: string[], enable: boolean) => {
+    return post(`/console/api/datasets/${datasetId}/documents/auto_upgrade`, {
+      document_ids: documentIds,
+      auto_upgrade: enable,
+    })
+  }
+}

@@ -42,7 +42,7 @@ import { useDatasetDetailContextWithSelector as useDatasetDetailContext } from '
 import type { Props as PaginationProps } from '@/app/components/base/pagination'
 import Pagination from '@/app/components/base/pagination'
 import Checkbox from '@/app/components/base/checkbox'
-import { useDocumentArchive, useDocumentDelete, useDocumentDisable, useDocumentEnable, useDocumentUnArchive, useSyncDocument, useSyncWebsite } from '@/service/knowledge/use-document'
+import { useDocumentArchive, useDocumentDelete, useDocumentDisable, useDocumentEnable, useDocumentUnArchive, useSyncDocument, useSyncWebsite, useToggleAutoUpgrade, useToggleAutoUpgradeBatch } from '@/service/knowledge/use-document'
 import { extensionToFileType } from '@/app/components/datasets/hit-testing/utils/extension-to-file-type'
 import useBatchEditDocumentMetadata from '../metadata/hooks/use-batch-edit-document-metadata'
 import EditMetadataBatchModal from '@/app/components/datasets/metadata/edit-metadata-batch/modal'
@@ -266,7 +266,14 @@ export const OperationAction: FC<{
 
   return <div className='flex items-center' onClick={e => e.stopPropagation()}>
     {isListScene && !embeddingAvailable && (
-      <Switch defaultValue={false} onChange={noop} disabled={true} size='md' />
+      <Switch
+        value={autoUpdateMap[doc.id] ?? globalUpdateEnable}
+        onChange={async (v) => {
+          setAutoUpdateMap(prev => ({ ...prev, [doc.id]: v }))
+          await toggleAutoUpgrade(datasetId, doc.id, v)
+        }}
+        size="md"
+      />
     )}
     {isListScene && embeddingAvailable && (
       <>
@@ -425,6 +432,7 @@ const DocumentList: FC<IDocumentListProps> = ({
   const { formatTime } = useTimestamp()
   const router = useRouter()
   const [datasetConfig] = useDatasetDetailContext(s => [s.dataset])
+  const [autoUpdateMap, setAutoUpdateMap] = useState<Record<string, boolean>>({})
   const chunkingMode = datasetConfig?.doc_form
   const isGeneralMode = chunkingMode !== ChunkingMode.parentChild
   const isQAMode = chunkingMode === ChunkingMode.qa
@@ -442,9 +450,32 @@ const DocumentList: FC<IDocumentListProps> = ({
     onUpdate,
   })
 
+  const toggleAutoUpgrade = useToggleAutoUpgrade()
+  const toggleAutoUpgradeBatch = useToggleAutoUpgradeBatch()
+
   useEffect(() => {
     setLocalDocs(documents)
   }, [documents])
+
+  useEffect(() => {
+    const newMap = { ...autoUpdateMap }
+    const updatedDocIds: string[] = []
+
+    documents.forEach(doc => {
+      if (!(doc.id in autoUpdateMap)) {
+        newMap[doc.id] = globalUpdateEnable
+        updatedDocIds.push(doc.id)
+      }
+    })
+
+    if (updatedDocIds.length > 0) {
+      toggleAutoUpgradeBatch(datasetId, updatedDocIds, globalUpdateEnable)
+    }
+
+    setAutoUpdateMap(newMap)
+  }, [globalUpdateEnable, documents])
+
+
 
   const onClickSort = () => {
     setEnableSort(!enableSort)
