@@ -463,6 +463,25 @@ const DocumentList: FC<IDocumentListProps> = ({
     console.log("传入的documents：", documents)
   }, [documents, globalUpdateEnable])
 
+  useEffect(() => {
+  setAutoUpdateMap(prev => {
+    const newMap = { ...prev }
+    const changedDocIds: string[] = []
+
+    documents.forEach(doc => {
+      const current = prev[doc.id]
+      if (current !== globalUpdateEnable) {
+        newMap[doc.id] = globalUpdateEnable
+        changedDocIds.push(doc.id)
+
+        toggleAutoUpgrade(datasetId, doc.id, globalUpdateEnable)
+      }
+    })
+        return newMap
+      })
+    }, [globalUpdateEnable])
+
+
   const onClickSort = () => {
     setEnableSort(!enableSort)
     if (enableSort) {
