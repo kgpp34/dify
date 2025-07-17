@@ -127,6 +127,13 @@ export type CustomFile = File & {
   mime_type?: string
   created_by?: string
   created_at?: number
+  fileMetadata?: FileMetadata
+}
+
+export type FileMetadata = {
+  upload_type?: string
+  confluence_page_id?: string
+  version?: string
 }
 
 export type DocumentItem = {

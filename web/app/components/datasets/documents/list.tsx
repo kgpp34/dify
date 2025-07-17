@@ -1,6 +1,6 @@
 'use client'
 import type { FC } from 'react'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { useBoolean, useDebounceFn } from 'ahooks'
 import { ArrowDownIcon } from '@heroicons/react/24/outline'
 import { pick, uniq } from 'lodash-es'
@@ -43,6 +43,7 @@ import type { Props as PaginationProps } from '@/app/components/base/pagination'
 import Pagination from '@/app/components/base/pagination'
 import Checkbox from '@/app/components/base/checkbox'
 import { useDocumentArchive, useDocumentDelete, useDocumentDisable, useDocumentEnable, useDocumentUnArchive, useSyncDocument, useSyncWebsite, useToggleAutoUpgrade, useToggleAutoUpgradeBatch } from '@/service/knowledge/use-document'
+import { autoUpgrade } from '@/service/datasets'
 import { extensionToFileType } from '@/app/components/datasets/hit-testing/utils/extension-to-file-type'
 import useBatchEditDocumentMetadata from '../metadata/hooks/use-batch-edit-document-metadata'
 import EditMetadataBatchModal from '@/app/components/datasets/metadata/edit-metadata-batch/modal'
@@ -265,16 +266,6 @@ export const OperationAction: FC<{
   }, [onUpdate])
 
   return <div className='flex items-center' onClick={e => e.stopPropagation()}>
-    {isListScene && !embeddingAvailable && (
-      <Switch
-        value={autoUpdateMap[doc.id] ?? globalUpdateEnable}
-        onChange={async (v) => {
-          setAutoUpdateMap(prev => ({ ...prev, [doc.id]: v }))
-          await toggleAutoUpgrade(datasetId, doc.id, v)
-        }}
-        size="md"
-      />
-    )}
     {isListScene && embeddingAvailable && (
       <>
         {archived
@@ -412,6 +403,7 @@ type IDocumentListProps = {
   pagination: PaginationProps
   onUpdate: () => void
   onManageMetadata: () => void
+  globalUpdateEnable: boolean
 }
 
 /**
@@ -452,30 +444,24 @@ const DocumentList: FC<IDocumentListProps> = ({
 
   const toggleAutoUpgrade = useToggleAutoUpgrade()
   const toggleAutoUpgradeBatch = useToggleAutoUpgradeBatch()
-
+  const state = useRef<globalUpdateEnable>(null)
   useEffect(() => {
     setLocalDocs(documents)
   }, [documents])
 
   useEffect(() => {
-    const newMap = { ...autoUpdateMap }
-    const updatedDocIds: string[] = []
+    if (!documents?.length) return
+    const initialMap = documents.reduce((acc, doc) => ({
+      ...acc,
+      [doc.id]: state.current
+    }), {})
 
-    documents.forEach(doc => {
-      if (!(doc.id in autoUpdateMap)) {
-        newMap[doc.id] = globalUpdateEnable
-        updatedDocIds.push(doc.id)
-      }
-    })
-
-    if (updatedDocIds.length > 0) {
-      toggleAutoUpgradeBatch(datasetId, updatedDocIds, globalUpdateEnable)
-    }
-
-    setAutoUpdateMap(newMap)
-  }, [globalUpdateEnable, documents])
-
-
+    setAutoUpdateMap(initialMap)
+    state.current = globalUpdateEnable
+    console.log("globalUpdateEnable：", globalUpdateEnable)
+    console.log("state：", state)
+    console.log("传入的documents：", documents)
+  }, [documents, globalUpdateEnable])
 
   const onClickSort = () => {
     setEnableSort(!enableSort)
@@ -655,6 +641,21 @@ const DocumentList: FC<IDocumentListProps> = ({
                       ? <ProgressBar percent={doc.percent || 0} />
                       : <StatusItem status={doc.display_status} />
                   }
+                </td>
+                <td onClick={e => e.stopPropagation()}>
+                  <Switch
+                    value={autoUpdateMap[doc.id] ?? globalUpdateEnable}
+                    onChange={async (v) => {
+                      const newMap = { ...autoUpdateMap, [doc.id]: v }
+                      setAutoUpdateMap(newMap)
+                      const [error] = await asyncRunSafe(toggleAutoUpgrade(datasetId, doc.id, v))
+                      if (error) {
+                        setAutoUpdateMap(prev => ({ ...prev, [doc.id]: !v }))
+                        Toast.notify({ type: 'error', message: t('common.actionMsg.modifiedUnsuccessfully') })
+                      }
+                    }}
+                    size="md"
+                  />
                 </td>
                 <td>
                   <OperationAction

@@ -30,6 +30,7 @@ import { useChildSegmentListKey, useSegmentListKey } from '@/service/knowledge/u
 import useEditDocumentMetadata from '../metadata/hooks/use-edit-dataset-metadata'
 import DatasetMetadataDrawer from '../metadata/metadata-dataset/dataset-metadata-drawer'
 import StatusWithAction from '../common/document-status-with-action/status-with-action'
+import { useToggleAutoUpgradeBatch } from '@/service/knowledge/use-document'
 
 const FolderPlusIcon = ({ className }: React.SVGProps<SVGElement>) => {
   return <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className={className ?? ''}>
@@ -95,13 +96,14 @@ const Documents: FC<IDocumentsProps> = ({ datasetId }) => {
   const [limit, setLimit] = useState<number>(DEFAULT_LIMIT)
   const router = useRouter()
   const { dataset } = useDatasetDetailContext()
+  const toggleAutoUpgradeBatch = useToggleAutoUpgradeBatch()
   const [notionPageSelectorModalVisible, setNotionPageSelectorModalVisible] = useState(false)
   const [timerCanRun, setTimerCanRun] = useState(true)
   const isDataSourceNotion = dataset?.data_source_type === DataSourceType.NOTION
   const isDataSourceWeb = dataset?.data_source_type === DataSourceType.WEB
   const isDataSourceFile = dataset?.data_source_type === DataSourceType.FILE
   const embeddingAvailable = !!dataset?.embedding_available
-  const [globalUpdateEnabled, setGlobalUpdateEnabled] = useState(true)
+  const [globalUpdateEnable, setGlobalUpdateEnable] = useState(true)
 
   const debouncedSearchValue = useDebounce(searchValue, { wait: 500 })
 
@@ -286,8 +288,13 @@ const Documents: FC<IDocumentsProps> = ({ datasetId }) => {
             <div className="flex items-center mr-4">
               <span className="text-sm mr-2">{t('dataset.patchAutoUpdate')}</span>
               <Switch
-                defaultValue={globalUpdateEnabled}
-                onChange={(checked) => setGlobalUpdateEnabled(checked)}
+                defaultValue={globalUpdateEnable}
+                onChange={async (checked) => {
+                  setGlobalUpdateEnable(checked)
+                    if (!documentsRes?.data || documentsRes.data.length === 0) return
+                    const updatedDocIds = documentsRes.data.map(doc => doc.id)
+                    await toggleAutoUpgradeBatch(datasetId, updatedDocIds, checked)
+                  }}
                 size="md"
               />
             </div>
@@ -338,7 +345,7 @@ const Documents: FC<IDocumentsProps> = ({ datasetId }) => {
                 onChange: setCurrPage,
               }}
               onManageMetadata={showEditMetadataModal}
-              globalUpdateEnabled={globalUpdateEnabled}
+              globalUpdateEnable={globalUpdateEnable}
             />
             : <EmptyElement canAdd={embeddingAvailable} onClick={routeToDocCreate} type={isDataSourceNotion ? 'sync' : 'upload'} />
         }
