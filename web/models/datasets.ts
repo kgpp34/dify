@@ -133,7 +133,6 @@ export type CustomFile = File & {
 export type FileMetadata = {
   upload_type?: string
   confluence_page_id?: string
-  version?: string
 }
 
 export type DocumentItem = {

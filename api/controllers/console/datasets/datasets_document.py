@@ -1085,7 +1085,7 @@ class DocumentAutoUpgradeApi(DocumentResource):
         parser = reqparse.RequestParser()
         parser.add_argument("auto_upgrade", type=bool, required=True, nullable=False, location="json")
         args = parser.parse_args()
-        # DocumentService.set_update_status(document_id, args["auto_upgrade"])
+        DocumentService.update_status(document_id, args["auto_upgrade"])
         return {"result": "success"}, 200
 
 
@@ -1102,7 +1102,7 @@ class DocumentAutoUpgradeBatchApi(DocumentResource):
         parser.add_argument("auto_upgrade", type=bool, required=True, nullable=False, location="json")
         parser.add_argument("document_ids", type=list, required=True, nullable=False, location="json")
         args = parser.parse_args()
-        # DocumentService.set_update_status(document_id, args["auto_upgrade"])
+        DocumentService.update_status_batch(dataset_id, args["document_ids"], args["auto_upgrade"])
         return {"result": "success"}, 200
 
 

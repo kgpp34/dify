@@ -778,6 +778,57 @@ class DocumentService:
         return document
 
     @staticmethod
+    def update_status(document_id: str, auto_upgrade: bool) -> Document:
+        document = db.session.query(Document).filter_by(id=document_id).first()
+
+        if not document:
+            raise ValueError("Document not found.")
+
+        if document.tenant_id != current_user.current_tenant_id:
+            raise ValueError("No permission.")
+
+        if not document.doc_metadata:
+            return document
+
+        if "auto_upgrade" not in document.doc_metadata:
+            return document
+
+        doc_metadata = copy.deepcopy(document.doc_metadata)
+        doc_metadata["auto_upgrade"] = auto_upgrade
+        document.doc_metadata = doc_metadata
+
+        db.session.add(document)
+        db.session.commit()
+
+        return document
+
+    @staticmethod
+    def set_batch_update_status(dataset_id: str, document_ids: list[str], auto_upgrade: bool):
+        if not document_ids:
+            return 0
+
+        documents = db.session.query(Document).filter(Document.id.in_(document_ids)).all()
+        updated_count = 0
+
+        for doc in documents:
+            if doc.tenant_id != current_user.current_tenant_id:
+                continue
+
+            if not doc.doc_metadata:
+                continue
+
+            if "auto_upgrade" not in doc.doc_metadata:
+                continue
+            doc_metadata = copy.deepcopy(doc.doc_metadata)
+            doc_metadata["auto_upgrade"] = auto_upgrade
+            doc.doc_metadata = doc_metadata
+            db.session.add(doc)
+            updated_count += 1
+
+        db.session.commit()
+        return updated_count  # 返回成功更新的文档数
+
+    @staticmethod
     def pause_document(document):
         if document.indexing_status not in {"waiting", "parsing", "cleaning", "splitting", "indexing"}:
             raise DocumentIndexingError()
