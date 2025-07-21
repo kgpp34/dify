@@ -62,6 +62,7 @@ class Dataset(db.Model):  # type: ignore[name-defined]
     collection_binding_id = db.Column(StringUUID, nullable=True)
     retrieval_model = db.Column(JSONB, nullable=True)
     built_in_field_enabled = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
+    auto_upgrade = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
 
     @property
     def dataset_keyword_table(self):

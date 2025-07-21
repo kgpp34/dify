@@ -806,6 +806,14 @@ class DocumentService:
 
     @staticmethod
     def update_status_batch(dataset_id: str, document_ids: list[str], auto_upgrade: bool):
+        dataset = DatasetService.get_dataset(dataset_id)
+        if not dataset:
+            raise ValueError("Dataset not found")
+
+        dataset.auto_upgrade = auto_upgrade
+        db.session.add(dataset)
+        db.session.commit()
+
         if not document_ids:
             return 0
 
