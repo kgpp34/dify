@@ -12,6 +12,7 @@ from hashlib import sha256
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 from zoneinfo import available_timezones
 
+import requests
 from flask import Response, stream_with_context
 from flask_restful import fields  # type: ignore
 
@@ -192,6 +193,18 @@ def extract_remote_ip(request) -> str:
 def generate_text_hash(text: str) -> str:
     hash_text = str(text) + "None"
     return sha256(hash_text.encode()).hexdigest()
+
+
+def get_confluence2markdown_content(page_id: str):
+    base_url = dify_config.CONFLUENCE2MARKDOWN_URL
+    url = base_url + page_id
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return response.text
+    except requests.exceptions.RequestException as e:
+        logging.error(f"get_confluence2markdown_content请求失败: {e}")
+        return None
 
 
 def compact_generate_response(response: Union[Mapping, Generator, RateLimitGenerator]) -> Response:

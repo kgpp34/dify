@@ -73,6 +73,8 @@ from tasks.recover_document_indexing_task import recover_document_indexing_task
 from tasks.retry_document_indexing_task import retry_document_indexing_task
 from tasks.sync_website_document_indexing_task import sync_website_document_indexing_task
 
+from models.enums import DocMetadataField
+
 
 class DatasetService:
     @staticmethod
@@ -1042,6 +1044,16 @@ class DocumentService:
                         if not file:
                             raise FileNotExistsError()
 
+                        extra_metadata = {}
+                        if file.file_metadata:
+                            file_metadata = file.file_metadata
+                            extra_metadata = {
+                                DocMetadataField.doc_source: file_metadata.get("upload_type", ""),
+                                DocMetadataField.page_id: file_metadata.get("confluence_page_id", ""),
+                                DocMetadataField.doc_hash: file_metadata.get("doc_hash", ""),
+                                DocMetadataField.auto_upgrade: False
+                            }
+
                         file_name = file.name
                         data_source_info = {
                             "upload_file_id": file_id,
@@ -1080,6 +1092,7 @@ class DocumentService:
                             account,
                             file_name,
                             batch,
+                            extra_metadata
                         )
                         db.session.add(document)
                         db.session.flush()
@@ -1219,6 +1232,7 @@ class DocumentService:
         account: Account,
         name: str,
         batch: str,
+        extra_metadata: Optional[dict[str, Any]] = None
     ):
         document = Document(
             tenant_id=dataset.tenant_id,
@@ -1243,6 +1257,8 @@ class DocumentService:
                 BuiltInField.last_update_date: datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
                 BuiltInField.source: data_source_type,
             }
+        if extra_metadata:
+            doc_metadata |= extra_metadata
         if doc_metadata:
             document.doc_metadata = doc_metadata
         return document
@@ -1293,6 +1309,8 @@ class DocumentService:
                 db.session.commit()
                 document.dataset_process_rule_id = dataset_process_rule.id
         # update document data source
+        # 构建 extra_metadata
+        extra_metadata = {}
         if document_data.data_source:
             file_name = ""
             data_source_info = {}
@@ -1315,6 +1333,16 @@ class DocumentService:
                     data_source_info = {
                         "upload_file_id": file_id,
                     }
+
+                    if file.file_metadata:
+                        file_metadata = file.file_metadata
+                        extra_metadata = {
+                            DocMetadataField.doc_source: file_metadata.get("upload_type", ""),
+                            DocMetadataField.page_id: file_metadata.get("confluence_page_id", ""),
+                            DocMetadataField.doc_hash: file_metadata.get("doc_hash", ""),
+                            DocMetadataField.auto_upgrade: False
+                        }
+
             elif document_data.data_source.info_list.data_source_type == "notion_import":
                 if not document_data.data_source.info_list.notion_info_list:
                     raise ValueError("No notion info list found.")
@@ -1357,6 +1385,10 @@ class DocumentService:
         # update document name
         if document_data.name:
             document.name = document_data.name
+
+        doc_metadata = document.doc_metadata or {}
+        doc_metadata.update(extra_metadata)
+        document.doc_metadata = doc_metadata
         # update document to be waiting
         document.indexing_status = "waiting"
         document.completed_at = None

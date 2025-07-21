@@ -116,6 +116,7 @@ const Documents: FC<IDocumentsProps> = ({ datasetId }) => {
     },
     refetchInterval: (isDataSourceNotion && timerCanRun) ? 2500 : 0,
   })
+  console.log("documentsRes: ", documentsRes)
 
   const invalidDocumentList = useInvalidDocumentList(datasetId)
 

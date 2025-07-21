@@ -5,6 +5,7 @@ import logging
 import os
 import uuid
 from typing import Any, Literal, Union
+import requests
 
 from flask_login import current_user  # type: ignore
 from werkzeug.exceptions import NotFound

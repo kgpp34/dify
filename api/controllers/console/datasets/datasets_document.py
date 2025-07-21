@@ -228,6 +228,7 @@ class DatasetDocumentListApi(Resource):
             data = marshal(documents, document_with_segments_fields)
         else:
             data = marshal(documents, document_fields)
+        print("data: ", data)
         response = {
             "data": data,
             "has_more": len(documents) == limit,

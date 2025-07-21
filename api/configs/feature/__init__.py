@@ -575,6 +575,11 @@ class AuthConfig(BaseSettings):
         default="http://172.31.69.113:10087/userinfo",
     )
 
+    CONFLUENCE2MARKDOWN_URL: Optional[str] = Field(
+        description="confluence2markdown url",
+        default="http://confluence2markdown.rag.com/confluence2md/page/",
+    )
+
     ACCESS_TOKEN_EXPIRE_MINUTES: PositiveInt = Field(
         description="Expiration time for access tokens in minutes",
         default=60,

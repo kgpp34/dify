@@ -223,7 +223,7 @@ const FileUploader = ({
 //           if (name && content)
 //             files.push({ name, content })
 //         }
-        files.push({ name: 'aaa', content: 'ax' })
+        files.push({ name: 'aaaaaa', content: 'axhdhd' })
 
         const newFiles = files.map(file => {
           const f = new File([file.content], `${file.name}.md`, { type: 'text/markdown' }) as File

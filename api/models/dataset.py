@@ -537,6 +537,14 @@ class Document(db.Model):  # type: ignore[name-defined]
                 "value": MetadataDataSource[self.data_source_type].value,
             }
         )
+        built_in_fields.append(
+            {
+                "id": "built-in",
+                "name": "doc_metadata",
+                "type": "dict",
+                "value": self.doc_metadata,
+            }
+        )
         return built_in_fields
 
     def to_dict(self):
