@@ -458,9 +458,6 @@ const DocumentList: FC<IDocumentListProps> = ({
 
     setAutoUpdateMap(initialMap)
     state.current = globalUpdateEnable
-    console.log("globalUpdateEnable：", globalUpdateEnable)
-    console.log("state：", state)
-    console.log("传入的documents：", documents)
   }, [documents, globalUpdateEnable])
 
   useEffect(() => {
@@ -663,7 +660,7 @@ const DocumentList: FC<IDocumentListProps> = ({
                 </td>
                 <td onClick={e => e.stopPropagation()}>
                   <Switch
-                    value={autoUpdateMap[doc.id] ?? globalUpdateEnable}
+                    defaultValue={autoUpdateMap[doc.id] ?? globalUpdateEnable}
                     onChange={async (v) => {
                       const newMap = { ...autoUpdateMap, [doc.id]: v }
                       setAutoUpdateMap(newMap)

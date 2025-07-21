@@ -788,9 +788,11 @@ class DocumentService:
             raise ValueError("No permission.")
 
         if not document.doc_metadata:
+            logging.info("Document does not have doc_metadata.")
             return document
 
         if "auto_upgrade" not in document.doc_metadata:
+            logging.info("Document does not have auto_upgrade field.")
             return document
 
         doc_metadata = copy.deepcopy(document.doc_metadata)
@@ -803,7 +805,7 @@ class DocumentService:
         return document
 
     @staticmethod
-    def set_batch_update_status(dataset_id: str, document_ids: list[str], auto_upgrade: bool):
+    def update_status_batch(dataset_id: str, document_ids: list[str], auto_upgrade: bool):
         if not document_ids:
             return 0
 
@@ -815,9 +817,11 @@ class DocumentService:
                 continue
 
             if not doc.doc_metadata:
+                logging.info("Document does not have doc_metadata.")
                 continue
 
             if "auto_upgrade" not in doc.doc_metadata:
+                logging.info("Document does not have auto_upgrade field.")
                 continue
             doc_metadata = copy.deepcopy(doc.doc_metadata)
             doc_metadata["auto_upgrade"] = auto_upgrade

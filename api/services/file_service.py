@@ -40,6 +40,7 @@ class FileService:
         user: Union[Account, EndUser, Any],
         source: Literal["datasets"] | None = None,
         source_url: str = "",
+        file_metadata: dict | None = None,
     ) -> UploadFile:
         # get file extension
         extension = os.path.splitext(filename)[1].lstrip(".").lower()
@@ -90,6 +91,7 @@ class FileService:
             used=False,
             hash=hashlib.sha3_256(content).hexdigest(),
             source_url=source_url,
+            file_metadata=file_metadata,
         )
 
         db.session.add(upload_file)

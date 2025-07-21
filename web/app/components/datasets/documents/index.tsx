@@ -103,7 +103,7 @@ const Documents: FC<IDocumentsProps> = ({ datasetId }) => {
   const isDataSourceWeb = dataset?.data_source_type === DataSourceType.WEB
   const isDataSourceFile = dataset?.data_source_type === DataSourceType.FILE
   const embeddingAvailable = !!dataset?.embedding_available
-  const [globalUpdateEnable, setGlobalUpdateEnable] = useState(true)
+  const [globalUpdateEnable, setGlobalUpdateEnable] = useState(false)
 
   const debouncedSearchValue = useDebounce(searchValue, { wait: 500 })
 

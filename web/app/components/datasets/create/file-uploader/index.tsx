@@ -115,6 +115,9 @@ const FileUploader = ({
   const fileUpload = useCallback(async (fileItem: FileItem): Promise<FileItem> => {
     const formData = new FormData()
     formData.append('file', fileItem.file)
+    if ((fileItem.file as File).fileMetadata) {
+      formData.append('file_metadata', JSON.stringify((fileItem.file as File).fileMetadata))
+    }
     const onProgress = (e: ProgressEvent) => {
       if (e.lengthComputable) {
         const percent = Math.floor(e.loaded / e.total * 100)
@@ -207,25 +210,33 @@ const FileUploader = ({
       setConfluenceLoading(true)
 
       try {
-        const response = await fetch(`/confluence2md/page/${pageId}`)
-        if (!response.ok)
-          throw new Error('Failed to convert Confluence page to Markdown')
-
-        const textContent = await response.text()
-        const sections = textContent.split(/<!--\s*Page:\s*(.*?)\s*-->/)
+//         const response = await fetch(`/confluence2md/page/${pageId}`)
+//         if (!response.ok)
+//           throw new Error('Failed to convert Confluence page to Markdown')
+//
+//         const textContent = await response.text()
+//         const sections = textContent.split(/<!--\s*Page:\s*(.*?)\s*-->/)
         const files = []
-        for (let i = 1; i < sections.length; i += 2) {
-          const name = sections[i].trim()
-          const content = sections[i + 1].trim()
-          if (name && content)
-            files.push({ name, content })
-        }
+//         for (let i = 1; i < sections.length; i += 2) {
+//           const name = sections[i].trim()
+//           const content = sections[i + 1].trim()
+//           if (name && content)
+//             files.push({ name, content })
+//         }
+        files.push({ name: 'aaa', content: 'ax' })
 
-        const newFiles = files.map(file => ({
-          fileID: uuid4(),
-          file: new File([file.content], `${file.name}.md`, { type: 'text/markdown' }),
-          progress: -1,
-        }))
+        const newFiles = files.map(file => {
+          const f = new File([file.content], `${file.name}.md`, { type: 'text/markdown' }) as File
+          ;(f as File).fileMetadata = {
+            upload_type: 'confluence',
+            confluence_page_id: pageId,
+          }
+          return {
+            fileID: uuid4(),
+            file: f,
+            progress: -1,
+          }
+        })
 
         const updatedFileList = [...fileListRef.current, ...newFiles]
         prepareFileList(updatedFileList)
@@ -440,53 +451,7 @@ const FileUploader = ({
         </div>
       )}
 
-      <div className='max-w-[640px] cursor-default space-y-1'>
-        {fileList.map((fileItem, index) => (
-          <div
-            key={`${fileItem.fileID}-${index}`}
-            onClick={() => fileItem.file?.id && onPreview(fileItem.file)}
-            className={cn(
-              'flex h-12 max-w-[640px] items-center rounded-lg border border-components-panel-border bg-components-panel-on-panel-item-bg text-xs leading-3 text-text-tertiary shadow-xs',
-              // 'border-state-destructive-border bg-state-destructive-hover',
-            )}
-          >
-            <div className="flex w-12 shrink-0 items-center justify-center">
-              <DocumentFileIcon
-                className="size-6 shrink-0"
-                name={fileItem.file.name}
-                extension={getFileType(fileItem.file)}
-              />
-            </div>
-            <div className="flex shrink grow flex-col gap-0.5">
-              <div className='flex w-full'>
-                <div className="w-0 grow truncate text-sm leading-4 text-text-secondary">{fileItem.file.name}</div>
-              </div>
-              <div className="w-full truncate leading-3 text-text-tertiary">
-                <span className='uppercase'>{getFileType(fileItem.file)}</span>
-                <span className='px-1 text-text-quaternary'>·</span>
-                <span>{getFileSize(fileItem.file.size)}</span>
-                {/* <span className='px-1 text-text-quaternary'>·</span>
-                  <span>10k characters</span> */}
-              </div>
-            </div>
-            <div className="flex w-16 shrink-0 items-center justify-end gap-1 pr-3">
-              {/* <span className="flex justify-center items-center w-6 h-6 cursor-pointer">
-                  <RiErrorWarningFill className='size-4 text-text-warning' />
-                </span> */}
-              {(fileItem.progress < 100 && fileItem.progress >= 0) && (
-                // <div className={s.percent}>{`${fileItem.progress}%`}</div>
-                <SimplePieChart percentage={fileItem.progress} stroke={chartColor} fill={chartColor} animationDuration={0} />
-              )}
-              <span className="flex h-6 w-6 cursor-pointer items-center justify-center" onClick={(e) => {
-                e.stopPropagation()
-                removeFile(fileItem.fileID)
-              }}>
-                <RiDeleteBinLine className='size-4 text-text-tertiary' />
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
+
     </div>
   )
 }

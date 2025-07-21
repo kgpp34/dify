@@ -51,6 +51,7 @@ class FileApi(Resource):
     def post(self):
         file = request.files["file"]
         source_str = request.form.get("source")
+        file_metadata = request.form.get("file_metadata")
         source: Literal["datasets"] | None = "datasets" if source_str == "datasets" else None
 
         if "file" not in request.files:
@@ -75,6 +76,7 @@ class FileApi(Resource):
                 mimetype=file.mimetype,
                 user=current_user,
                 source=source,
+                file_metadata=file_metadata,
             )
         except services.errors.file.FileTooLargeError as file_too_large_error:
             raise FileTooLargeError(file_too_large_error.description)
