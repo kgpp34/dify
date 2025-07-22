@@ -449,34 +449,34 @@ const DocumentList: FC<IDocumentListProps> = ({
     setLocalDocs(documents)
   }, [documents])
 
-  useEffect(() => {
-    if (!documents?.length) return
-    const initialMap = documents.reduce((acc, doc) => ({
-      ...acc,
-      [doc.id]: state.current
-    }), {})
-
-    setAutoUpdateMap(initialMap)
-    state.current = globalUpdateEnable
-  }, [documents, globalUpdateEnable])
-
-  useEffect(() => {
-  setAutoUpdateMap(prev => {
-    const newMap = { ...prev }
-    const changedDocIds: string[] = []
-
-    documents.forEach(doc => {
-      const current = prev[doc.id]
-      if (current !== globalUpdateEnable) {
-        newMap[doc.id] = globalUpdateEnable
-        changedDocIds.push(doc.id)
-
-        toggleAutoUpgrade(datasetId, doc.id, globalUpdateEnable)
-      }
-    })
-        return newMap
-      })
-    }, [globalUpdateEnable])
+//   useEffect(() => {
+//     if (!documents?.length) return
+//     const initialMap = documents.reduce((acc, doc) => ({
+//       ...acc,
+//       [doc.id]: state.current
+//     }), {})
+//
+//     setAutoUpdateMap(initialMap)
+//     state.current = globalUpdateEnable
+//   }, [documents, globalUpdateEnable])
+//
+//   useEffect(() => {
+//   setAutoUpdateMap(prev => {
+//     const newMap = { ...prev }
+//     const changedDocIds: string[] = []
+//
+//     documents.forEach(doc => {
+//       const current = prev[doc.id]
+//       if (current !== globalUpdateEnable) {
+//         newMap[doc.id] = globalUpdateEnable
+//         changedDocIds.push(doc.id)
+//
+//         toggleAutoUpgrade(datasetId, doc.id, globalUpdateEnable)
+//       }
+//     })
+//         return newMap
+//       })
+//     }, [globalUpdateEnable])
 
 
   const onClickSort = () => {
@@ -660,14 +660,33 @@ const DocumentList: FC<IDocumentListProps> = ({
                 </td>
                 <td onClick={e => e.stopPropagation()}>
                   <Switch
-                    defaultValue={autoUpdateMap[doc.id] ?? globalUpdateEnable}
+                    defaultValue={
+                      (() => {
+                        if (!doc.doc_metadata) return false;
+                        const docMetadataItem = doc.doc_metadata.find((item: any) => item.name === 'doc_metadata');
+                        console.log("type: ", typeof doc.docMetadataItem?.value)
+                        console.log("docMetadataItem.value: ", docMetadataItem.value)
+                        const autoUpgradeMatch = docMetadataItem.value.match(/"auto_upgrade"\s*:\s*(True|False)/i);
+                        console.log("autoUpgradeMatch: ", autoUpgradeMatch)
+                        if (autoUpgradeMatch) {
+                          return autoUpgradeMatch[1].toLowerCase() === 'true';
+                        }
+                      })()
+                    }
+                    disabled={
+                      (() => {
+                        if (!doc.doc_metadata) return true;
+                        const hasDocMetadataItem = doc.doc_metadata.some((item: any) => item.name === 'doc_metadata');
+                        return !hasDocMetadataItem;
+                      })()
+                    }
                     onChange={async (v) => {
-                      const newMap = { ...autoUpdateMap, [doc.id]: v }
-                      setAutoUpdateMap(newMap)
-                      const [error] = await asyncRunSafe(toggleAutoUpgrade(datasetId, doc.id, v))
+                      const newMap = { ...autoUpdateMap, [doc.id]: v };
+                      setAutoUpdateMap(newMap);
+                      const [error] = await asyncRunSafe(toggleAutoUpgrade(datasetId, doc.id, v));
                       if (error) {
-                        setAutoUpdateMap(prev => ({ ...prev, [doc.id]: !v }))
-                        Toast.notify({ type: 'error', message: t('common.actionMsg.modifiedUnsuccessfully') })
+                        setAutoUpdateMap(prev => ({ ...prev, [doc.id]: !v }));
+                        Toast.notify({ type: 'error', message: t('common.actionMsg.modifiedUnsuccessfully') });
                       }
                     }}
                     size="md"

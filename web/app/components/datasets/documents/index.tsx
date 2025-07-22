@@ -116,7 +116,6 @@ const Documents: FC<IDocumentsProps> = ({ datasetId }) => {
     },
     refetchInterval: (isDataSourceNotion && timerCanRun) ? 2500 : 0,
   })
-  console.log("documentsRes: ", documentsRes)
 
   const invalidDocumentList = useInvalidDocumentList(datasetId)
 
@@ -294,8 +293,8 @@ const Documents: FC<IDocumentsProps> = ({ datasetId }) => {
                   setGlobalUpdateEnable(checked)
                     if (!documentsRes?.data || documentsRes.data.length === 0) return
                     const updatedDocIds = documentsRes.data.map(doc => doc.id)
-                    await toggleAutoUpgradeBatch(datasetId, updatedDocIds, checked)
-                  }}
+//                     await toggleAutoUpgradeBatch(datasetId, updatedDocIds, checked)
+                }}
                 size="md"
               />
             </div>
