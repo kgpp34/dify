@@ -211,7 +211,7 @@ class ConfluencePageInfo:
 
 def get_confluence2markdown_content(page_ids: List[str]) -> List[ConfluencePageInfo]:
     results = []
-    base_url = dify_config.CONFLUENCE2MARKDOWN_URL  # 假设这是你的配置
+    base_url = dify_config.CONFLUENCE2MARKDOWN_URL
 
     for page_id in page_ids:
         url = base_url + page_id
@@ -220,19 +220,11 @@ def get_confluence2markdown_content(page_ids: List[str]) -> List[ConfluencePageI
             response.raise_for_status()
             text_content = response.text
 
-            sections = text_content.split(r'<!--\s*Page:\s*(.*?)\s*-->')
-            files = []
+            sections = re.split(r'<!--\s*Page:\s*(.*?)\s*-->', text_content)
             for i in range(1, len(sections), 2):
                 name = sections[i].strip()
                 content = sections[i + 1].strip() if i + 1 < len(sections) else ""
                 if name and content:
-                    files.append((name, content))
-
-            # 如果没有分割出多个section，则整个内容作为一个文件
-            if not files and text_content.strip():
-                results.append(ConfluencePageInfo(page_id=page_id, name=page_id, content=text_content.strip()))
-            else:
-                for name, content in files:
                     results.append(ConfluencePageInfo(page_id=page_id, name=name, content=content))
 
         except requests.exceptions.RequestException as e:
