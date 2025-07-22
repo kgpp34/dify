@@ -9,7 +9,7 @@ import uuid
 from collections.abc import Generator, Mapping
 from datetime import datetime
 from hashlib import sha256
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Union, cast, List, Dict
 from zoneinfo import available_timezones
 
 import requests
@@ -195,16 +195,21 @@ def generate_text_hash(text: str) -> str:
     return sha256(hash_text.encode()).hexdigest()
 
 
-def get_confluence2markdown_content(page_id: str):
+def get_confluence2markdown_content(page_ids: List[str]) -> List[Dict[str, str]]:
+    results = []
     base_url = dify_config.CONFLUENCE2MARKDOWN_URL
-    url = base_url + page_id
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        return response.text
-    except requests.exceptions.RequestException as e:
-        logging.error(f"get_confluence2markdown_content请求失败: {e}")
-        return None
+    for page_id in page_ids:
+        url = base_url + page_id
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            content = response.text
+            if content:
+                results.append({"page_id": page_id, "content": content})
+        except requests.exceptions.RequestException as e:
+            logging.error(f"get_confluence2markdown_content请求失败: {e}")
+            results.append({"page_id": page_id, "content": ""})
+    return results
 
 
 def compact_generate_response(response: Union[Mapping, Generator, RateLimitGenerator]) -> Response:

@@ -288,12 +288,12 @@ const Documents: FC<IDocumentsProps> = ({ datasetId }) => {
             <div className="flex items-center mr-4">
               <span className="text-sm mr-2">{t('dataset.patchAutoUpdate')}</span>
               <Switch
-                defaultValue={globalUpdateEnable}
+                defaultValue={dataset.auto_upgrade}
                 onChange={async (checked) => {
                   setGlobalUpdateEnable(checked)
                     if (!documentsRes?.data || documentsRes.data.length === 0) return
                     const updatedDocIds = documentsRes.data.map(doc => doc.id)
-//                     await toggleAutoUpgradeBatch(datasetId, updatedDocIds, checked)
+                    await toggleAutoUpgradeBatch(datasetId, updatedDocIds, checked)
                 }}
                 size="md"
               />
@@ -345,7 +345,6 @@ const Documents: FC<IDocumentsProps> = ({ datasetId }) => {
                 onChange: setCurrPage,
               }}
               onManageMetadata={showEditMetadataModal}
-              globalUpdateEnable={globalUpdateEnable}
             />
             : <EmptyElement canAdd={embeddingAvailable} onClick={routeToDocCreate} type={isDataSourceNotion ? 'sync' : 'upload'} />
         }

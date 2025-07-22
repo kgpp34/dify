@@ -449,34 +449,44 @@ const DocumentList: FC<IDocumentListProps> = ({
     setLocalDocs(documents)
   }, [documents])
 
-//   useEffect(() => {
-//     if (!documents?.length) return
-//     const initialMap = documents.reduce((acc, doc) => ({
-//       ...acc,
-//       [doc.id]: state.current
-//     }), {})
-//
-//     setAutoUpdateMap(initialMap)
-//     state.current = globalUpdateEnable
-//   }, [documents, globalUpdateEnable])
-//
-//   useEffect(() => {
-//   setAutoUpdateMap(prev => {
-//     const newMap = { ...prev }
-//     const changedDocIds: string[] = []
-//
-//     documents.forEach(doc => {
-//       const current = prev[doc.id]
-//       if (current !== globalUpdateEnable) {
-//         newMap[doc.id] = globalUpdateEnable
-//         changedDocIds.push(doc.id)
-//
-//         toggleAutoUpgrade(datasetId, doc.id, globalUpdateEnable)
-//       }
-//     })
-//         return newMap
-//       })
-//     }, [globalUpdateEnable])
+  useEffect(() => {
+  if (!documents?.length) return
+
+  // 初始化时设置与数据库一致的状态
+  const initialMap = documents.reduce((acc, doc) => {
+    const docValue = doc.doc_metadata?.find((item: any) =>
+      item.name === 'doc_metadata'
+    )?.value?.match(/auto_upgrade['"]?\s*:\s*(True|False)/i)?.[1].toLowerCase() === 'true'
+
+    return {
+      ...acc,
+      [doc.id]: docValue ?? false
+    }
+  }, {})
+
+  setAutoUpdateMap(initialMap)
+}, [documents])
+
+  useEffect(() => {
+    if (globalUpdateEnable === undefined) return
+
+    setAutoUpdateMap(prev => {
+      const newMap = { ...prev }
+      const changedDocIds: string[] = []
+
+      documents.forEach(doc => {
+        if (prev[doc.id] !== globalUpdateEnable) {
+          newMap[doc.id] = globalUpdateEnable
+          changedDocIds.push(doc.id)
+
+          // 异步更新单个文档状态
+          toggleAutoUpgrade(datasetId, doc.id, globalUpdateEnable)
+        }
+      })
+
+      return newMap
+    })
+  }, [globalUpdateEnable])
 
 
   const onClickSort = () => {
@@ -660,19 +670,18 @@ const DocumentList: FC<IDocumentListProps> = ({
                 </td>
                 <td onClick={e => e.stopPropagation()}>
                   <Switch
-                    defaultValue={
-                      (() => {
-                        if (!doc.doc_metadata) return false;
-                        const docMetadataItem = doc.doc_metadata.find((item: any) => item.name === 'doc_metadata');
-                        console.log("type: ", typeof doc.docMetadataItem?.value)
-                        console.log("docMetadataItem.value: ", docMetadataItem.value)
-                        const autoUpgradeMatch = docMetadataItem.value.match(/"auto_upgrade"\s*:\s*(True|False)/i);
-                        console.log("autoUpgradeMatch: ", autoUpgradeMatch)
-                        if (autoUpgradeMatch) {
-                          return autoUpgradeMatch[1].toLowerCase() === 'true';
-                        }
-                      })()
-                    }
+                    defaultValue={autoUpdateMap[doc.id] ?? false}
+//                     {
+//                       (() => {
+//                         if (!doc.doc_metadata) return false;
+//                         const docMetadataItem = doc.doc_metadata.find((item: any) => item.name === 'doc_metadata');
+//                         const autoUpgradeMatch = docMetadataItem.value.match(/auto_upgrade['"]?\s*:\s*(True|False)/i);
+//                         if (autoUpgradeMatch) {
+//                           return autoUpgradeMatch[1].toLowerCase() === 'true';
+//                         }
+//                         return false;
+//                       })()
+//                     }
                     disabled={
                       (() => {
                         if (!doc.doc_metadata) return true;
