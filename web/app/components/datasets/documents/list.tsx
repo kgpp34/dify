@@ -669,7 +669,7 @@ const DocumentList: FC<IDocumentListProps> = ({
                 </td>
                 <td onClick={e => e.stopPropagation()}>
                   <Switch
-                    value={globalUpdateEnable !== undefined ? globalUpdateEnable : autoUpdateMap[doc.id]}
+                    value={autoUpdateMap[doc.id]}
                     disabled={
                       (() => {
                         if (!doc.doc_metadata) return true;
