@@ -478,7 +478,6 @@ const DocumentList: FC<IDocumentListProps> = ({
           newMap[doc.id] = globalUpdateEnable
           changedDocIds.push(doc.id)
 
-          // 异步更新单个文档状态
           toggleAutoUpgrade(datasetId, doc.id, globalUpdateEnable)
         }
       })
@@ -668,26 +667,26 @@ const DocumentList: FC<IDocumentListProps> = ({
                   }
                 </td>
                 <td onClick={e => e.stopPropagation()}>
-                  <Switch
-                    value={autoUpdateMap[doc.id] || false}
-                    disabled={
-                      (() => {
-                        if (!doc.doc_metadata) return true;
-                        const hasDocMetadataItem = doc.doc_metadata.some((item: any) => item.name === 'doc_metadata');
-                        return !hasDocMetadataItem;
-                      })()
-                    }
-                    onChange={async (v) => {
-                      const newMap = { ...autoUpdateMap, [doc.id]: v };
-                      setAutoUpdateMap(newMap);
-                      const [error] = await asyncRunSafe(toggleAutoUpgrade(datasetId, doc.id, v));
-                      if (error) {
-                        setAutoUpdateMap(prev => ({ ...prev, [doc.id]: !v }));
-                        Toast.notify({ type: 'error', message: t('common.actionMsg.modifiedUnsuccessfully') });
-                      }
-                    }}
-                    size="md"
-                  />
+                  {(() => {
+                    const disabled = !doc.doc_metadata?.some((item: any) => item.name === 'doc_metadata');
+                    return (
+                      <Switch
+                        value={disabled ? false : (autoUpdateMap[doc.id])}
+                        disabled={disabled}
+                        onChange={async (v) => {
+                          globalUpdateEnable = undefined;
+                          const newMap = { ...autoUpdateMap, [doc.id]: v };
+                          setAutoUpdateMap(newMap);
+                          const [error] = await asyncRunSafe(toggleAutoUpgrade(datasetId, doc.id, v));
+                          if (error) {
+                            setAutoUpdateMap(prev => ({ ...prev, [doc.id]: !v }));
+                            Toast.notify({ type: 'error', message: t('common.actionMsg.modifiedUnsuccessfully') });
+                          }
+                        }}
+                        size="md"
+                      />
+                    );
+                  })()}
                 </td>
                 <td>
                   <OperationAction
