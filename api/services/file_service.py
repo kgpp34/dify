@@ -307,3 +307,24 @@ class FileService:
         logger.info(f"成功删除文件: {file_id}")
 
         return True
+
+    @staticmethod
+    def get_file_by_file_id(tenant_id: str, file_id: str):
+        """根据租户id和文档id获取的文件对象"""
+        # 查询与文件关联的 UploadFile 对象
+        file = (
+            db.session.query(UploadFile)
+            .filter(UploadFile.tenant_id == tenant_id, UploadFile.id == file_id)
+            .first()
+        )
+        return file
+
+    @staticmethod
+    def delete_file(file: UploadFile):
+        """删除文件"""
+        key = file.key
+        # 从数据库中删除 UploadFile 对象
+        db.session.delete(file)
+        db.session.commit()
+        # 删除存储中的文件
+        storage.delete(key)

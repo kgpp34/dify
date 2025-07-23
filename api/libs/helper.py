@@ -196,10 +196,11 @@ def generate_text_hash(text: str) -> str:
 
 
 class ConfluencePageInfo:
-    def __init__(self, page_id: str, name: str, content: str):
+    def __init__(self, page_id: str, filename: str, content: str):
         self.page_id = page_id
-        self.name = name
+        self.filename = filename
         self.content = content
+        self.minetype = "text/markdown"
 
     def to_dict(self) -> dict[str, str]:
         return {"page_id": self.page_id, "name": self.name, "content": self.content}
@@ -225,7 +226,7 @@ def get_confluence2markdown_content(page_ids: list[str]) -> list[ConfluencePageI
                 name = sections[i].strip()
                 content = sections[i + 1].strip() if i + 1 < len(sections) else ""
                 if name and content:
-                    results.append(ConfluencePageInfo(page_id=page_id, name=name, content=content))
+                    results.append(ConfluencePageInfo(page_id=page_id, filename=name, content=content))
 
         except requests.exceptions.RequestException as e:
             logging.exception("get_confluence2markdown_content请求失败: page_id=%s", page_id)

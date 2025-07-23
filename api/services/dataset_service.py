@@ -630,6 +630,47 @@ class DocumentService:
     }
 
     @staticmethod
+    def auto_update_document(file: UploadFile, document: Document):
+        """Confluence的file文件自动更新后, 同步要更新file关联的document信息, 并触发异步任务镜像文档索引更新"""
+        try:
+            # 获取文档的关联文件信息
+            if file.id != document.file_id:
+                raise ValueError("file id does not match the document's associated file_id.")
+
+            # 更新文档的文件相关字段
+            document.file_id = file.id
+            document.word_count = 0  # indexing时由segment统计并累加
+            document.mime_type = file.mime_type
+            document.doc_metadata["doc_hash"] = file.hash
+            document.indexing_status = "waiting"
+            document.updated_at = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+
+            # 提交数据库事务
+            db.session.add(document)
+            db.session.commit()
+
+            logging.info(f"Document {document.id} updated with file {file.id}.")
+            document_ids = []
+            document_ids.append(document.id)
+            # 触发异步任务进行文档索引更新
+            document_indexing_task.delay(document.dataset_id, document_ids)
+
+        except Exception as e:
+            logging.exception(f"Failed to update document {document.id} with file {file.id}: {str(e)}")
+            # 发生异常时，可以选择恢复文档状态，或者做其他异常处理
+            db.session.rollback()
+
+    @staticmethod
+    def get_documents_with_metadata():
+        """查询 doc_metadata 字段中 doc_source 为 'confluence' 的文档"""
+        documents = (
+            db.session.query(Document)
+            .filter(Document.doc_metadata['doc_source'].astext == 'confluence')
+            .all()
+        )
+        return documents
+
+    @staticmethod
     def get_document(dataset_id: str, document_id: Optional[str] = None) -> Optional[Document]:
         if document_id:
             document = (
