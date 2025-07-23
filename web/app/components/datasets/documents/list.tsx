@@ -404,6 +404,7 @@ type IDocumentListProps = {
   onUpdate: () => void
   onManageMetadata: () => void
   globalUpdateEnable: boolean
+  setGlobalUpdateEnable: (value: boolean | undefined) => void
 }
 
 /**
@@ -451,21 +452,19 @@ const DocumentList: FC<IDocumentListProps> = ({
 
   useEffect(() => {
   if (!documents?.length) return
+    const initialMap = documents.reduce((acc, doc) => {
+      const docValue = doc.doc_metadata?.find((item: any) =>
+        item.name === 'doc_metadata'
+      )?.value?.match(/auto_upgrade['"]?\s*:\s*(True|False)/i)?.[1].toLowerCase() === 'true'
 
-  // 初始化时设置与数据库一致的状态
-  const initialMap = documents.reduce((acc, doc) => {
-    const docValue = doc.doc_metadata?.find((item: any) =>
-      item.name === 'doc_metadata'
-    )?.value?.match(/auto_upgrade['"]?\s*:\s*(True|False)/i)?.[1].toLowerCase() === 'true'
+      return {
+        ...acc,
+        [doc.id]: docValue ?? false
+      }
+      }, {})
 
-    return {
-      ...acc,
-      [doc.id]: docValue ?? false
-    }
-  }, {})
-
-  setAutoUpdateMap(initialMap)
-}, [documents])
+      setAutoUpdateMap(initialMap)
+  }, [documents])
 
   useEffect(() => {
     if (globalUpdateEnable === undefined) return
@@ -670,18 +669,7 @@ const DocumentList: FC<IDocumentListProps> = ({
                 </td>
                 <td onClick={e => e.stopPropagation()}>
                   <Switch
-                    defaultValue={autoUpdateMap[doc.id] ?? false}
-//                     {
-//                       (() => {
-//                         if (!doc.doc_metadata) return false;
-//                         const docMetadataItem = doc.doc_metadata.find((item: any) => item.name === 'doc_metadata');
-//                         const autoUpgradeMatch = docMetadataItem.value.match(/auto_upgrade['"]?\s*:\s*(True|False)/i);
-//                         if (autoUpgradeMatch) {
-//                           return autoUpgradeMatch[1].toLowerCase() === 'true';
-//                         }
-//                         return false;
-//                       })()
-//                     }
+                    value={globalUpdateEnable !== undefined ? globalUpdateEnable : autoUpdateMap[doc.id]}
                     disabled={
                       (() => {
                         if (!doc.doc_metadata) return true;
@@ -690,6 +678,7 @@ const DocumentList: FC<IDocumentListProps> = ({
                       })()
                     }
                     onChange={async (v) => {
+                      globalUpdateEnable = undefined;
                       const newMap = { ...autoUpdateMap, [doc.id]: v };
                       setAutoUpdateMap(newMap);
                       const [error] = await asyncRunSafe(toggleAutoUpgrade(datasetId, doc.id, v));

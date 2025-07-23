@@ -103,7 +103,9 @@ const Documents: FC<IDocumentsProps> = ({ datasetId }) => {
   const isDataSourceWeb = dataset?.data_source_type === DataSourceType.WEB
   const isDataSourceFile = dataset?.data_source_type === DataSourceType.FILE
   const embeddingAvailable = !!dataset?.embedding_available
-  const [globalUpdateEnable, setGlobalUpdateEnable] = useState(false)
+  const [globalUpdateEnable, setGlobalUpdateEnable] = useState<boolean | undefined>(undefined);
+
+
 
   const debouncedSearchValue = useDebounce(searchValue, { wait: 500 })
 
@@ -288,7 +290,7 @@ const Documents: FC<IDocumentsProps> = ({ datasetId }) => {
             <div className="flex items-center mr-4">
               <span className="text-sm mr-2">{t('dataset.patchAutoUpdate')}</span>
               <Switch
-                defaultValue={dataset.auto_upgrade}
+                value={globalUpdateEnable !== undefined ? globalUpdateEnable : dataset.auto_upgrade}
                 onChange={async (checked) => {
                   setGlobalUpdateEnable(checked)
                     if (!documentsRes?.data || documentsRes.data.length === 0) return
@@ -345,6 +347,8 @@ const Documents: FC<IDocumentsProps> = ({ datasetId }) => {
                 onChange: setCurrPage,
               }}
               onManageMetadata={showEditMetadataModal}
+              globalUpdateEnable={globalUpdateEnable}
+              setGlobalUpdateEnable={setGlobalUpdateEnable}
             />
             : <EmptyElement canAdd={embeddingAvailable} onClick={routeToDocCreate} type={isDataSourceNotion ? 'sync' : 'upload'} />
         }
