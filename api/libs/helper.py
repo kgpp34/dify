@@ -195,22 +195,51 @@ def generate_text_hash(text: str) -> str:
     return sha256(hash_text.encode()).hexdigest()
 
 
-def get_confluence2markdown_content(page_ids: List[str]) -> List[Dict[str, str]]:
+class ConfluencePageInfo:
+    def __init__(self, page_id: str, name: str, content: str):
+        self.page_id = page_id
+        self.name = name
+        self.content = content
+
+    def to_dict(self) -> Dict[str, str]:
+        return {
+            "page_id": self.page_id,
+            "name": self.name,
+            "content": self.content
+        }
+
+
+def get_confluence2markdown_content(page_ids: List[str]) -> List[ConfluencePageInfo]:
     results = []
-    base_url = dify_config.CONFLUENCE2MARKDOWN_URL
+    base_url = dify_config.CONFLUENCE2MARKDOWN_URL  # 假设这是你的配置
+
     for page_id in page_ids:
         url = base_url + page_id
         try:
             response = requests.get(url)
             response.raise_for_status()
-            content = response.text
-            if content:
-                results.append({"page_id": page_id, "content": content})
-        except requests.exceptions.RequestException as e:
-            logging.error(f"get_confluence2markdown_content请求失败: {e}")
-            results.append({"page_id": page_id, "content": ""})
-    return results
+            text_content = response.text
 
+            sections = text_content.split(r'<!--\s*Page:\s*(.*?)\s*-->')
+            files = []
+            for i in range(1, len(sections), 2):
+                name = sections[i].strip()
+                content = sections[i + 1].strip() if i + 1 < len(sections) else ""
+                if name and content:
+                    files.append((name, content))
+
+            # 如果没有分割出多个section，则整个内容作为一个文件
+            if not files and text_content.strip():
+                results.append(ConfluencePageInfo(page_id=page_id, name=page_id, content=text_content.strip()))
+            else:
+                for name, content in files:
+                    results.append(ConfluencePageInfo(page_id=page_id, name=name, content=content))
+
+        except requests.exceptions.RequestException as e:
+            logging.error(f"get_confluence2markdown_content请求失败(page_id={page_id}): {e}")
+            results.append(ConfluencePageInfo(page_id=page_id, name="", content=""))
+
+    return results
 
 def compact_generate_response(response: Union[Mapping, Generator, RateLimitGenerator]) -> Response:
     if isinstance(response, dict):

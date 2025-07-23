@@ -669,7 +669,7 @@ const DocumentList: FC<IDocumentListProps> = ({
                 </td>
                 <td onClick={e => e.stopPropagation()}>
                   <Switch
-                    value={autoUpdateMap[doc.id]}
+                    value={autoUpdateMap[doc.id] || false}
                     disabled={
                       (() => {
                         if (!doc.doc_metadata) return true;
@@ -678,7 +678,6 @@ const DocumentList: FC<IDocumentListProps> = ({
                       })()
                     }
                     onChange={async (v) => {
-                      globalUpdateEnable = undefined;
                       const newMap = { ...autoUpdateMap, [doc.id]: v };
                       setAutoUpdateMap(newMap);
                       const [error] = await asyncRunSafe(toggleAutoUpgrade(datasetId, doc.id, v));
