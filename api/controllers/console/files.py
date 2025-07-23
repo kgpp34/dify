@@ -1,3 +1,4 @@
+import json
 from typing import Literal
 
 from flask import request
@@ -68,6 +69,11 @@ class FileApi(Resource):
 
         if source not in ("datasets", None):
             source = None
+
+        if file_metadata is not None:
+            file_metadata = json.loads(file_metadata)
+            if not isinstance(file_metadata, dict):
+                file_metadata = None
 
         try:
             upload_file = FileService.upload_file(

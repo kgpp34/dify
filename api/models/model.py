@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Optional
 from core.plugin.entities.plugin import GenericProviderID
 from core.tools.entities.tool_entities import ToolProviderType
 from services.plugin.plugin_service import PluginService
-from sqlalchemy.dialects.postgresql import JSONB
 
 if TYPE_CHECKING:
     from models.workflow import Workflow
@@ -1549,7 +1548,7 @@ class UploadFile(Base):
     used_at: Mapped[datetime | None] = db.Column(db.DateTime, nullable=True)
     hash: Mapped[str | None] = db.Column(db.String(255), nullable=True)
     source_url: Mapped[str] = mapped_column(sa.TEXT, default="")
-    file_metadata: Mapped[dict] = db.Column(db.JSON, nullable=True)
+    file_metadata: Mapped[Optional[dict]] = db.Column(db.JSON, nullable=True)
 
     def __init__(
         self,

@@ -5,7 +5,6 @@ import logging
 import os
 import uuid
 from typing import Any, Literal, Union
-import requests
 
 from flask_login import current_user  # type: ignore
 from werkzeug.exceptions import NotFound
@@ -18,10 +17,10 @@ from constants import (
     VIDEO_EXTENSIONS,
 )
 from core.file import helpers as file_helpers
-from libs import helper
 from core.rag.extractor.extract_processor import ExtractProcessor
 from extensions.ext_database import db
 from extensions.ext_storage import storage
+from libs import helper
 from models.account import Account
 from models.enums import CreatedByRole
 from models.model import EndUser, UploadFile
@@ -79,8 +78,9 @@ class FileService:
         # save file to storage
         storage.save(file_key, content)
         if file_metadata is not None:
-            file_metadata = json.loads(file_metadata)
-            doc_hash = helper.generate_text_hash(content)
+            if isinstance(file_metadata, str):
+                file_metadata = json.loads(file_metadata)
+            doc_hash = helper.generate_text_hash(content.decode("utf-8"))
             file_metadata["doc_hash"] = doc_hash
         # save file to db
         upload_file = UploadFile(

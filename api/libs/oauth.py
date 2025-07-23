@@ -1,11 +1,11 @@
 import urllib.parse
 from dataclasses import dataclass
-from urllib.parse import quote
-import logging
 from typing import Optional
-from configs import dify_config
+from urllib.parse import quote
 
 import requests
+
+from configs import dify_config
 
 
 @dataclass
@@ -160,6 +160,8 @@ class CustomOAuth(OAuth):
         return f"{self._AUTH_URL}?{query_string}"
 
     def get_access_token(self, code: str):
+        if not self._TOKEN_URL:
+            raise NotImplementedError()
         data = {
             "grant_type": "authorization_code",
             "client_id": self.client_id,
@@ -172,13 +174,11 @@ class CustomOAuth(OAuth):
         return response.json()["access_token"]
 
     def get_raw_user_info(self, token: str):
+        if not self._USER_INFO_URL:
+            raise NotImplementedError()
         headers = {"Authorization": f"Bearer {token}"}
         response = requests.get(self._USER_INFO_URL, headers=headers)
         return response.json()
 
     def _transform_user_info(self, raw_info: dict) -> OAuthUserInfo:
-        return OAuthUserInfo(
-            id=str(raw_info["sub"]),
-            name=raw_info.get("name", ""),
-            email=raw_info.get("email")
-        )
+        return OAuthUserInfo(id=str(raw_info["sub"]), name=raw_info.get("name", ""), email=raw_info.get("email", ""))

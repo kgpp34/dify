@@ -1106,7 +1106,6 @@ class DocumentAutoUpgradeBatchApi(DocumentResource):
         return {"result": "success"}, 200
 
 
-
 class WebsiteDocumentSyncApi(DocumentResource):
     @setup_required
     @login_required

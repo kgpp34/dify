@@ -41,6 +41,7 @@ from models.dataset import (
     DocumentSegment,
     ExternalKnowledgeBindings,
 )
+from models.enums import DocMetadataField
 from models.model import UploadFile
 from models.source import DataSourceOauthBinding
 from services.entities.knowledge_entities.knowledge_entities import (
@@ -72,8 +73,6 @@ from tasks.enable_segments_to_index_task import enable_segments_to_index_task
 from tasks.recover_document_indexing_task import recover_document_indexing_task
 from tasks.retry_document_indexing_task import retry_document_indexing_task
 from tasks.sync_website_document_indexing_task import sync_website_document_indexing_task
-
-from models.enums import DocMetadataField
 
 
 class DatasetService:
@@ -1050,7 +1049,7 @@ class DocumentService:
                                 DocMetadataField.doc_source: file_metadata.get("upload_type", ""),
                                 DocMetadataField.page_id: file_metadata.get("confluence_page_id", ""),
                                 DocMetadataField.doc_hash: file_metadata.get("doc_hash", ""),
-                                DocMetadataField.auto_upgrade: False
+                                DocMetadataField.auto_upgrade: False,
                             }
 
                         file_name = file.name
@@ -1091,7 +1090,7 @@ class DocumentService:
                             account,
                             file_name,
                             batch,
-                            extra_metadata
+                            extra_metadata,
                         )
                         db.session.add(document)
                         db.session.flush()
@@ -1231,7 +1230,7 @@ class DocumentService:
         account: Account,
         name: str,
         batch: str,
-        extra_metadata: Optional[dict[str, Any]] = None
+        extra_metadata: Optional[dict[str, Any]] = None,
     ):
         document = Document(
             tenant_id=dataset.tenant_id,
@@ -1339,7 +1338,7 @@ class DocumentService:
                             DocMetadataField.doc_source: file_metadata.get("upload_type", ""),
                             DocMetadataField.page_id: file_metadata.get("confluence_page_id", ""),
                             DocMetadataField.doc_hash: file_metadata.get("doc_hash", ""),
-                            DocMetadataField.auto_upgrade: False
+                            DocMetadataField.auto_upgrade: False,
                         }
 
             elif document_data.data_source.info_list.data_source_type == "notion_import":
