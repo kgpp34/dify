@@ -1046,10 +1046,10 @@ class DocumentService:
                         if file.file_metadata:
                             file_metadata = file.file_metadata
                             extra_metadata = {
-                                DocMetadataField.doc_source: file_metadata.get("upload_type", ""),
-                                DocMetadataField.page_id: file_metadata.get("confluence_page_id", ""),
-                                DocMetadataField.doc_hash: file_metadata.get("doc_hash", ""),
-                                DocMetadataField.auto_upgrade: False,
+                                "doc_source": file_metadata.get("upload_type", ""),
+                                "page_id": file_metadata.get("confluence_page_id", ""),
+                                "doc_hash": file_metadata.get("doc_hash", ""),
+                                "auto_upgrade": False,
                             }
 
                         file_name = file.name
@@ -1249,11 +1249,11 @@ class DocumentService:
         doc_metadata = {}
         if dataset.built_in_field_enabled:
             doc_metadata = {
-                BuiltInField.document_name: name,
-                BuiltInField.uploader: account.name,
-                BuiltInField.upload_date: datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
-                BuiltInField.last_update_date: datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
-                BuiltInField.source: data_source_type,
+                "document_name": name,
+                "uploader": account.name,
+                "upload_date": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
+                "last_update_date": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
+                "source": data_source_type,
             }
         if extra_metadata:
             doc_metadata |= extra_metadata
