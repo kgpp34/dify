@@ -38,21 +38,23 @@ class ConfluenceResyncTask:
             if page_ids:
                 # 使用批量方法获取多个 Confluence 页面内容
                 pages_info = self.confluence_fetcher.fetch_confluence_page_by_ids(page_ids)
-
-                for document, page_info in zip(batch_documents, pages_info):
-                    if page_info and self.verify_confluence_page(document, page_info.content):
-                        logging.info(f"Page {document.doc_metadata['page_id']} has been updated.")
-                        # 获取历史的文件信息
-                        last_file = self.file_service.get_file_by_file_id(document.tenant_id, document.file_id)
-                        if not last_file:
-                            logging.error("File associated with document not found.")
-                        # 生成文件并上传
-                        if last_file:
-                            new_file = self.generate_custom_file(document, page_info)
-                            if new_file:
-                                # 更新文档的相关信息并删除历史file, 提交异步indexing任务
-                                DocumentService.auto_update_document(new_file, document)
-                                FileService.delete_file(last_file.id)
+                if len(pages_info) != len(page_ids):
+                    logging.warning("Fetched pages may not exist or have been deleted")
+                else:
+                    for document, page_info in zip(batch_documents, pages_info):
+                        if page_info and self.verify_confluence_page(document, page_info.content):
+                            logging.info(f"Page {document.doc_metadata['page_id']} has been updated.")
+                            # 获取历史的文件信息
+                            last_file = self.file_service.get_file_by_file_id(document.tenant_id, document.file_id)
+                            if not last_file:
+                                logging.error("File associated with document not found.")
+                            # 生成文件并上传
+                            if last_file:
+                                new_file = self.generate_custom_file(document, page_info)
+                                if new_file:
+                                    # 更新文档的相关信息并删除历史file, 提交异步indexing任务
+                                    DocumentService.auto_update_document(new_file, document)
+                                    FileService.delete_file(last_file.id)
 
             logging.info(f"Batch {batch_start // batch_size + 1} processing completed.")
 
