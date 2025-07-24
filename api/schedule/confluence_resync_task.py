@@ -19,7 +19,6 @@ class ConfluenceResyncTask:
     def resync(self, batch_size=100):
         """定时检查 Confluence 页面是否更新，并上传文档，支持批量处理"""
         documents = self.document_service.get_documents_with_metadata()
-        logging.info("aaaaaaaaaaaaaaaaaaaa")
         total_documents = len(documents)
         logging.info(f"Total Confluence related documents: {total_documents}")
 
@@ -105,6 +104,5 @@ class ConfluenceResyncTask:
 
 @app.celery.task(queue="resync_queue")
 def resync_task(batch_size=100):
-    logging.info("resync_task")
     task = ConfluenceResyncTask()
     task.resync(batch_size)
