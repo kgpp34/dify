@@ -98,6 +98,11 @@ def init_app(app: DifyApp) -> Celery:
             "task": "schedule.mail_clean_document_notify_task.mail_clean_document_notify_task",
             "schedule": crontab(minute="0", hour="10", day_of_week="1"),
         },
+        "confluence_resync_task": {
+            "task": "tasks.confluence_resync_task.resync_task",
+            "schedule": timedelta(seconds=10),
+            "args": (100),
+        },
     }
     celery_app.conf.update(beat_schedule=beat_schedule, imports=imports)
 

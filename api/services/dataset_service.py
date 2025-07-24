@@ -656,18 +656,14 @@ class DocumentService:
             document_indexing_task.delay(document.dataset_id, document_ids)
 
         except Exception as e:
-            logging.exception(f"Failed to update document {document.id} with file {file.id}: {str(e)}")
+            logging.exception(f"Failed to update document {document.id} with file {file.id}")
             # 发生异常时，可以选择恢复文档状态，或者做其他异常处理
             db.session.rollback()
 
     @staticmethod
     def get_documents_with_metadata():
         """查询 doc_metadata 字段中 doc_source 为 'confluence' 的文档"""
-        documents = (
-            db.session.query(Document)
-            .filter(Document.doc_metadata['doc_source'].astext == 'confluence')
-            .all()
-        )
+        documents = db.session.query(Document).filter(Document.doc_metadata["doc_source"].astext == "confluence").all()
         return documents
 
     @staticmethod

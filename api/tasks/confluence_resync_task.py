@@ -1,14 +1,17 @@
 import hashlib
 import logging
-from celery import shared_task
+
+from celery import shared_task  # type: ignore
+
+from libs.helper import ConfluenceFetcher, ConfluencePageInfo
 from models.dataset import Document
-from extensions.ext_storage import storage
-from services.file_service import FileService
 from services.dataset_service import DocumentService
-from services.dataset_service import ConfluenceFetcher, ConfluencePageInfo
+from services.file_service import FileService
+
 
 class ConfluenceResyncTask:
     """定时检查 Confluence 页面是否更新，并上传文档的任务类"""
+
     def __init__(self):
         self.file_service = FileService()
         self.document_service = DocumentService()
@@ -17,20 +20,20 @@ class ConfluenceResyncTask:
     def resync(self, batch_size=100):
         """定时检查 Confluence 页面是否更新，并上传文档，支持批量处理"""
         documents = self.document_service.get_documents_with_metadata()
-
+        logging.info("aaaaaaaaaaaaaaaaaaaa")
         total_documents = len(documents)
         logging.info(f"Total Confluence related documents: {total_documents}")
 
         # 按批次分批处理
         for batch_start in range(0, total_documents, batch_size):
-            batch_documents = documents[batch_start:batch_start + batch_size]
+            batch_documents = documents[batch_start : batch_start + batch_size]
             logging.info(f"Processing batch {batch_start // batch_size + 1} of {len(batch_documents)} documents.")
 
             # 提取所有 Confluence 相关文档的 page_id
             page_ids = [
-                document.doc_metadata.get('page_id') 
-                for document in batch_documents 
-                if document.doc_metadata.get('page_id')
+                document.doc_metadata.get("page_id")
+                for document in batch_documents
+                if document.doc_metadata.get("page_id")
             ]
 
             if page_ids:
@@ -40,7 +43,7 @@ class ConfluenceResyncTask:
                 for document, page_info in zip(batch_documents, pages_info):
                     if page_info and self.verify_confluence_page(document, page_info.content):
                         logging.info(f"Page {document.doc_metadata['page_id']} has been updated.")
-                         # 获取历史的文件信息
+                        # 获取历史的文件信息
                         last_file = self.file_service.get_file_by_file_id(document.tenant_id, document.file_id)
                         if not last_file:
                             logging.error("File associated with document not found.")
@@ -50,7 +53,7 @@ class ConfluenceResyncTask:
                         if new_file:
                             # 更新文档的相关信息并删除历史file, 提交异步indexing任务
                             DocumentService.auto_update_document(new_file, document)
-                            FileService.delete_file(last_file)
+                            FileService.delete_file(last_file.id)
 
             logging.info(f"Batch {batch_start // batch_size + 1} processing completed.")
 
@@ -58,17 +61,17 @@ class ConfluenceResyncTask:
 
     def verify_confluence_page(self, document, content) -> bool:
         """根据 hash 值判断 Confluence 页面是否更新"""
-        content_hash = hashlib.sha3_256(content).hexdigest()    # 与UploadFile中的hash保持一致
+        content_hash = hashlib.sha3_256(content).hexdigest()  # 与UploadFile中的hash保持一致
 
-        if document.doc_metadata.get('doc_hash') == content_hash:
+        if document.doc_metadata.get("doc_hash") == content_hash:
             logging.info(f"Confluence page {document.doc_metadata['page_id']} has not been updated.")
             return False
 
         return True
 
-    def generate_custom_file(self, document: Document, pageInfo: ConfluencePageInfo):
+    def generate_custom_file(self, document: Document, page_info: ConfluencePageInfo):
         """直接从上传的文件中获取相关字段并调用 upload_file 上传文件"""
-        if not pageInfo:
+        if not page_info:
             logging.error("No content available for generating the file.")
             return None
 
@@ -82,18 +85,20 @@ class ConfluenceResyncTask:
             # 调用 upload_file 上传文件
             new_file = FileService.upload_file(
                 filename=last_file.filename,
-                content=pageInfo.content,
-                mimetype=pageInfo.mimetype,
+                content=page_info.content.encode("utf-8"),
+                mimetype=page_info.mimetype,
                 user=last_file.current_user,
                 source=last_file.source,
             )
         except Exception as e:
-            logging.error(f"Failed to upload new file for document {document.id}: {e}")
+            logging.exception(f"Failed to upload new file for document {document.id}")
             return None
 
         return new_file
 
-@shared_task(queue="resync_queue")
+
+@shared_task(queue="dataset")
 def resync_task(batch_size=100):
+    logging.info("resync_task")
     task = ConfluenceResyncTask()
     task.resync(batch_size)
