@@ -663,7 +663,14 @@ class DocumentService:
     @staticmethod
     def get_documents_with_metadata():
         """查询 doc_metadata 字段中 doc_source 为 'confluence' 的文档"""
-        documents = db.session.query(Document).filter(Document.doc_metadata["doc_source"].astext == "confluence").all()
+        documents = (
+            db.session.query(Document)
+            .filter(
+                Document.doc_metadata["doc_source"].astext == "confluence",
+                Document.doc_metadata["auto_upgrade"].astext == "true",
+            )
+            .all()
+        )
         return documents
 
     @staticmethod

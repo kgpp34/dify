@@ -70,6 +70,7 @@ def init_app(app: DifyApp) -> Celery:
         "schedule.update_tidb_serverless_status_task",
         "schedule.clean_messages",
         "schedule.mail_clean_document_notify_task",
+        "schedule.confluence_resync_task",
     ]
     day = dify_config.CELERY_BEAT_SCHEDULER_TIME
     beat_schedule = {
@@ -99,9 +100,8 @@ def init_app(app: DifyApp) -> Celery:
             "schedule": crontab(minute="0", hour="10", day_of_week="1"),
         },
         "confluence_resync_task": {
-            "task": "tasks.confluence_resync_task.resync_task",
-            "schedule": timedelta(seconds=10),
-            "args": (100),
+            "task": "schedule.confluence_resync_task.resync_task",
+            "schedule": crontab(minute="*"),
         },
     }
     celery_app.conf.update(beat_schedule=beat_schedule, imports=imports)

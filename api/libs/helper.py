@@ -232,7 +232,7 @@ class ConfluenceFetcher:
 
             except requests.exceptions.RequestException as e:
                 logging.exception("get_confluence2markdown_content请求失败: page_id=%s", page_id)
-                results.append(ConfluencePageInfo(page_id=page_id, filename=name, content="s675dwa"))
+                return []
 
         return results
 

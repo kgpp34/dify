@@ -451,7 +451,53 @@ const FileUploader = ({
         </div>
       )}
 
-
+      <div className='max-w-[640px] cursor-default space-y-1'>
+        {fileList.map((fileItem, index) => (
+          <div
+            key={`${fileItem.fileID}-${index}`}
+            onClick={() => fileItem.file?.id && onPreview(fileItem.file)}
+            className={cn(
+              'flex h-12 max-w-[640px] items-center rounded-lg border border-components-panel-border bg-components-panel-on-panel-item-bg text-xs leading-3 text-text-tertiary shadow-xs',
+              // 'border-state-destructive-border bg-state-destructive-hover',
+            )}
+          >
+            <div className="flex w-12 shrink-0 items-center justify-center">
+              <DocumentFileIcon
+                className="size-6 shrink-0"
+                name={fileItem.file.name}
+                extension={getFileType(fileItem.file)}
+              />
+            </div>
+            <div className="flex shrink grow flex-col gap-0.5">
+              <div className='flex w-full'>
+                <div className="w-0 grow truncate text-sm leading-4 text-text-secondary">{fileItem.file.name}</div>
+              </div>
+              <div className="w-full truncate leading-3 text-text-tertiary">
+                <span className='uppercase'>{getFileType(fileItem.file)}</span>
+                <span className='px-1 text-text-quaternary'>·</span>
+                <span>{getFileSize(fileItem.file.size)}</span>
+                {/* <span className='px-1 text-text-quaternary'>·</span>
+                  <span>10k characters</span> */}
+              </div>
+            </div>
+            <div className="flex w-16 shrink-0 items-center justify-end gap-1 pr-3">
+              {/* <span className="flex justify-center items-center w-6 h-6 cursor-pointer">
+                  <RiErrorWarningFill className='size-4 text-text-warning' />
+                </span> */}
+              {(fileItem.progress < 100 && fileItem.progress >= 0) && (
+                // <div className={s.percent}>{`${fileItem.progress}%`}</div>
+                <SimplePieChart percentage={fileItem.progress} stroke={chartColor} fill={chartColor} animationDuration={0} />
+              )}
+              <span className="flex h-6 w-6 cursor-pointer items-center justify-center" onClick={(e) => {
+                e.stopPropagation()
+                removeFile(fileItem.fileID)
+              }}>
+                <RiDeleteBinLine className='size-4 text-text-tertiary' />
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

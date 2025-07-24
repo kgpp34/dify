@@ -1,8 +1,7 @@
 import hashlib
 import logging
 
-from celery import shared_task  # type: ignore
-
+import app
 from libs.helper import ConfluenceFetcher, ConfluencePageInfo
 from models.dataset import Document
 from services.dataset_service import DocumentService
@@ -50,10 +49,10 @@ class ConfluenceResyncTask:
                         # 生成文件并上传
                         if last_file:
                             new_file = self.generate_custom_file(document, page_info)
-                        if new_file:
-                            # 更新文档的相关信息并删除历史file, 提交异步indexing任务
-                            DocumentService.auto_update_document(new_file, document)
-                            FileService.delete_file(last_file.id)
+                            if new_file:
+                                # 更新文档的相关信息并删除历史file, 提交异步indexing任务
+                                DocumentService.auto_update_document(new_file, document)
+                                FileService.delete_file(last_file.id)
 
             logging.info(f"Batch {batch_start // batch_size + 1} processing completed.")
 
@@ -61,6 +60,11 @@ class ConfluenceResyncTask:
 
     def verify_confluence_page(self, document, content) -> bool:
         """根据 hash 值判断 Confluence 页面是否更新"""
+        if not isinstance(content, bytes):
+            if isinstance(content, str):
+                content = content.encode('utf-8')
+            else:
+                content = str(content).encode('utf-8')
         content_hash = hashlib.sha3_256(content).hexdigest()  # 与UploadFile中的hash保持一致
 
         if document.doc_metadata.get("doc_hash") == content_hash:
@@ -97,7 +101,7 @@ class ConfluenceResyncTask:
         return new_file
 
 
-@shared_task(queue="dataset")
+@app.celery.task(queue="resync_queue")
 def resync_task(batch_size=100):
     logging.info("resync_task")
     task = ConfluenceResyncTask()
