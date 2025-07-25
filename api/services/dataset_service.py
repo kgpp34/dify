@@ -633,27 +633,25 @@ class DocumentService:
     def auto_update_document(file: UploadFile, document: Document):
         """Confluence的file文件自动更新后, 同步要更新file关联的document信息, 并触发异步任务镜像文档索引更新"""
         try:
-            # 获取文档的关联文件信息
-            if file.id != document.file_id:
-                raise ValueError("file id does not match the document's associated file_id.")
-
             # 更新文档的文件相关字段
-            document.file_id = file.id
+            doc_ext = document.data_source_info_dict or {}
+            doc_ext["upload_file_id"] = file.id
+            document.data_source_info = json.dumps(doc_ext)
             document.word_count = 0  # indexing时由segment统计并累加
             document.mime_type = file.mime_type
-            document.doc_metadata["doc_hash"] = file.hash
+            doc_metadata = copy.deepcopy(document.doc_metadata)
+            doc_metadata["doc_hash"] = file.hash
+            document.doc_metadata = doc_metadata
             document.indexing_status = "waiting"
             document.updated_at = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
-
             # 提交数据库事务
             db.session.add(document)
             db.session.commit()
-
             logging.info(f"Document {document.id} updated with file {file.id}.")
             document_ids = []
             document_ids.append(document.id)
             # 触发异步任务进行文档索引更新
-            document_indexing_task.delay(document.dataset_id, document_ids)
+            document_indexing_task.delay(document.dataset_id, document_ids, None)
 
         except Exception as e:
             logging.exception(f"Failed to update document {document.id} with file {file.id}")

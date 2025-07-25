@@ -313,4 +313,6 @@ class FileService:
         """根据租户id和文档id获取的文件对象"""
         # 查询与文件关联的 UploadFile 对象
         file = db.session.query(UploadFile).filter(UploadFile.tenant_id == tenant_id, UploadFile.id == file_id).first()
+        if not file:
+            logger.info("file not found")
         return file
