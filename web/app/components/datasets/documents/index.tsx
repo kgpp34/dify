@@ -77,8 +77,6 @@ const EmptyElement: FC<{ canAdd: boolean; onClick: () => void; type?: 'upload' |
   </div>
 }
 
-
-
 type IDocumentsProps = {
   datasetId: string
 }

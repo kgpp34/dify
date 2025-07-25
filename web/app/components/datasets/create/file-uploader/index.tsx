@@ -210,20 +210,19 @@ const FileUploader = ({
       setConfluenceLoading(true)
 
       try {
-//         const response = await fetch(`/confluence2md/page/${pageId}`)
-//         if (!response.ok)
-//           throw new Error('Failed to convert Confluence page to Markdown')
-//
-//         const textContent = await response.text()
-//         const sections = textContent.split(/<!--\s*Page:\s*(.*?)\s*-->/)
+        const response = await fetch(`/confluence2md/page/${pageId}`)
+        if (!response.ok)
+          throw new Error('Failed to convert Confluence page to Markdown')
+
+        const textContent = await response.text()
+        const sections = textContent.split(/<!--\s*Page:\s*(.*?)\s*-->/)
         const files = []
-//         for (let i = 1; i < sections.length; i += 2) {
-//           const name = sections[i].trim()
-//           const content = sections[i + 1].trim()
-//           if (name && content)
-//             files.push({ name, content })
-//         }
-        files.push({ name: 'aaaaaa', content: 'axhdhd' })
+        for (let i = 1; i < sections.length; i += 2) {
+          const name = sections[i].trim()
+          const content = sections[i + 1].trim()
+          if (name && content)
+            files.push({ name, content })
+        }
 
         const newFiles = files.map(file => {
           const f = new File([file.content], `${file.name}.md`, { type: 'text/markdown' }) as File

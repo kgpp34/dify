@@ -1,5 +1,5 @@
 import React, { type FC } from 'react'
-import { RiArchive2Line, RiCheckboxCircleLine, RiCloseCircleLine, RiDeleteBinLine, RiDraftLine, RiLoopLeftLine } from '@remixicon/react'
+import { RiArchive2Line, RiCheckboxCircleLine, RiCloseCircleLine, RiDeleteBinLine, RiDraftLine } from '@remixicon/react'
 import { useTranslation } from 'react-i18next'
 import { useBoolean } from 'ahooks'
 import Divider from '@/app/components/base/divider'
@@ -15,7 +15,6 @@ type IBatchActionProps = {
   onBatchDelete: () => Promise<void>
   onArchive?: () => void
   onEditMetadata?: () => void
-  onBatchUpdate?: () => void
   onCancel: () => void
 }
 
@@ -28,7 +27,6 @@ const BatchAction: FC<IBatchActionProps> = ({
   onBatchDelete,
   onEditMetadata,
   onCancel,
-  onBatchUpdate,
 }) => {
   const { t } = useTranslation()
   const [isShowDeleteConfirm, {
@@ -80,19 +78,6 @@ const BatchAction: FC<IBatchActionProps> = ({
             <RiArchive2Line className='h-4 w-4 text-components-button-ghost-text' />
             <button type='button' className='px-0.5 text-[13px] font-medium leading-[16px] text-components-button-ghost-text' onClick={onArchive}>
               {t(`${i18nPrefix}.archive`)}
-            </button>
-          </div>
-        )}
-
-        {onBatchUpdate && (
-          <div className='flex items-center gap-x-0.5 px-3 py-2'>
-            <RiLoopLeftLine className='h-4 w-4 text-blue-500' />
-            <button
-              type='button'
-              className='px-0.5 text-[13px] font-medium leading-[16px] text-blue-500'
-              onClick={onBatchUpdate}
-            >
-              {t(`${i18nPrefix}.update`)}
             </button>
           </div>
         )}
