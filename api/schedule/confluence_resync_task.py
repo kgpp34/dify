@@ -4,11 +4,9 @@ import logging
 import app
 from libs.helper import ConfluenceFetcher, ConfluencePageInfo
 from models.dataset import Document
+from services.account_service import AccountService
 from services.dataset_service import DocumentService
 from services.file_service import FileService
-from flask_login import current_user  # type: ignore
-
-from services.account_service import AccountService
 
 
 class ConfluenceResyncTask:
@@ -48,7 +46,9 @@ class ConfluenceResyncTask:
                         if page_info and self.verify_confluence_page(document, page_info.content):
                             logging.info(f"Page {document.doc_metadata['page_id']} has been updated.")
                             # 获取历史的文件信息
-                            last_file = self.file_service.get_file_by_file_id(document.tenant_id, document.data_source_info_dict["upload_file_id"])
+                            last_file = self.file_service.get_file_by_file_id(
+                                document.tenant_id, document.data_source_info_dict["upload_file_id"]
+                            )
                             if not last_file:
                                 logging.error("File associated with document not found.")
                             # 生成文件并上传
@@ -67,9 +67,9 @@ class ConfluenceResyncTask:
         """根据 hash 值判断 Confluence 页面是否更新"""
         if not isinstance(content, bytes):
             if isinstance(content, str):
-                content = content.encode('utf-8')
+                content = content.encode("utf-8")
             else:
-                content = str(content).encode('utf-8')
+                content = str(content).encode("utf-8")
         content_hash = hashlib.sha3_256(content).hexdigest()  # 与UploadFile中的hash保持一致
         if document.doc_metadata.get("doc_hash") == content_hash:
             logging.info(f"Confluence page {document.doc_metadata['page_id']} has not been updated.")
@@ -84,7 +84,9 @@ class ConfluenceResyncTask:
             return None
 
         # 获取上传的文件信息，假设文件已经保存到数据库中，并通过 document 获取
-        last_file = self.file_service.get_file_by_file_id(document.tenant_id, document.data_source_info_dict["upload_file_id"])
+        last_file = self.file_service.get_file_by_file_id(
+            document.tenant_id, document.data_source_info_dict["upload_file_id"]
+        )
         if not last_file:
             logging.error("File associated with document not found.")
             return None
@@ -97,7 +99,7 @@ class ConfluenceResyncTask:
                 content=page_info.content.encode("utf-8"),
                 mimetype=page_info.mimetype,
                 user=current_user,
-                source="",
+                source=None,
             )
         except Exception as e:
             logging.exception(f"Failed to upload new file for document {document.id}")
