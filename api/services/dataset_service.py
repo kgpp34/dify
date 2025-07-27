@@ -821,7 +821,7 @@ class DocumentService:
         return document
 
     @staticmethod
-    def update_status(document_id: str, auto_upgrade: bool) -> Document:
+    def update_auto_upgrade_status(document_id: str, auto_upgrade: bool) -> Document:
         document = db.session.query(Document).filter_by(id=document_id).first()
 
         if not document:
@@ -847,7 +847,7 @@ class DocumentService:
         return document
 
     @staticmethod
-    def update_status_batch(dataset_id: str, document_ids: list[str], auto_upgrade: bool):
+    def update_auto_upgrade_status_batch(dataset_id: str, document_ids: list[str], auto_upgrade: bool):
         dataset = DatasetService.get_dataset(dataset_id)
         if not dataset:
             raise ValueError("Dataset not found")
