@@ -41,6 +41,7 @@ from models.dataset import (
     DocumentSegment,
     ExternalKnowledgeBindings,
 )
+from models.enums import DocMetadataField
 from models.model import UploadFile
 from models.source import DataSourceOauthBinding
 from services.entities.knowledge_entities.knowledge_entities import (
@@ -629,6 +630,48 @@ class DocumentService:
     }
 
     @staticmethod
+    def auto_update_document(file: UploadFile, document: Document):
+        """Confluence的file文件自动更新后, 同步要更新file关联的document信息, 并触发异步任务镜像文档索引更新"""
+        try:
+            # 更新文档的文件相关字段
+            doc_ext = document.data_source_info_dict or {}
+            doc_ext["upload_file_id"] = file.id
+            document.data_source_info = json.dumps(doc_ext)
+            document.word_count = 0  # indexing时由segment统计并累加
+            document.mime_type = file.mime_type
+            doc_metadata = copy.deepcopy(document.doc_metadata)
+            doc_metadata["doc_hash"] = file.hash
+            document.doc_metadata = doc_metadata
+            document.indexing_status = "waiting"
+            document.updated_at = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+            # 提交数据库事务
+            db.session.add(document)
+            db.session.commit()
+            logging.info(f"Document {document.id} updated with file {file.id}.")
+            document_ids = []
+            document_ids.append(document.id)
+            # 触发异步任务进行文档索引更新
+            document_indexing_task.delay(document.dataset_id, document_ids, None)
+
+        except Exception as e:
+            logging.exception(f"Failed to update document {document.id} with file {file.id}")
+            # 发生异常时，可以选择恢复文档状态，或者做其他异常处理
+            db.session.rollback()
+
+    @staticmethod
+    def get_documents_with_metadata():
+        """查询 doc_metadata 字段中 doc_source 为 'confluence' 的文档"""
+        documents = (
+            db.session.query(Document)
+            .filter(
+                Document.doc_metadata["doc_source"].astext == "confluence",
+                Document.doc_metadata["auto_upgrade"].astext == "true",
+            )
+            .all()
+        )
+        return documents
+
+    @staticmethod
     def get_document(dataset_id: str, document_id: Optional[str] = None) -> Optional[Document]:
         if document_id:
             document = (
@@ -776,6 +819,68 @@ class DocumentService:
         db.session.commit()
 
         return document
+
+    @staticmethod
+    def update_auto_upgrade_status(document_id: str, auto_upgrade: bool) -> Document:
+        document = db.session.query(Document).filter_by(id=document_id).first()
+
+        if not document:
+            raise ValueError("Document not found.")
+
+        if document.tenant_id != current_user.current_tenant_id:
+            raise ValueError("No permission.")
+
+        if not document.doc_metadata:
+            logging.info("Document does not have doc_metadata.")
+            return document
+
+        if "auto_upgrade" not in document.doc_metadata:
+            logging.info("Document does not have auto_upgrade field.")
+            return document
+
+        doc_metadata = copy.deepcopy(document.doc_metadata)
+        doc_metadata["auto_upgrade"] = auto_upgrade
+        document.doc_metadata = doc_metadata
+        db.session.add(document)
+        db.session.commit()
+
+        return document
+
+    @staticmethod
+    def update_auto_upgrade_status_batch(dataset_id: str, document_ids: list[str], auto_upgrade: bool):
+        dataset = DatasetService.get_dataset(dataset_id)
+        if not dataset:
+            raise ValueError("Dataset not found")
+
+        dataset.auto_upgrade = auto_upgrade
+        db.session.add(dataset)
+        db.session.commit()
+
+        if not document_ids:
+            return 0
+
+        documents = db.session.query(Document).filter(Document.id.in_(document_ids)).all()
+        updated_count = 0
+
+        for doc in documents:
+            if doc.tenant_id != current_user.current_tenant_id:
+                continue
+
+            if not doc.doc_metadata:
+                logging.info("Document does not have doc_metadata.")
+                continue
+
+            if "auto_upgrade" not in doc.doc_metadata:
+                logging.info("Document does not have auto_upgrade field.")
+                continue
+            doc_metadata = copy.deepcopy(doc.doc_metadata)
+            doc_metadata["auto_upgrade"] = auto_upgrade
+            doc.doc_metadata = doc_metadata
+            db.session.add(doc)
+            updated_count += 1
+
+        db.session.commit()
+        return None
 
     @staticmethod
     def pause_document(document):
@@ -979,6 +1084,16 @@ class DocumentService:
                         if not file:
                             raise FileNotExistsError()
 
+                        extra_metadata = {}
+                        if file.file_metadata:
+                            file_metadata = file.file_metadata
+                            extra_metadata = {
+                                "doc_source": file_metadata.get("upload_type", ""),
+                                "page_id": file_metadata.get("confluence_page_id", ""),
+                                "doc_hash": file_metadata.get("doc_hash", ""),
+                                "auto_upgrade": False,
+                            }
+
                         file_name = file.name
                         data_source_info = {
                             "upload_file_id": file_id,
@@ -1017,6 +1132,7 @@ class DocumentService:
                             account,
                             file_name,
                             batch,
+                            extra_metadata,
                             split_strategy=knowledge_config.split_strategy.model_dump()
                             if knowledge_config.split_strategy
                             else None,
@@ -1160,6 +1276,7 @@ class DocumentService:
         account: Account,
         name: str,
         batch: str,
+        extra_metadata: Optional[dict[str, Any]] = None,
         split_strategy: dict | None = None,
     ):
         document = Document(
@@ -1180,12 +1297,14 @@ class DocumentService:
         doc_metadata = {}
         if dataset.built_in_field_enabled:
             doc_metadata = {
-                BuiltInField.document_name: name,
-                BuiltInField.uploader: account.name,
-                BuiltInField.upload_date: datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
-                BuiltInField.last_update_date: datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
-                BuiltInField.source: data_source_type,
+                "document_name": name,
+                "uploader": account.name,
+                "upload_date": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
+                "last_update_date": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
+                "source": data_source_type,
             }
+        if extra_metadata:
+            doc_metadata |= extra_metadata
         if doc_metadata:
             document.doc_metadata = doc_metadata
         return document
@@ -1236,6 +1355,8 @@ class DocumentService:
                 db.session.commit()
                 document.dataset_process_rule_id = dataset_process_rule.id
         # update document data source
+        # 构建 extra_metadata
+        extra_metadata = {}
         if document_data.data_source:
             file_name = ""
             data_source_info = {}
@@ -1258,6 +1379,16 @@ class DocumentService:
                     data_source_info = {
                         "upload_file_id": file_id,
                     }
+
+                    if file.file_metadata:
+                        file_metadata = file.file_metadata
+                        extra_metadata = {
+                            DocMetadataField.doc_source: file_metadata.get("upload_type", ""),
+                            DocMetadataField.page_id: file_metadata.get("confluence_page_id", ""),
+                            DocMetadataField.doc_hash: file_metadata.get("doc_hash", ""),
+                            DocMetadataField.auto_upgrade: False,
+                        }
+
             elif document_data.data_source.info_list.data_source_type == "notion_import":
                 if not document_data.data_source.info_list.notion_info_list:
                     raise ValueError("No notion info list found.")
@@ -1300,6 +1431,10 @@ class DocumentService:
         # update document name
         if document_data.name:
             document.name = document_data.name
+
+        doc_metadata = document.doc_metadata or {}
+        doc_metadata.update(extra_metadata)
+        document.doc_metadata = doc_metadata
         # update document to be waiting
         document.indexing_status = "waiting"
         document.completed_at = None

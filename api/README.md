@@ -71,7 +71,10 @@
 10. If you need to handle and debug the async tasks (e.g. dataset importing and documents indexing), please start the worker service.
 
    ```bash
-   poetry run python -m celery -A app.celery worker -P gevent -c 1 --loglevel INFO -Q dataset,generation,mail,ops_trace,app_deletion
+   poetry run python -m celery -A app.celery worker -P gevent -c 1 --loglevel DEBUG -Q dataset,generation,mail,ops_trace,app_deletion,resync_queue
+   ```
+   ```bash
+   poetry run python -m celery -A app.celery beat --loglevel DEBUG
    ```
 
 ## Testing

@@ -2,12 +2,13 @@ import {
   useMutation,
   useQuery,
 } from '@tanstack/react-query'
-import { del, get, patch } from '../base'
+import { del, get, patch, post } from '../base'
 import { useInvalid } from '../use-base'
 import type { MetadataType, SortType } from '../datasets'
 import type { DocumentDetailResponse, DocumentListResponse, UpdateDocumentBatchParams } from '@/models/datasets'
 import { DocumentActionType } from '@/models/datasets'
 import type { CommonResponse } from '@/models/common'
+import type { Fetcher } from 'swr'
 
 const NAME_SPACE = 'knowledge/document'
 
@@ -86,6 +87,7 @@ export const useDocumentDelete = () => {
   })
 }
 
+
 export const useSyncDocument = () => {
   return useMutation({
     mutationFn: ({ datasetId, documentId }: UpdateDocumentBatchParams) => {
@@ -129,4 +131,20 @@ export const useDocumentMetadata = (payload: {
 
 export const useInvalidDocumentDetailKey = () => {
   return useInvalid(useDocumentDetailKey)
+}
+
+export const useToggleAutoUpgrade = () => {
+  return async (datasetId: string, documentId: string, enable: boolean) => {
+    return post(`/datasets/${datasetId}/documents/${documentId}/auto_upgrade`, {
+      body: { auto_upgrade: enable },
+    })
+  }
+}
+
+export const useToggleAutoUpgradeBatch = () => {
+  return async (datasetId: string, documentIds: string[], enable: boolean) => {
+    return post(`/datasets/${datasetId}/documents/auto_upgrade`, {
+        body: { document_ids: documentIds, auto_upgrade: enable },
+    })
+  }
 }

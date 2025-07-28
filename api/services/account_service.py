@@ -1068,4 +1068,3 @@ class RegisterService:
 def _generate_refresh_token(length: int = 64):
     token = secrets.token_hex(length)
     return token
-

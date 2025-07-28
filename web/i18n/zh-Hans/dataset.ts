@@ -169,6 +169,7 @@ const translation = {
   allKnowledge: '所有知识库',
   allKnowledgeDescription: '选择以显示该工作区内所有知识库。只有工作区所有者才能管理所有知识库。',
   embeddingModelNotAvailable: 'Embedding 模型不可用。',
+  patchAutoUpdate: '批量自动更新',
   metadata: {
     metadata: '元数据',
     addMetadata: '添加元数据',

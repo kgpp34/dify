@@ -1066,6 +1066,46 @@ class DocumentRenameApi(DocumentResource):
         return document
 
 
+class DocumentAutoUpgradeApi(DocumentResource):
+    @setup_required
+    @login_required
+    @account_initialization_required
+    @marshal_with(document_fields)
+    def post(self, dataset_id, document_id):
+        dataset_id = str(dataset_id)
+        dataset = DatasetService.get_dataset(dataset_id)
+        if not dataset:
+            raise NotFound("Dataset not found.")
+        document_id = str(document_id)
+        document = DocumentService.get_document(dataset.id, document_id)
+        if not document:
+            raise NotFound("Document not found.")
+        if document.tenant_id != current_user.current_tenant_id:
+            raise Forbidden("No permission.")
+        parser = reqparse.RequestParser()
+        parser.add_argument("auto_upgrade", type=bool, required=True, nullable=False, location="json")
+        args = parser.parse_args()
+        DocumentService.update_auto_upgrade_status(document_id, args["auto_upgrade"])
+        return {"result": "success"}, 200
+
+
+class DocumentAutoUpgradeBatchApi(DocumentResource):
+    @setup_required
+    @login_required
+    @account_initialization_required
+    def post(self, dataset_id):
+        dataset_id = str(dataset_id)
+        dataset = DatasetService.get_dataset(dataset_id)
+        if not dataset:
+            raise NotFound("Dataset not found.")
+        parser = reqparse.RequestParser()
+        parser.add_argument("auto_upgrade", type=bool, required=True, nullable=False, location="json")
+        parser.add_argument("document_ids", type=list, required=True, nullable=False, location="json")
+        args = parser.parse_args()
+        DocumentService.update_auto_upgrade_status_batch(dataset_id, args["document_ids"], args["auto_upgrade"])
+        return {"result": "success"}, 200
+
+
 class WebsiteDocumentSyncApi(DocumentResource):
     @setup_required
     @login_required
@@ -1113,5 +1153,7 @@ api.add_resource(DocumentPauseApi, "/datasets/<uuid:dataset_id>/documents/<uuid:
 api.add_resource(DocumentRecoverApi, "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/processing/resume")
 api.add_resource(DocumentRetryApi, "/datasets/<uuid:dataset_id>/retry")
 api.add_resource(DocumentRenameApi, "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/rename")
+api.add_resource(DocumentAutoUpgradeApi, "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/auto_upgrade")
+api.add_resource(DocumentAutoUpgradeBatchApi, "/datasets/<uuid:dataset_id>/documents/auto_upgrade")
 
 api.add_resource(WebsiteDocumentSyncApi, "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/website-sync")
