@@ -36,7 +36,7 @@ def batch_clean_document_task(document_ids: list[str], dataset_id: str, doc_form
         # check segment is exist
         if segments:
             index_node_ids = [segment.index_node_id for segment in segments]
-            index_processor = IndexProcessorFactory(doc_form).init_index_processor()
+            index_processor = IndexProcessorFactory(doc_form, skip_validate_split=True).init_index_processor()
             index_processor.clean(dataset, index_node_ids, with_keywords=True, delete_child_chunks=True)
 
             for segment in segments:

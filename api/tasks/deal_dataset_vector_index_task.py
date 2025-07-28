@@ -29,7 +29,7 @@ def deal_dataset_vector_index_task(dataset_id: str, action: str):
         if not dataset:
             raise Exception("Dataset not found")
         index_type = dataset.doc_form or IndexType.PARAGRAPH_INDEX
-        index_processor = IndexProcessorFactory(index_type).init_index_processor()
+        index_processor = IndexProcessorFactory(index_type, skip_validate_split=True).init_index_processor()
         if action == "remove":
             index_processor.clean(dataset, None, with_keywords=False)
         elif action == "add":

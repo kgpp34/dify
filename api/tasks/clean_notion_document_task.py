@@ -29,7 +29,7 @@ def clean_notion_document_task(document_ids: list[str], dataset_id: str):
         if not dataset:
             raise Exception("Document has no dataset")
         index_type = dataset.doc_form
-        index_processor = IndexProcessorFactory(index_type).init_index_processor()
+        index_processor = IndexProcessorFactory(index_type, skip_validate_split=True).init_index_processor()
         for document_id in document_ids:
             document = db.session.query(Document).filter(Document.id == document_id).first()
             db.session.delete(document)

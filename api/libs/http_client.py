@@ -15,7 +15,7 @@ class HttpClient:
     通用 HTTP 客户端，提供基础的 HTTP 请求功能。
     """
 
-    def __init__(self, base_url: str = "", timeout: int = 30, headers: Optional[dict[str, str]] = None):
+    def __init__(self, base_url: str = "", timeout: int = 120, headers: Optional[dict[str, str]] = None):
         """
         初始化 HTTP 客户端。
 

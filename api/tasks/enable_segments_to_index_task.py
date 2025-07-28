@@ -41,7 +41,9 @@ def enable_segments_to_index_task(segment_ids: list, dataset_id: str, document_i
         db.session.close()
         return
     # sync index processor
-    index_processor = IndexProcessorFactory(dataset_document.doc_form).init_index_processor()
+    index_processor = IndexProcessorFactory(
+        dataset_document.doc_form, dataset_document.external_index_processor_config
+    ).init_index_processor()
 
     segments = (
         db.session.query(DocumentSegment)

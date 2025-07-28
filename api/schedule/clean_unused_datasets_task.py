@@ -93,7 +93,9 @@ def clean_unused_datasets_task():
                         )
                         db.session.add(dataset_auto_disable_log)
                     # remove index
-                    index_processor = IndexProcessorFactory(dataset.doc_form).init_index_processor()
+                    index_processor = IndexProcessorFactory(
+                        dataset.doc_form, skip_validate_split=True
+                    ).init_index_processor()
                     index_processor.clean(dataset, None)
 
                     # update document
@@ -169,7 +171,9 @@ def clean_unused_datasets_task():
                         plan = plan_cache.decode()
                     if plan == "sandbox":
                         # remove index
-                        index_processor = IndexProcessorFactory(dataset.doc_form).init_index_processor()
+                        index_processor = IndexProcessorFactory(
+                            dataset.doc_form, skip_validate_split=True
+                        ).init_index_processor()
                         index_processor.clean(dataset, None)
 
                         # update document

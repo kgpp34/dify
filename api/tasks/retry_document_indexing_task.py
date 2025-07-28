@@ -67,7 +67,9 @@ def retry_document_indexing_task(dataset_id: str, document_ids: list[str]):
             return
         try:
             # clean old data
-            index_processor = IndexProcessorFactory(document.doc_form).init_index_processor()
+            index_processor = IndexProcessorFactory(
+                document.doc_form, document.external_index_processor_config
+            ).init_index_processor()
 
             segments = db.session.query(DocumentSegment).filter(DocumentSegment.document_id == document_id).all()
             if segments:

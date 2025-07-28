@@ -16,7 +16,12 @@ from services.entities.knowledge_entities.knowledge_entities import ParentMode
 class VectorService:
     @classmethod
     def create_segments_vector(
-        cls, keywords_list: Optional[list[list[str]]], segments: list[DocumentSegment], dataset: Dataset, doc_form: str
+        cls,
+        keywords_list: Optional[list[list[str]]],
+        segments: list[DocumentSegment],
+        dataset: Dataset,
+        doc_form: str,
+        config_options: dict,
     ):
         documents = []
 
@@ -63,7 +68,7 @@ class VectorService:
                 )
                 documents.append(document)
         if len(documents) > 0:
-            index_processor = IndexProcessorFactory(doc_form).init_index_processor()
+            index_processor = IndexProcessorFactory(doc_form, config_options=config_options).init_index_processor()
             index_processor.load(dataset, documents, with_keywords=True, keywords_list=keywords_list)
 
     @classmethod
@@ -106,7 +111,10 @@ class VectorService:
         processing_rule: DatasetProcessRule,
         regenerate: bool = False,
     ):
-        index_processor = IndexProcessorFactory(dataset.doc_form).init_index_processor()
+        config_options = dataset_document.external_index_processor_config
+        index_processor = IndexProcessorFactory(
+            dataset.doc_form, config_options=config_options, skip_validate_split=regenerate
+        ).init_index_processor()
         if regenerate:
             # delete child chunks
             index_processor.clean(dataset, [segment.index_node_id], with_keywords=True, delete_child_chunks=True)
