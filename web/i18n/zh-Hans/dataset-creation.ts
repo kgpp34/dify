@@ -145,6 +145,7 @@ const translation = {
     removeExtraSpaces: '替换掉连续的空格、换行符和制表符',
     removeUrlEmails: '删除所有 URL 和电子邮件地址',
     removeStopwords: '去除停用词，例如 "a"，"an"，"the" 等',
+    enableTableAndPicRecognition: '启用表格和图片解析',
     preview: '预览',
     previewChunk: '预览块',
     reset: '重置',

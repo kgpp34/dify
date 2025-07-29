@@ -527,6 +527,7 @@ class DocumentService:
             "pre_processing_rules": [
                 {"id": "remove_extra_spaces", "enabled": True},
                 {"id": "remove_urls_emails", "enabled": False},
+                {"id": "enable_table_and_pic_recognition", "enabled": False},
             ],
             "segmentation": {"delimiter": "\n", "max_tokens": 500, "chunk_overlap": 50},
         },
@@ -948,10 +949,25 @@ class DocumentService:
                             created_by=account.id,
                         )
                     elif process_rule.mode == "automatic":
+                        # Check whether knowledge_config contains ocr model options
+                        automatic_rules = copy.deepcopy(DatasetProcessRule.AUTOMATIC_RULES)
+
+                        # Check if process_rule has rules and pre_processing_rules
+                        if process_rule.rules and process_rule.rules.pre_processing_rules:
+                            # Look for ocr_recognition rule in knowledge_config
+                            for rule in process_rule.rules.pre_processing_rules:
+                                if rule.id == "enable_table_and_pic_recognition" and rule.enabled:
+                                    # Update the ocr_recognition enabled status in automatic_rules
+                                    for auto_rule in automatic_rules["pre_processing_rules"]:
+                                        if auto_rule["id"] == "enable_table_and_pic_recognition":
+                                            auto_rule["enabled"] = True
+                                            break
+                                    break
+
                         dataset_process_rule = DatasetProcessRule(
                             dataset_id=dataset.id,
                             mode=process_rule.mode,
-                            rules=json.dumps(DatasetProcessRule.AUTOMATIC_RULES),
+                            rules=json.dumps(automatic_rules),
                             created_by=account.id,
                         )
                     else:

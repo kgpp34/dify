@@ -270,11 +270,18 @@ class DatasetProcessRule(db.Model):  # type: ignore[name-defined]
     created_at = db.Column(db.DateTime, nullable=False, server_default=func.current_timestamp())
 
     MODES = ["automatic", "custom", "hierarchical"]
-    PRE_PROCESSING_RULES = ["remove_stopwords", "remove_extra_spaces", "remove_urls_emails"]
+    # add ocr model recognition option
+    PRE_PROCESSING_RULES = [
+        "remove_stopwords",
+        "remove_extra_spaces",
+        "remove_urls_emails",
+        "enable_table_and_pic_recognition",
+    ]
     AUTOMATIC_RULES: dict[str, Any] = {
         "pre_processing_rules": [
             {"id": "remove_extra_spaces", "enabled": True},
             {"id": "remove_urls_emails", "enabled": False},
+            {"id": "enable_table_and_pic_recognition", "enabled": False},
         ],
         "segmentation": {"delimiter": "\n", "max_tokens": 500, "chunk_overlap": 50},
     }

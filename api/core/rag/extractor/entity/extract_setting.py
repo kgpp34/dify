@@ -51,6 +51,7 @@ class ExtractSetting(BaseModel):
     notion_info: Optional[NotionInfo] = None
     website_info: Optional[WebsiteInfo] = None
     document_model: Optional[str] = None
+    ocr_enable: Optional[bool] = False
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __init__(self, **data) -> None:

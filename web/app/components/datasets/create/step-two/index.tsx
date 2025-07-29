@@ -337,6 +337,9 @@ const StepTwo = ({
 
     if (key === 'remove_stopwords')
       return t('datasetCreation.stepTwo.removeStopwords')
+
+    if (key === 'enable_table_and_pic_recognition')
+      return t('datasetCreation.stepTwo.enableTableAndPicRecognition')
   }
   const ruleChangeHandle = (id: string) => {
     const newRules = rules.map((rule) => {

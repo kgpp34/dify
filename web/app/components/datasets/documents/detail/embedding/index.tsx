@@ -61,6 +61,9 @@ const RuleDetail: FC<IRuleDetailProps> = React.memo(({
 
     if (key === 'remove_stopwords')
       return t('datasetCreation.stepTwo.removeStopwords')
+
+    if (key === 'enable_table_and_pic_recognition')
+      return t('datasetCreation.stepTwo.enableTableAndPicRecognition')
   }
 
   const isNumber = (value: unknown) => {

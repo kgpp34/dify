@@ -49,9 +49,10 @@ class HttpClient:
 
     def post(
         self,
-        endpoint: str,
+        endpoint: Optional[str] = None,
         data: Optional[dict[str, Any]] = None,
         json_data: Optional[dict[str, Any]] = None,
+        files: Optional[dict[str, Any]] = None,
         headers: Optional[dict[str, str]] = None,
     ) -> dict[str, Any]:
         """
@@ -61,6 +62,7 @@ class HttpClient:
             endpoint: API 端点
             data: 表单数据
             json_data: JSON 数据
+            files: 文件数据，用于文件上传
             headers: 请求头，会与默认请求头合并
 
         Returns:
@@ -69,7 +71,7 @@ class HttpClient:
         Raises:
             RuntimeError: 当请求失败时
         """
-        return self._request("POST", endpoint, data=data, json=json_data, headers=headers)
+        return self._request(method="POST", endpoint=endpoint, data=data, json=json_data, files=files, headers=headers)
 
     def put(
         self,
@@ -114,7 +116,7 @@ class HttpClient:
         """
         return self._request("DELETE", endpoint, params=params, headers=headers)
 
-    def _request(self, method: str, endpoint: str, **kwargs) -> dict[str, Any]:
+    def _request(self, method: str, endpoint: Optional[str] = None, **kwargs) -> dict[str, Any]:
         """
         发送 HTTP 请求。
 
@@ -129,7 +131,13 @@ class HttpClient:
         Raises:
             RuntimeError: 当请求失败时
         """
-        url = f"{self.base_url}{endpoint}" if self.base_url else endpoint
+        # 构建 URL，确保不为 None
+        if self.base_url:
+            url = f"{self.base_url}{endpoint or ''}"
+        else:
+            if endpoint is None:
+                raise ValueError("当 base_url 为空时，endpoint 不能为 None")
+            url = endpoint
 
         # 合并请求头
         headers = kwargs.pop("headers", {})

@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Generator
+from typing import Literal
 
 import boto3  # type: ignore
 from botocore.client import Config  # type: ignore
@@ -26,13 +27,22 @@ class AwsS3Storage(BaseStorage):
         else:
             logger.info("Using ak and sk for S3")
 
+            # Validate and convert S3_ADDRESS_STYLE to the expected literal type
+            address_style = dify_config.S3_ADDRESS_STYLE
+            if address_style not in ("auto", "virtual", "path"):
+                logger.warning(f"Invalid S3_ADDRESS_STYLE: {address_style}, using 'auto'")
+                address_style = "auto"
+
+            # Type assertion to ensure the value is one of the expected literals
+            addressing_style: Literal["auto", "virtual", "path"] = address_style  # type: ignore
+
             self.client = boto3.client(
                 "s3",
                 aws_secret_access_key=dify_config.S3_SECRET_KEY,
                 aws_access_key_id=dify_config.S3_ACCESS_KEY,
                 endpoint_url=dify_config.S3_ENDPOINT,
                 region_name=dify_config.S3_REGION,
-                config=Config(s3={"addressing_style": dify_config.S3_ADDRESS_STYLE}),
+                config=Config(s3={"addressing_style": addressing_style}),
             )
         # create bucket
         try:

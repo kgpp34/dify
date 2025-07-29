@@ -1,11 +1,11 @@
 import urllib.parse
 from dataclasses import dataclass
-from urllib.parse import quote
-import logging
 from typing import Optional
-from configs import dify_config
+from urllib.parse import quote
 
 import requests
+
+from configs import dify_config
 
 
 @dataclass
@@ -116,24 +116,16 @@ class GoogleOAuth(OAuth):
             "redirect_uri": self.redirect_uri,
         }
         headers = {"Accept": "application/json"}
-        response = requests.post(self._TOKEN_URL, data=data, headers=headers)
-
-        response_json = response.json()
-        access_token = response_json.get("access_token")
-
-        if not access_token:
-            raise ValueError(f"Error in Google OAuth: {response_json}")
-
-        return access_token
+        response = requests.post(self._TOKEN_URL if self._TOKEN_URL else "", data=data, headers=headers)
+        return response.json()["access_token"]
 
     def get_raw_user_info(self, token: str):
         headers = {"Authorization": f"Bearer {token}"}
-        response = requests.get(self._USER_INFO_URL, headers=headers)
-        response.raise_for_status()
+        response = requests.get(self._USER_INFO_URL if self._USER_INFO_URL else "", headers=headers)
         return response.json()
 
     def _transform_user_info(self, raw_info: dict) -> OAuthUserInfo:
-        return OAuthUserInfo(id=str(raw_info["sub"]), name="", email=raw_info["email"])
+        return OAuthUserInfo(id=str(raw_info["sub"]), name=raw_info.get("name", ""), email=raw_info.get("email") or "")
 
 
 class CustomOAuth(OAuth):
@@ -168,17 +160,20 @@ class CustomOAuth(OAuth):
             "redirect_uri": self.redirect_uri,
         }
         headers = {"Accept": "application/json"}
+        if not self._TOKEN_URL:
+            raise ValueError("Token URL is not configured")
         response = requests.post(self._TOKEN_URL, data=data, headers=headers)
         return response.json()["access_token"]
 
     def get_raw_user_info(self, token: str):
         headers = {"Authorization": f"Bearer {token}"}
+        if not self._USER_INFO_URL:
+            raise ValueError("User info URL is not configured")
         response = requests.get(self._USER_INFO_URL, headers=headers)
         return response.json()
 
     def _transform_user_info(self, raw_info: dict) -> OAuthUserInfo:
-        return OAuthUserInfo(
-            id=str(raw_info["sub"]),
-            name=raw_info.get("name", ""),
-            email=raw_info.get("email")
-        )
+        email = raw_info.get("email")
+        if email is None:
+            email = ""
+        return OAuthUserInfo(id=str(raw_info["sub"]), name=raw_info.get("name", ""), email=email)

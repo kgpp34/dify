@@ -11,10 +11,11 @@ from werkzeug.exceptions import Unauthorized
 
 from configs import dify_config
 from constants.languages import languages
+from core.tools.utils.decode_tool import get_dept_from_token
 from events.tenant_event import tenant_was_created
 from extensions.ext_database import db
 from libs.helper import extract_remote_ip
-from libs.oauth import GitHubOAuth, GoogleOAuth, OAuthUserInfo, CustomOAuth
+from libs.oauth import CustomOAuth, GitHubOAuth, GoogleOAuth, OAuthUserInfo
 from models import Account, Tenant
 from models.account import AccountStatus
 from services.account_service import AccountService, RegisterService, TenantService
@@ -22,7 +23,6 @@ from services.errors.account import AccountNotFoundError, AccountRegisterError
 from services.errors.workspace import WorkSpaceNotAllowedCreateError, WorkSpaceNotFoundError
 from services.feature_service import FeatureService
 
-from core.tools.utils.decode_tool import get_dept_from_token
 from .. import api
 
 
@@ -63,7 +63,7 @@ def get_oauth_providers():
 
 class OAuthLogin(Resource):
     def get(self, provider: str):
-        logging.info("OAuthLogin get provider: %s",provider)
+        logging.info("OAuthLogin get provider: %s", provider)
         invite_token = request.args.get("invite_token") or None
         OAUTH_PROVIDERS = get_oauth_providers()
         with current_app.app_context():
@@ -148,10 +148,9 @@ class OAuthCallback(Resource):
         )
 
 
-
 class CustomOAuthCallback(Resource):
     def get(self, provider: str):
-        logging.info("OAuthCallback get provider: %s",provider)
+        logging.info("OAuthCallback get provider: %s", provider)
         OAUTH_PROVIDERS = get_oauth_providers()
         with current_app.app_context():
             oauth_provider = OAUTH_PROVIDERS.get(provider)
@@ -184,12 +183,17 @@ class CustomOAuthCallback(Resource):
         if not account:
             logging.info("OAuthCallback not account")
             account = RegisterService.register(
-                email=user_info.email, name=user_info.name, language="zh-Hans", status=AccountStatus.PENDING, is_setup=True
+                email=user_info.email,
+                name=user_info.name,
+                language="zh-Hans",
+                status=AccountStatus.PENDING,
+                is_setup=True,
             )
             tenant_name = dept + "'s Workspace"
             tenant = db.session.query(Tenant).filter(Tenant.name == tenant_name).first()
-            TenantService.create_tenant_member(tenant, account, "normal")
-            TenantService.switch_tenant(account, tenant.id)
+            if tenant:
+                TenantService.create_tenant_member(tenant, account, "normal")
+                TenantService.switch_tenant(account, tenant.id)
 
         if account.status == AccountStatus.PENDING.value:
             account.status = AccountStatus.ACTIVE.value

@@ -305,6 +305,14 @@ class IndexingRunner:
             processing_rule = DatasetProcessRule(
                 mode=tmp_processing_rule["mode"], rules=json.dumps(tmp_processing_rule["rules"])
             )
+            # Get enable_table_and_pic_recognition from pre_processing_rules and set to extract_setting's ocr_enable
+            rules_dict = processing_rule.rules_dict
+            if rules_dict and "pre_processing_rules" in rules_dict:
+                pre_processing_rules = rules_dict["pre_processing_rules"]
+                for rule in pre_processing_rules:
+                    if rule.get("id") == "enable_table_and_pic_recognition":
+                        extract_setting.ocr_enable = rule.get("enabled", False)
+                        break
             text_docs = index_processor.extract(extract_setting, process_rule_mode=tmp_processing_rule["mode"])
             documents = index_processor.transform(
                 text_docs,
