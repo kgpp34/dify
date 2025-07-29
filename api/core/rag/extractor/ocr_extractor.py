@@ -361,17 +361,20 @@ class OcrExtractor(BaseExtractor):
         try:
             # 3. extract table and pic (pdf or word) and use storage.save to persistence and get pic persistence path
             raw_bytes = storage.load(self._file_path, stream=False)
+            logger.info(f"加载pdf文件: {self._file_path} 成功")
+
             table_image_paths, tables_image_bytes = self._extract_tables_with_merge(raw_bytes)
+            logger.info(f"抽取pdf文件: {self._file_path}中的表格内容成功，共抽取表格图片: {len(table_image_paths)}个")
 
             # 4. fetch ocr model to parse table and file content
             ocr_table_results = []
-            for _, table_bytes in enumerate(tables_image_bytes):
+            for index, table_bytes in enumerate(tables_image_bytes):
                 ocr_table_results.append(process_markdown_file(self._call_ocr_service(file_content=table_bytes)))
-            logger.info(
-                f"解析表格流程完成，共处理{len(table_image_paths)}个表格图片，图片所属文件路径为: {self._file_path}"
-            )
+                logger.info(
+                    f"通过OCR解析: {self._file_path}文件中的第{index}表格图片流程完成"
+                )
             file_md_content = _remove_html_label(self._call_ocr_service(file_content=raw_bytes))
-            logger.info(f"解析文件内容流程完成，文件路径为: {self._file_path}")
+            logger.info(f"通过OCR解析文件: {self._file_path}内容流程完成")
 
             # 5. extract Markdown table and ask llm to demonstrate
             # (This step would involve LLM processing, which might be implemented later)
@@ -386,7 +389,7 @@ class OcrExtractor(BaseExtractor):
             # 将表格描述追加到文件内容中
             if llm_table_descriptions:
                 # 添加表格详细内容标题
-                file_md_content += "\n\n# 文件表格详细内容\n\n"
+                file_md_content += "\n\n## 文件表格详细内容\n\n"
                 # 将所有表格描述追加到文件内容中
                 file_md_content += "\n\n".join(llm_table_descriptions)
 
@@ -451,7 +454,7 @@ class OcrExtractor(BaseExtractor):
                 if md_contents:
                     return "\n\n".join(md_contents)
                 else:
-                    logger.warning("OCR响应中未找到md_content")
+                    logger.warning("OCR模型响应中未找到md_content")
                     return ""
             return ""
         except Exception as e:
