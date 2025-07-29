@@ -651,7 +651,7 @@ class DocumentService:
             document_ids = []
             document_ids.append(document.id)
             # 触发异步任务进行文档索引更新
-            document_indexing_task.delay(document.dataset_id, document_ids, None)
+            document_indexing_task.delay(document.dataset_id, document_ids, document.split_strategy_dict)
 
         except Exception as e:
             logging.exception(f"Failed to update document {document.id} with file {file.id}")
