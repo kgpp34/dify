@@ -11,7 +11,7 @@ import pdfplumber
 from openai import OpenAI
 from PIL import Image
 
-from configs import DifyConfig
+from configs import dify_config
 from core.rag.extractor.extractor_base import BaseExtractor
 from core.rag.models.document import Document
 from extensions.ext_database import db
@@ -337,12 +337,12 @@ class OcrExtractor(BaseExtractor):
         self._user_id = user_id or ""
         # construct a ocr model client by http client
         self._ocr_client = HttpClient(
-            base_url=DifyConfig.LAB_SERVICE_BASE_URL or "",
-            timeout=DifyConfig.LAB_OCR_MODEL_CONN_TIMEOUT or 600,
+            base_url=dify_config.LAB_SERVICE_BASE_URL or "",
+            timeout=dify_config.LAB_OCR_MODEL_CONN_TIMEOUT or 600,
         )
         # llm_client invoke llm to summarize MarkdownTable
         self._llm_client = OpenAI(
-            base_url=DifyConfig.LAB_OCR_DEFAULT_LLM_BASE_URL, api_key=DifyConfig.LAB_SERVICE_DEFAULT_TOKEN
+            base_url=dify_config.LAB_OCR_DEFAULT_LLM_BASE_URL, api_key=dify_config.LAB_SERVICE_DEFAULT_TOKEN
         )
 
     def extract(self) -> list[Document]:
@@ -427,14 +427,14 @@ class OcrExtractor(BaseExtractor):
 
             headers: dict[str, str] = {}
 
-            if DifyConfig.LAB_OCR_SERVICE_ACTION:
-                headers["X-TC-Action"] = DifyConfig.LAB_OCR_SERVICE_ACTION
-            if DifyConfig.LAB_OCR_MODEL_NAME:
-                headers["X-TC-Service"] = DifyConfig.LAB_OCR_MODEL_NAME
-            if DifyConfig.LAB_OCR_MODEL_VERSION:
-                headers["X-TC-Version"] = DifyConfig.LAB_OCR_MODEL_VERSION
-            if DifyConfig.LAB_SERVICE_DEFAULT_TOKEN:
-                headers["Authorization"] = f"Bearer {DifyConfig.LAB_SERVICE_DEFAULT_TOKEN}"
+            if dify_config.LAB_OCR_SERVICE_ACTION:
+                headers["X-TC-Action"] = dify_config.LAB_OCR_SERVICE_ACTION
+            if dify_config.LAB_OCR_MODEL_NAME:
+                headers["X-TC-Service"] = dify_config.LAB_OCR_MODEL_NAME
+            if dify_config.LAB_OCR_MODEL_VERSION:
+                headers["X-TC-Version"] = dify_config.LAB_OCR_MODEL_VERSION
+            if dify_config.LAB_SERVICE_DEFAULT_TOKEN:
+                headers["Authorization"] = f"Bearer {dify_config.LAB_SERVICE_DEFAULT_TOKEN}"
 
             # Call OCR service
             response = self._ocr_client.post(data=data, files=files, headers=headers)
@@ -474,7 +474,7 @@ class OcrExtractor(BaseExtractor):
             if self._tenant_id and self._user_id:
                 upload_file = UploadFile(
                     tenant_id=self._tenant_id,
-                    storage_type=DifyConfig.STORAGE_TYPE,
+                    storage_type=dify_config.STORAGE_TYPE,
                     key=file_key,
                     name=file_key,
                     size=len(image_data),
@@ -509,13 +509,13 @@ class OcrExtractor(BaseExtractor):
         messages = [
             {
                 "role": "system",
-                "content": DifyConfig.LAB_MARKDOWN_TABLE_SYSTEM_PROMPT,
+                "content": dify_config.LAB_MARKDOWN_TABLE_SYSTEM_PROMPT,
             },
             {"role": "user", "content": f"请分析以下文档内容，特别关注其中的表格数据：\n\n{content}"},
         ]
 
         try:
-            model_name = DifyConfig.LAB_OCR_DEFAULT_LLM_MODEL
+            model_name = dify_config.LAB_OCR_DEFAULT_LLM_MODEL
             if not model_name:
                 logger.warning("LLM模型名称未配置，使用原始内容")
                 return content
