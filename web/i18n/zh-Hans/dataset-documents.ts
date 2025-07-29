@@ -15,6 +15,7 @@ const translation = {
         uploadTime: '上传时间',
         status: '状态',
         action: '操作',
+        update: '自动更新',
       },
       rename: '重命名',
       name: '名称',

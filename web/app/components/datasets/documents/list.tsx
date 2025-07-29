@@ -1,6 +1,6 @@
 'use client'
 import type { FC } from 'react'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { useBoolean, useDebounceFn } from 'ahooks'
 import { ArrowDownIcon } from '@heroicons/react/24/outline'
 import { pick, uniq } from 'lodash-es'
@@ -42,7 +42,8 @@ import { useDatasetDetailContextWithSelector as useDatasetDetailContext } from '
 import type { Props as PaginationProps } from '@/app/components/base/pagination'
 import Pagination from '@/app/components/base/pagination'
 import Checkbox from '@/app/components/base/checkbox'
-import { useDocumentArchive, useDocumentDelete, useDocumentDisable, useDocumentEnable, useDocumentUnArchive, useSyncDocument, useSyncWebsite } from '@/service/knowledge/use-document'
+import { useDocumentArchive, useDocumentDelete, useDocumentDisable, useDocumentEnable, useDocumentUnArchive, useSyncDocument, useSyncWebsite, useToggleAutoUpgrade, useToggleAutoUpgradeBatch } from '@/service/knowledge/use-document'
+import { autoUpgrade } from '@/service/datasets'
 import { extensionToFileType } from '@/app/components/datasets/hit-testing/utils/extension-to-file-type'
 import useBatchEditDocumentMetadata from '../metadata/hooks/use-batch-edit-document-metadata'
 import EditMetadataBatchModal from '@/app/components/datasets/metadata/edit-metadata-batch/modal'
@@ -265,9 +266,6 @@ export const OperationAction: FC<{
   }, [onUpdate])
 
   return <div className='flex items-center' onClick={e => e.stopPropagation()}>
-    {isListScene && !embeddingAvailable && (
-      <Switch defaultValue={false} onChange={noop} disabled={true} size='md' />
-    )}
     {isListScene && embeddingAvailable && (
       <>
         {archived
@@ -405,6 +403,8 @@ type IDocumentListProps = {
   pagination: PaginationProps
   onUpdate: () => void
   onManageMetadata: () => void
+  globalUpdateEnable: boolean
+  setGlobalUpdateEnable: (value: boolean | undefined) => void
 }
 
 /**
@@ -419,11 +419,13 @@ const DocumentList: FC<IDocumentListProps> = ({
   pagination,
   onUpdate,
   onManageMetadata,
+  globalUpdateEnable,
 }) => {
   const { t } = useTranslation()
   const { formatTime } = useTimestamp()
   const router = useRouter()
   const [datasetConfig] = useDatasetDetailContext(s => [s.dataset])
+  const [autoUpdateMap, setAutoUpdateMap] = useState<Record<string, boolean>>({})
   const chunkingMode = datasetConfig?.doc_form
   const isGeneralMode = chunkingMode !== ChunkingMode.parentChild
   const isQAMode = chunkingMode === ChunkingMode.qa
@@ -441,9 +443,49 @@ const DocumentList: FC<IDocumentListProps> = ({
     onUpdate,
   })
 
+  const toggleAutoUpgrade = useToggleAutoUpgrade()
+  const toggleAutoUpgradeBatch = useToggleAutoUpgradeBatch()
+  const state = useRef<globalUpdateEnable>(null)
   useEffect(() => {
     setLocalDocs(documents)
   }, [documents])
+
+  useEffect(() => {
+  if (!documents?.length) return
+    const initialMap = documents.reduce((acc, doc) => {
+      const docValue = doc.doc_metadata?.find((item: any) =>
+        item.name === 'doc_metadata'
+      )?.value?.match(/auto_upgrade['"]?\s*:\s*(True|False)/i)?.[1].toLowerCase() === 'true'
+
+      return {
+        ...acc,
+        [doc.id]: docValue ?? false
+      }
+      }, {})
+
+      setAutoUpdateMap(initialMap)
+  }, [documents])
+
+  useEffect(() => {
+    if (globalUpdateEnable === undefined) return
+
+    setAutoUpdateMap(prev => {
+      const newMap = { ...prev }
+      const changedDocIds: string[] = []
+
+      documents.forEach(doc => {
+        if (prev[doc.id] !== globalUpdateEnable) {
+          newMap[doc.id] = globalUpdateEnable
+          changedDocIds.push(doc.id)
+
+          toggleAutoUpgrade(datasetId, doc.id, globalUpdateEnable)
+        }
+      })
+
+      return newMap
+    })
+  }, [globalUpdateEnable])
+
 
   const onClickSort = () => {
     setEnableSort(!enableSort)
@@ -487,6 +529,7 @@ const DocumentList: FC<IDocumentListProps> = ({
   const { mutateAsync: enableDocument } = useDocumentEnable()
   const { mutateAsync: disableDocument } = useDocumentDisable()
   const { mutateAsync: deleteDocument } = useDocumentDelete()
+  const handleUpdateDocument = useCallback(async (documentId: string, enabled: boolean) => {}, [datasetId, enableDocument, disableDocument, onUpdate, t])
 
   const handleAction = (actionName: DocumentActionType) => {
     return async () => {
@@ -549,6 +592,7 @@ const DocumentList: FC<IDocumentListProps> = ({
                 </div>
               </td>
               <td className='w-40'>{t('datasetDocuments.list.table.header.status')}</td>
+              <td className='w-20'>{t('datasetDocuments.list.table.header.update')}</td>
               <td className='w-20'>{t('datasetDocuments.list.table.header.action')}</td>
             </tr>
           </thead>
@@ -621,6 +665,28 @@ const DocumentList: FC<IDocumentListProps> = ({
                       ? <ProgressBar percent={doc.percent || 0} />
                       : <StatusItem status={doc.display_status} />
                   }
+                </td>
+                <td onClick={e => e.stopPropagation()}>
+                  {(() => {
+                    const disabled = !doc.doc_metadata?.some((item: any) => item.name === 'doc_metadata');
+                    return (
+                      <Switch
+                        value={disabled ? false : (autoUpdateMap[doc.id])}
+                        disabled={disabled}
+                        onChange={async (v) => {
+                          globalUpdateEnable = undefined;
+                          const newMap = { ...autoUpdateMap, [doc.id]: v };
+                          setAutoUpdateMap(newMap);
+                          const [error] = await asyncRunSafe(toggleAutoUpgrade(datasetId, doc.id, v));
+                          if (error) {
+                            setAutoUpdateMap(prev => ({ ...prev, [doc.id]: !v }));
+                            Toast.notify({ type: 'error', message: t('common.actionMsg.modifiedUnsuccessfully') });
+                          }
+                        }}
+                        size="md"
+                      />
+                    );
+                  })()}
                 </td>
                 <td>
                   <OperationAction

@@ -4,6 +4,7 @@ import { Switch as OriginalSwitch } from '@headlessui/react'
 import classNames from '@/utils/classnames'
 
 type SwitchProps = {
+  value?: boolean
   onChange?: (value: boolean) => void
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'l'
   defaultValue?: boolean
@@ -11,22 +12,29 @@ type SwitchProps = {
   className?: string
 }
 
-const Switch = (
-  {
-    ref: propRef,
-    onChange,
-    size = 'md',
-    defaultValue = false,
-    disabled = false,
-    className,
-  }: SwitchProps & {
-    ref?: React.RefObject<HTMLButtonElement>;
-  },
-) => {
+const Switch = ({
+  ref: propRef,
+  value,
+  onChange,
+  size = 'md',
+  defaultValue = false,
+  disabled = false,
+  className,
+}: SwitchProps) => {
   const [enabled, setEnabled] = useState(defaultValue)
+
   useEffect(() => {
-    setEnabled(defaultValue)
+    if (typeof value === 'boolean') {
+      setEnabled(value)
+    }
+  }, [value])
+
+  useEffect(() => {
+    if (typeof value !== 'boolean') {
+      setEnabled(defaultValue)
+    }
   }, [defaultValue])
+
   const wrapStyle = {
     lg: 'h-6 w-11',
     l: 'h-5 w-9',
@@ -55,15 +63,16 @@ const Switch = (
       ref={propRef}
       checked={enabled}
       onChange={(checked: boolean) => {
-        if (disabled)
-          return
-        setEnabled(checked)
+        if (disabled) return
+        if (typeof value !== 'boolean') {
+          setEnabled(checked)
+        }
         onChange?.(checked)
       }}
       className={classNames(
         wrapStyle[size],
         enabled ? 'bg-components-toggle-bg' : 'bg-components-toggle-bg-unchecked',
-        'relative inline-flex  flex-shrink-0 cursor-pointer rounded-[5px] border-2 border-transparent transition-colors duration-200 ease-in-out',
+        'relative inline-flex flex-shrink-0 cursor-pointer rounded-[5px] border-2 border-transparent transition-colors duration-200 ease-in-out',
         disabled ? '!opacity-50 !cursor-not-allowed' : '',
         size === 'xs' && 'rounded-sm',
         className,

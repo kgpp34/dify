@@ -191,7 +191,13 @@ class CustomOAuthCallback(Resource):
             )
             tenant_name = dept + "'s Workspace"
             tenant = db.session.query(Tenant).filter(Tenant.name == tenant_name).first()
-            if tenant:
+            if not tenant:
+                logging.error("OAuthCallback not tenant")
+                return redirect(
+                    f"{dify_config.CONSOLE_WEB_URL}/signin"
+                    "?message=Workspace not found, please contact system admin to invite you to join in a workspace."
+                )
+            else:
                 TenantService.create_tenant_member(tenant, account, "normal")
                 TenantService.switch_tenant(account, tenant.id)
 
