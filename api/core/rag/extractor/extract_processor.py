@@ -149,7 +149,10 @@ class ExtractProcessor:
                     # todo: so far, only support pdf file ocr
                     if extract_setting.ocr_enable and file_extension == ".pdf":
                         extractor = OcrExtractor(
-                            file_path=file_path, tenant_id=upload_file.tenant_id, user_id=upload_file.created_by
+                            file_path=file_path,
+                            upload_file_key=upload_file.key,
+                            tenant_id=upload_file.tenant_id,
+                            user_id=upload_file.created_by,
                         )
                     elif file_extension in {".xlsx", ".xls"}:
                         extractor = ExcelExtractor(file_path)

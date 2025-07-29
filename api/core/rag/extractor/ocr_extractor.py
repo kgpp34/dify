@@ -12,6 +12,7 @@ from openai import OpenAI
 from PIL import Image
 
 from configs import dify_config
+from core.rag.extractor.blob.blob import Blob
 from core.rag.extractor.extractor_base import BaseExtractor
 from core.rag.models.document import Document
 from extensions.ext_database import db
@@ -327,6 +328,7 @@ class OcrExtractor(BaseExtractor):
         self,
         file_path: str,
         file_cache_key: str | None = None,
+        upload_file_key: str | None = None,
         tenant_id: str | None = None,
         user_id: str | None = None,
     ):
@@ -335,6 +337,7 @@ class OcrExtractor(BaseExtractor):
         self._file_cache_key = file_cache_key
         self._tenant_id = tenant_id or ""
         self._user_id = user_id or ""
+        self._upload_file_key = upload_file_key or ""
         # construct a ocr model client by http client
         self._ocr_client = HttpClient(
             base_url=dify_config.LAB_SERVICE_BASE_URL or "",
@@ -360,7 +363,8 @@ class OcrExtractor(BaseExtractor):
 
         try:
             # 3. extract table and pic (pdf or word) and use storage.save to persistence and get pic persistence path
-            raw_bytes = storage.load(self._file_path, stream=False)
+            with Blob.from_path(self._file_path).as_bytes_io() as bytes_io:
+                raw_bytes = bytes_io.read()
             logger.info(f"加载pdf文件: {self._file_path} 成功")
 
             table_image_paths, tables_image_bytes = self._extract_tables_with_merge(raw_bytes)
@@ -370,9 +374,7 @@ class OcrExtractor(BaseExtractor):
             ocr_table_results = []
             for index, table_bytes in enumerate(tables_image_bytes):
                 ocr_table_results.append(process_markdown_file(self._call_ocr_service(file_content=table_bytes)))
-                logger.info(
-                    f"通过OCR解析: {self._file_path}文件中的第{index}表格图片流程完成"
-                )
+                logger.info(f"通过OCR解析: {self._file_path}文件中的第{index}表格图片流程完成")
             file_md_content = _remove_html_label(self._call_ocr_service(file_content=raw_bytes))
             logger.info(f"通过OCR解析文件: {self._file_path}内容流程完成")
 
