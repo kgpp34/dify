@@ -101,7 +101,7 @@ def init_app(app: DifyApp) -> Celery:
         },
         "confluence_resync_task": {
             "task": "schedule.confluence_resync_task.resync_task",
-            "schedule": crontab(minute="*"),
+            "schedule": crontab(minute="*/30"),
         },
     }
     celery_app.conf.update(beat_schedule=beat_schedule, imports=imports)
