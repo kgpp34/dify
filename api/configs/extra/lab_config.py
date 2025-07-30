@@ -45,6 +45,10 @@ class LabConfig(BaseSettings):
         description="OCR Default LLM Model name", default="qwen2.5-72b-instruct-int4-local"
     )
 
+    LAB_OCR_BACKEND: Optional[str] = Field(
+        description="OCR Backend methods, default is pipeline, can switch to vlm-transformers", default="pipeline"
+    )
+
     LAB_MARKDOWN_TABLE_SYSTEM_PROMPT: Optional[str] = Field(
         description="LLM System Prompt for Markdown Table Description",
         default="""你是一个专业的文档表格的分析助手，请帮我分析和描述表格内容，并按照一下要求处理：

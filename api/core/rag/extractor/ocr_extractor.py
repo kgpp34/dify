@@ -422,7 +422,7 @@ class OcrExtractor(BaseExtractor):
                 "output_dir": "./output",
                 "server_url": "string",
                 "return_content_list": "false",
-                "backend": "vlm-transformers",
+                "backend": dify_config.LAB_OCR_BACKEND if dify_config.LAB_OCR_BACKEND else "pipeline",
                 "table_enable": "true",
                 "formula_enable": "true",
             }
