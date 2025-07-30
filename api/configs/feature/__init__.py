@@ -793,6 +793,10 @@ class CeleryBeatConfig(BaseSettings):
         default=1,
     )
 
+    CONFLUENCE_RESYNC_INTERVAL_MINUTES: int = Field(
+        description="Interval in minutes for Confluence resync task",
+        default=30,
+    )
 
 class PositionConfig(BaseSettings):
     POSITION_PROVIDER_PINS: str = Field(

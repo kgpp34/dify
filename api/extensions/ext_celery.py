@@ -73,6 +73,7 @@ def init_app(app: DifyApp) -> Celery:
         "schedule.confluence_resync_task",
     ]
     day = dify_config.CELERY_BEAT_SCHEDULER_TIME
+    minute = dify_config.CONFLUENCE_RESYNC_INTERVAL_MINUTES
     beat_schedule = {
         "clean_embedding_cache_task": {
             "task": "schedule.clean_embedding_cache_task.clean_embedding_cache_task",
@@ -101,7 +102,7 @@ def init_app(app: DifyApp) -> Celery:
         },
         "confluence_resync_task": {
             "task": "schedule.confluence_resync_task.resync_task",
-            "schedule": crontab(minute="*"),
+            "schedule": timedelta(minutes=minute),
         },
     }
     celery_app.conf.update(beat_schedule=beat_schedule, imports=imports)
