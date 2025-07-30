@@ -364,6 +364,12 @@ const StepTwo = ({
   }
 
   const updatePreview = () => {
+    if (rules.some(rule => rule.id === 'enable_table_and_pic_recognition' && rule.enabled)) {
+      Toast.notify({
+        type: 'info',
+        message: t('datasetCreation.stepTwo.ocrTipContent', '开启了表格和图片识别后，请您耐心等待OCR模型解析'),
+      })
+    }
     if (segmentationType === ProcessMode.general && maxChunkLength > MAXIMUM_CHUNK_TOKEN_LENGTH) {
       Toast.notify({ type: 'error', message: t('datasetCreation.stepTwo.maxLengthCheck', { limit: MAXIMUM_CHUNK_TOKEN_LENGTH }) })
       return
