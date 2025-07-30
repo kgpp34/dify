@@ -181,25 +181,6 @@ def _expand_table_bbox_with_title(
     return title_text, final_bbox
 
 
-def _process_ocr_result(ocr_result: dict[str, Any]) -> str:
-    """Process OCR result and convert to markdown format."""
-    try:
-        # Extract markdown content from OCR result
-        # The exact structure depends on the OCR service response format
-        if "markdown" in ocr_result:
-            return str(ocr_result["markdown"])
-        elif "content" in ocr_result:
-            return str(ocr_result["content"])
-        elif "text" in ocr_result:
-            return str(ocr_result["text"])
-        else:
-            # If the response structure is different, try to extract text
-            return str(ocr_result)
-
-    except Exception as e:
-        raise RuntimeError(f"Failed to process OCR result: {str(e)}")
-
-
 def _are_tables_connected(prev_table: Any, curr_table: Any, prev_page: Any, threshold: float = 0.1) -> bool:
     """
     判断两个表格是否是同一个表格被分页分割
@@ -321,6 +302,87 @@ def _append_table_label(table_file_path: str, table_desc: str) -> str:
     return "\n".join(processed_lines)
 
 
+def _call_ocr_service(file_content: bytes, mime_type: str) -> str:
+    """Call the OCR service to parse the file content."""
+    try:
+        # 准备OCR服务请求
+        suffix = "pdf"
+        if mime_type == "image/png":
+            suffix = "png"
+        files = {"files": (f"document.{suffix}", file_content, mime_type)}
+
+        data = {
+            "is_json_md_dump": "false",
+            "return_middle_json": "false",
+            "return_model_output": "false",
+            "return_md": "true",
+            "return_images": "false",
+            "end_page_id": "99999",
+            "parse_method": "auto",
+            "start_page_id": "0",
+            "lang_list": "ch",
+            "output_dir": "./output",
+            "server_url": "string",
+            "return_content_list": "false",
+            "backend": "vlm-transformers",
+            "table_enable": "true",
+            "formula_enable": "true",
+        }
+
+        # 设置请求头
+        headers = {}
+        if dify_config.LAB_OCR_SERVICE_ACTION:
+            headers["X-TC-Action"] = dify_config.LAB_OCR_SERVICE_ACTION
+        if dify_config.LAB_OCR_MODEL_NAME:
+            headers["X-TC-Service"] = dify_config.LAB_OCR_MODEL_NAME
+        if dify_config.LAB_OCR_MODEL_VERSION:
+            headers["X-TC-Version"] = dify_config.LAB_OCR_MODEL_VERSION
+
+        # 确保URL不为None
+        url = dify_config.LAB_SERVICE_BASE_URL
+        if not url:
+            raise ValueError("LAB_SERVICE_BASE_URL is not configured")
+
+        # 直接使用requests库发送请求
+        import requests
+
+        response = requests.post(
+            url=url,
+            data=data,
+            files=files,
+            headers=headers,
+            timeout=dify_config.LAB_OCR_MODEL_CONN_TIMEOUT or 600,
+        )
+
+        # 确保请求成功
+        response.raise_for_status()
+
+        # 解析响应
+        response_data = response.json()
+
+        if response_data and response_data.get("results"):
+            # 解析OCR返回的数据结构
+            results = response_data.get("results", {})
+            md_contents = []
+
+            # 遍历results中的所有页面，提取md_content
+            for _, page_data in results.items():
+                if isinstance(page_data, dict) and "md_content" in page_data:
+                    md_content = page_data["md_content"]
+                    if md_content:
+                        md_contents.append(md_content)
+
+            # 将所有页面的md_content合并
+            if md_contents:
+                return "\n\n".join(md_contents)
+            else:
+                logger.warning("OCR模型响应中未找到md_content")
+                return ""
+        return ""
+    except Exception as e:
+        raise RuntimeError(f"OCR service call failed: {str(e)}")
+
+
 class OcrExtractor(BaseExtractor):
     """OCR extractor for extracting text from images and PDFs."""
 
@@ -373,9 +435,11 @@ class OcrExtractor(BaseExtractor):
             # 4. fetch ocr model to parse table and file content
             ocr_table_results = []
             for index, table_bytes in enumerate(tables_image_bytes):
-                ocr_table_results.append(process_markdown_file(self._call_ocr_service(file_content=table_bytes)))
+                ocr_table_results.append(
+                    process_markdown_file(_call_ocr_service(file_content=table_bytes, mime_type="image/png"))
+                )
                 logger.info(f"通过OCR解析: {self._file_path}文件中的第{index}表格图片流程完成")
-            file_md_content = _remove_html_label(self._call_ocr_service(file_content=raw_bytes))
+            file_md_content = _remove_html_label(_call_ocr_service(file_content=raw_bytes, mime_type="application/pdf"))
             logger.info(f"通过OCR解析文件: {self._file_path}内容流程完成")
 
             # 5. extract Markdown table and ask llm to demonstrate
@@ -403,64 +467,6 @@ class OcrExtractor(BaseExtractor):
 
         except Exception as e:
             raise RuntimeError(f"OCR extraction failed: {str(e)}")
-
-    def _call_ocr_service(self, file_content: bytes) -> str:
-        """Call the OCR service to parse the file content."""
-        try:
-            # Prepare the request to OCR service
-            files = {"file": ("document.pdf", file_content, "application/pdf")}
-
-            data = {
-                "return_middle_json": "false",
-                "return_model_output": "false",
-                "return_md": "true",
-                "return_images": "false",
-                "end_page_id": "99999",
-                "parse_method": "auto",
-                "start_page_id": "0",
-                "lang_list": "ch",
-                "output_dir": "./output",
-                "server_url": "string",
-                "return_content_list": "false",
-                "backend": "vlm-transformers",
-                "table_enable": "true",
-                "formula_enable": "true",
-            }
-
-            headers: dict[str, str] = {}
-
-            if dify_config.LAB_OCR_SERVICE_ACTION:
-                headers["X-TC-Action"] = dify_config.LAB_OCR_SERVICE_ACTION
-            if dify_config.LAB_OCR_MODEL_NAME:
-                headers["X-TC-Service"] = dify_config.LAB_OCR_MODEL_NAME
-            if dify_config.LAB_OCR_MODEL_VERSION:
-                headers["X-TC-Version"] = dify_config.LAB_OCR_MODEL_VERSION
-            if dify_config.LAB_SERVICE_DEFAULT_TOKEN:
-                headers["Authorization"] = f"Bearer {dify_config.LAB_SERVICE_DEFAULT_TOKEN}"
-
-            # Call OCR service
-            response = self._ocr_client.post(data=data, files=files, headers=headers)
-            if response and response.get("results"):
-                # 解析OCR返回的数据结构
-                results = response.get("results", {})
-                md_contents = []
-
-                # 遍历results中的所有页面，提取md_content
-                for _, page_data in results.items():
-                    if isinstance(page_data, dict) and "md_content" in page_data:
-                        md_content = page_data["md_content"]
-                        if md_content:
-                            md_contents.append(md_content)
-
-                # 将所有页面的md_content合并
-                if md_contents:
-                    return "\n\n".join(md_contents)
-                else:
-                    logger.warning("OCR模型响应中未找到md_content")
-                    return ""
-            return ""
-        except Exception as e:
-            raise RuntimeError(f"OCR service call failed: {str(e)}")
 
     def _save_image_to_storage(self, image_data: bytes, image_ext: str = "png") -> str:
         """Save image to storage and return the file key."""
