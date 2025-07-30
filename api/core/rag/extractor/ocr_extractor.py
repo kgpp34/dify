@@ -302,87 +302,6 @@ def _append_table_label(table_file_path: str, table_desc: str) -> str:
     return "\n".join(processed_lines)
 
 
-def _call_ocr_service(file_content: bytes, mime_type: str) -> str:
-    """Call the OCR service to parse the file content."""
-    try:
-        # 准备OCR服务请求
-        suffix = "pdf"
-        if mime_type == "image/png":
-            suffix = "png"
-        files = {"files": (f"document.{suffix}", file_content, mime_type)}
-
-        data = {
-            "is_json_md_dump": "false",
-            "return_middle_json": "false",
-            "return_model_output": "false",
-            "return_md": "true",
-            "return_images": "false",
-            "end_page_id": "99999",
-            "parse_method": "auto",
-            "start_page_id": "0",
-            "lang_list": "ch",
-            "output_dir": "./output",
-            "server_url": "string",
-            "return_content_list": "false",
-            "backend": "vlm-transformers",
-            "table_enable": "true",
-            "formula_enable": "true",
-        }
-
-        # 设置请求头
-        headers = {}
-        if dify_config.LAB_OCR_SERVICE_ACTION:
-            headers["X-TC-Action"] = dify_config.LAB_OCR_SERVICE_ACTION
-        if dify_config.LAB_OCR_MODEL_NAME:
-            headers["X-TC-Service"] = dify_config.LAB_OCR_MODEL_NAME
-        if dify_config.LAB_OCR_MODEL_VERSION:
-            headers["X-TC-Version"] = dify_config.LAB_OCR_MODEL_VERSION
-
-        # 确保URL不为None
-        url = dify_config.LAB_SERVICE_BASE_URL
-        if not url:
-            raise ValueError("LAB_SERVICE_BASE_URL is not configured")
-
-        # 直接使用requests库发送请求
-        import requests
-
-        response = requests.post(
-            url=url,
-            data=data,
-            files=files,
-            headers=headers,
-            timeout=dify_config.LAB_OCR_MODEL_CONN_TIMEOUT or 600,
-        )
-
-        # 确保请求成功
-        response.raise_for_status()
-
-        # 解析响应
-        response_data = response.json()
-
-        if response_data and response_data.get("results"):
-            # 解析OCR返回的数据结构
-            results = response_data.get("results", {})
-            md_contents = []
-
-            # 遍历results中的所有页面，提取md_content
-            for _, page_data in results.items():
-                if isinstance(page_data, dict) and "md_content" in page_data:
-                    md_content = page_data["md_content"]
-                    if md_content:
-                        md_contents.append(md_content)
-
-            # 将所有页面的md_content合并
-            if md_contents:
-                return "\n\n".join(md_contents)
-            else:
-                logger.warning("OCR模型响应中未找到md_content")
-                return ""
-        return ""
-    except Exception as e:
-        raise RuntimeError(f"OCR service call failed: {str(e)}")
-
-
 class OcrExtractor(BaseExtractor):
     """OCR extractor for extracting text from images and PDFs."""
 
@@ -423,24 +342,27 @@ class OcrExtractor(BaseExtractor):
         if not os.path.exists(self._file_path):
             raise FileNotFoundError(f"File not found: {self._file_path}")
 
+        uploaded_files: list[UploadFile] = []  # 跟踪所有上传的文件记录
         try:
             # 3. extract table and pic (pdf or word) and use storage.save to persistence and get pic persistence path
             with Blob.from_path(self._file_path).as_bytes_io() as bytes_io:
                 raw_bytes = bytes_io.read()
             logger.info(f"加载pdf文件: {self._file_path} 成功")
 
-            table_image_paths, tables_image_bytes = self._extract_tables_with_merge(raw_bytes)
+            table_image_paths, tables_image_bytes = self._extract_tables_with_merge(raw_bytes, uploaded_files)
             logger.info(f"抽取pdf文件: {self._file_path}中的表格内容成功，共抽取表格图片: {len(table_image_paths)}个")
 
             # 4. fetch ocr model to parse table and file content
+            logger.info(f"通过OCR解析文件: {self._file_path}内容")
+            file_md_content = _remove_html_label(self._call_ocr_service(mime_type="application/pdf"))
+            logger.info(f"通过OCR解析文件: {self._file_path}内容流程完成")
+
             ocr_table_results = []
             for index, table_bytes in enumerate(tables_image_bytes):
                 ocr_table_results.append(
-                    process_markdown_file(_call_ocr_service(file_content=table_bytes, mime_type="image/png"))
+                    process_markdown_file(self._call_ocr_service(file_content=table_bytes, mime_type="image/png"))
                 )
                 logger.info(f"通过OCR解析: {self._file_path}文件中的第{index}表格图片流程完成")
-            file_md_content = _remove_html_label(_call_ocr_service(file_content=raw_bytes, mime_type="application/pdf"))
-            logger.info(f"通过OCR解析文件: {self._file_path}内容流程完成")
 
             # 5. extract Markdown table and ask llm to demonstrate
             # (This step would involve LLM processing, which might be implemented later)
@@ -463,12 +385,105 @@ class OcrExtractor(BaseExtractor):
             if self._file_cache_key:
                 storage.save(self._file_cache_key, file_md_content.encode("utf-8"))
 
+            logger.info(f"文件：{self._file_path}解析已完成, 内容为：{file_md_content}\n\n")
+
             return [Document(page_content=file_md_content)]
 
         except Exception as e:
+            # 异常时清理所有上传的图片和数据库记录
+            self._cleanup_uploaded_files(uploaded_files=uploaded_files)
             raise RuntimeError(f"OCR extraction failed: {str(e)}")
 
-    def _save_image_to_storage(self, image_data: bytes, image_ext: str = "png") -> str:
+    def _call_ocr_service(self, file_content: Optional[bytes] = None, mime_type: str = "application/pdf") -> str:
+        """Call the OCR service to parse the file content."""
+        try:
+            # 如果没有提供文件内容，从文件路径读取
+            if file_content is None:
+                if not hasattr(self, "_file_path") or not self._file_path:
+                    raise ValueError("Neither file_content nor _file_path is available")
+
+                with open(self._file_path, "rb") as f:
+                    file_content = f.read()
+
+            # 准备OCR服务请求
+            suffix = "png" if mime_type == "image/png" else "pdf"
+            files = {"files": (f"document.{suffix}", file_content, mime_type)}
+
+            data = {
+                "is_json_md_dump": "false",
+                "return_middle_json": "false",
+                "return_model_output": "false",
+                "return_md": "true",
+                "return_images": "false",
+                "end_page_id": "99999",
+                "parse_method": "auto",
+                "start_page_id": "0",
+                "lang_list": "ch",
+                "output_dir": "./output",
+                "server_url": "string",
+                "return_content_list": "false",
+                "backend": "vlm-transformers",
+                "table_enable": "true",
+                "formula_enable": "true",
+            }
+
+            # 设置请求头
+            headers = {}
+            if dify_config.LAB_OCR_SERVICE_ACTION:
+                headers["X-TC-Action"] = dify_config.LAB_OCR_SERVICE_ACTION
+            if dify_config.LAB_OCR_MODEL_NAME:
+                headers["X-TC-Service"] = dify_config.LAB_OCR_MODEL_NAME
+            if dify_config.LAB_OCR_MODEL_VERSION:
+                headers["X-TC-Version"] = dify_config.LAB_OCR_MODEL_VERSION
+
+            # 确保URL不为None
+            url = dify_config.LAB_SERVICE_BASE_URL
+            if not url:
+                raise ValueError("LAB_SERVICE_BASE_URL is not configured")
+
+            # 使用上下文管理器确保连接被正确关闭
+            import requests
+
+            with requests.post(
+                url=url,
+                data=data,
+                files=files,
+                headers=headers,
+                timeout=dify_config.LAB_OCR_MODEL_CONN_TIMEOUT or 600,
+            ) as response:
+                # 确保请求成功
+                response.raise_for_status()
+
+                # 解析响应
+                response_data = response.json()
+
+                if response_data and response_data.get("results"):
+                    # 解析OCR返回的数据结构
+                    results = response_data.get("results", {})
+                    md_contents = []
+
+                    # 遍历results中的所有页面，提取md_content
+                    for _, page_data in results.items():
+                        if isinstance(page_data, dict) and "md_content" in page_data:
+                            md_content = page_data["md_content"]
+                            if md_content:
+                                md_contents.append(md_content)
+
+                    # 将所有页面的md_content合并
+                    if md_contents:
+                        return "\n\n".join(md_contents)
+                    else:
+                        logger.warning("OCR模型响应中未找到md_content")
+                        return ""
+
+                return ""
+
+        except Exception as e:
+            raise RuntimeError(f"OCR service call failed: {str(e)}")
+
+    def _save_image_to_storage(
+        self, image_data: bytes, image_ext: str = "png", uploaded_files: Optional[list[UploadFile]] = None
+    ) -> str:
         """Save image to storage and return the file key."""
         try:
             file_uuid = str(uuid.uuid4())
@@ -479,6 +494,7 @@ class OcrExtractor(BaseExtractor):
             storage.save(file_key, image_data)
 
             # Save file record to database
+            upload_file = None
             if self._tenant_id and self._user_id:
                 upload_file = UploadFile(
                     tenant_id=self._tenant_id,
@@ -499,10 +515,59 @@ class OcrExtractor(BaseExtractor):
                 db.session.add(upload_file)
                 db.session.commit()
 
+            # 跟踪上传的文件记录
+            if uploaded_files is not None and upload_file:
+                uploaded_files.append(upload_file)
+
             return f"/{self._tenant_id}/{file_uuid}.{image_ext}"
 
         except Exception as e:
             raise RuntimeError(f"Failed to save image to storage: {str(e)}")
+
+    def _cleanup_uploaded_files(self, uploaded_files: list[UploadFile]) -> None:
+        """清理上传的文件和数据库记录"""
+
+        # 策略：先确保数据库操作成功，再删除文件
+        # 这样可以避免文件已删除但数据库记录仍存在的不一致状态
+
+        try:
+            # 第一步：删除数据库记录
+            logger.info("开始删除数据库记录...")
+            for upload_file in uploaded_files:
+                db.session.delete(upload_file)
+                logger.debug(f"标记删除数据库记录: {upload_file.key}")
+
+            # 提交数据库更改
+            db.session.commit()
+            logger.info(f"成功删除 {len(uploaded_files)} 条数据库记录")
+
+        except Exception as e:
+            logger.exception("删除数据库记录失败")
+            try:
+                db.session.rollback()
+                logger.info("数据库事务已回滚")
+            except Exception as rollback_error:
+                logger.exception("数据库回滚失败")
+
+            # 数据库操作失败时，不执行文件删除
+            raise RuntimeError(f"数据库清理失败，已回滚事务: {str(e)}")
+
+        # 第二步：数据库操作成功后，删除存储中的文件
+        try:
+            logger.info("开始删除存储文件...")
+            for upload_file in uploaded_files:
+                try:
+                    if upload_file and upload_file.key:
+                        # 从路径中提取文件key
+                        storage.delete(upload_file.key)
+                        logger.info(f"已删除图片文件: {upload_file.key}")
+                except Exception as e:
+                    logger.warning(f"删除图片文件失败: {upload_file.key}: {str(e)}")
+
+        except Exception as e:
+            logger.exception("删除存储文件时发生错误")
+
+        logger.info("文件清理操作完成")
 
     def _invoke_llm(self, content: str) -> str:
         """
@@ -558,12 +623,15 @@ class OcrExtractor(BaseExtractor):
             # 如果LLM调用失败，返回原始内容而不是空字符串
             return content
 
-    def _extract_tables_with_merge(self, file_bytes: bytes) -> tuple[list[str], list[bytes]]:
+    def _extract_tables_with_merge(
+        self, file_bytes: bytes, uploaded_files: Optional[list[UploadFile]] = None
+    ) -> tuple[list[str], list[bytes]]:
         """
         提取PDF中的表格，自动合并跨页分割的表格（支持多页连续表格，包含标题）
 
         Args:
             file_bytes: PDF文件的字节数据
+            uploaded_files: 用于跟踪上传的文件记录
 
         Returns:
             list[str]: 保存的表格图片的存储路径列表
@@ -614,7 +682,7 @@ class OcrExtractor(BaseExtractor):
                     else:
                         # 如果有连续表格但不需要合并，保存它
                         if continuous_table:
-                            image_path, image_bytes = self._save_continuous_table(continuous_table)
+                            image_path, image_bytes = self._save_continuous_table(continuous_table, uploaded_files)
                             if image_path and image_bytes is not None:
                                 saved_image_paths.append(image_path)
                                 saved_image_bytes.append(image_bytes)
@@ -625,16 +693,22 @@ class OcrExtractor(BaseExtractor):
 
             # 处理最后一个连续表格
             if continuous_table:
-                image_path, image_bytes = self._save_continuous_table(continuous_table)
+                image_path, image_bytes = self._save_continuous_table(continuous_table, uploaded_files)
                 if image_path and image_bytes is not None:
                     saved_image_paths.append(image_path)
                     saved_image_bytes.append(image_bytes)
 
         return saved_image_paths, saved_image_bytes
 
-    def _save_continuous_table(self, continuous_table: dict[str, Any]) -> tuple[Optional[str], Optional[bytes]]:
+    def _save_continuous_table(
+        self, continuous_table: dict[str, Any], uploaded_files: Optional[list[UploadFile]] = None
+    ) -> tuple[Optional[str], Optional[bytes]]:
         """
         保存连续表格（可能包含多个部分），包含标题信息
+
+        Args:
+            continuous_table: 连续表格信息
+            uploaded_files: 用于跟踪上传的文件记录
 
         Returns:
             Optional[str]: 保存的图片存储路径，如果保存失败则返回None
@@ -658,7 +732,7 @@ class OcrExtractor(BaseExtractor):
                     img_bytes = img_bytes_io.getvalue()
 
                     # 使用 _save_image_to_storage 保存
-                    image_path = self._save_image_to_storage(img_bytes, "png")
+                    image_path = self._save_image_to_storage(img_bytes, "png", uploaded_files)
                     logger.info(f"单独表格保存: {image_path}{title_info}")
                     return image_path, img_bytes
 
@@ -689,7 +763,7 @@ class OcrExtractor(BaseExtractor):
                     img_bytes = img_bytes_io.getvalue()
 
                     # 使用 _save_image_to_storage 保存
-                    image_path = self._save_image_to_storage(img_bytes, "png")
+                    image_path = self._save_image_to_storage(img_bytes, "png", uploaded_files)
                     logger.info(f"连续表格保存: {image_path}")
                     return image_path, img_bytes
 

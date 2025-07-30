@@ -4,7 +4,7 @@ import type { IOtherOptions } from './base'
 import Toast from '@/app/components/base/toast'
 import { API_PREFIX, MARKETPLACE_API_PREFIX, PUBLIC_API_PREFIX } from '@/config'
 
-const TIME_OUT = 100000
+const TIME_OUT = 600000 // 10分钟
 
 export const ContentType = {
   json: 'application/json',
