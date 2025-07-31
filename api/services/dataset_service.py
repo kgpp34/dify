@@ -1055,7 +1055,7 @@ class DocumentService:
                             rules=process_rule.rules.model_dump_json() if process_rule.rules else None,
                             created_by=account.id,
                         )
-                        logger.info(f"当前dataset的process rule为: {dataset_process_rule}\n")
+                        logger.info(f"当前dataset的process rule为: {dataset_process_rule.rules_dict}\n")
                     elif process_rule.mode == "automatic":
                         # Check whether knowledge_config contains ocr model options
                         automatic_rules = copy.deepcopy(DatasetProcessRule.AUTOMATIC_RULES)
