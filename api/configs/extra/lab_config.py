@@ -49,6 +49,11 @@ class LabConfig(BaseSettings):
         description="OCR Backend methods, default is pipeline, can switch to vlm-transformers", default="pipeline"
     )
 
+    DIFY_INTERNAL_DOMAIN: Optional[str] = Field(
+        description="dify internal domain",
+        default="http://dify.cffex.net",
+    )
+
     LAB_MARKDOWN_TABLE_SYSTEM_PROMPT: Optional[str] = Field(
         description="LLM System Prompt for Markdown Table Description",
         default="""你是一个专业的表格内容解析助手，专门负责分析各种类型的表格并生成详细、准确的描述。请严格按照以下要求处理：

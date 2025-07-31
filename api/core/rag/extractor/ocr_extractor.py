@@ -293,8 +293,8 @@ def _append_table_label(table_file_path: str, table_desc: str) -> str:
         # 检查是否是以 > 开头的markdown列表项
         stripped_line = line.strip()
         if stripped_line.startswith("> "):
-            # 在行尾将表格图片用markdown格式追加到内容中
-            processed_line = line + f"![](http://dify.cffex.net/dify-images{table_file_path})"
+            host = dify_config.DIFY_INTERNAL_DOMAIN if dify_config.DIFY_INTERNAL_DOMAIN else "dify.cffex.net"
+            processed_line = line + f"![](http://{host}/dify-images{table_file_path})"
             processed_lines.append(processed_line)
         else:
             processed_lines.append(line)
