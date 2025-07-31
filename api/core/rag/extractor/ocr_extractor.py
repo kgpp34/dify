@@ -294,7 +294,7 @@ def _append_table_label(table_file_path: str, table_desc: str) -> str:
         stripped_line = line.strip()
         if stripped_line.startswith("> "):
             # 在行尾将表格图片用markdown格式追加到内容中
-            processed_line = line + f"![](http://dify.cffex.net/dify-images/{table_file_path})"
+            processed_line = line + f"![](http://dify.cffex.net/dify-images{table_file_path})"
             processed_lines.append(processed_line)
         else:
             processed_lines.append(line)
