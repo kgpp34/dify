@@ -149,7 +149,6 @@ class ExtractProcessor:
                         extractor = TextExtractor(file_path, autodetect_encoding=True)
                 else:
                     # todo: so far, only support pdf file ocr
-                    logger.info(f"ocr_enable: {extract_setting.ocr_enable}, file_extension: {file_extension}")
                     if extract_setting.ocr_enable and file_extension == ".pdf":
                         extractor = OcrExtractor(
                             file_path=file_path,

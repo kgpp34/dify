@@ -64,10 +64,6 @@ class IndexingRunner:
                     .filter(DatasetProcessRule.id == dataset_document.dataset_process_rule_id)
                     .first()
                 )
-                logger.info(
-                    f"index runner 中查询到的dataset: {dataset_document.dataset_id} "
-                    f"对应的process rule为：{processing_rule}"
-                )
                 if not processing_rule:
                     raise ValueError("no process rule found")
                 index_type = dataset_document.doc_form
@@ -361,6 +357,10 @@ class IndexingRunner:
         if dataset_document.data_source_type not in {"upload_file", "notion_import", "website_crawl"}:
             return []
 
+        logger.info(
+            f"index runner 中查询到的dataset: {dataset_document.dataset_id} "
+            f"对应的process rule为：{process_rule}"
+        )
         data_source_info = dataset_document.data_source_info_dict
         text_docs = []
         if dataset_document.data_source_type == "upload_file":
