@@ -358,8 +358,7 @@ class IndexingRunner:
             return []
 
         logger.info(
-            f"index runner 中查询到的dataset: {dataset_document.dataset_id} "
-            f"对应的process rule为：{process_rule}"
+            f"index runner 中查询到的dataset: {dataset_document.dataset_id} 对应的process rule为：{process_rule}"
         )
         data_source_info = dataset_document.data_source_info_dict
         text_docs = []
@@ -372,15 +371,30 @@ class IndexingRunner:
             )
             if file_detail:
                 extract_setting = ExtractSetting(
-                    datasource_type="upload_file", upload_file=file_detail, document_model=dataset_document.doc_form
+                    datasource_type="upload_file",
+                    upload_file=file_detail,
+                    document_model=dataset_document.doc_form,
+                    ocr_enable=False,
                 )
 
-                if process_rule and "pre_processing_rules" in process_rule:
-                    pre_processing_rules = process_rule["pre_processing_rules"]
-                    for rule in pre_processing_rules:
-                        if rule.get("id") == "enable_table_and_pic_recognition":
-                            extract_setting.ocr_enable = rule.get("enabled", False)
-                            break
+                if (
+                    process_rule
+                    and isinstance(process_rule, dict)
+                    and "rules" in process_rule
+                    and isinstance(process_rule.get("rules"), dict)
+                ):
+                    rules = process_rule["rules"]
+                    pre_processing_rules = rules.get("pre_processing_rules")
+
+                    if isinstance(pre_processing_rules, list):
+                        for rule in pre_processing_rules:
+                            if (
+                                isinstance(rule, dict)
+                                and rule.get("id") == "enable_table_and_pic_recognition"
+                                and hasattr(extract_setting, "ocr_enable")
+                            ):
+                                extract_setting.ocr_enable = bool(rule.get("enabled", False))
+                                break
                 logger.info(f"extract setting为: {extract_setting}")
                 text_docs = index_processor.extract(extract_setting, process_rule_mode=process_rule["mode"])
         elif dataset_document.data_source_type == "notion_import":
