@@ -1,3 +1,4 @@
+import logging
 import re
 import tempfile
 from pathlib import Path
@@ -38,6 +39,7 @@ USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124"
     " Safari/537.36"
 )
+logger = logging.getLogger(__name__)
 
 
 class ExtractProcessor:
@@ -147,6 +149,7 @@ class ExtractProcessor:
                         extractor = TextExtractor(file_path, autodetect_encoding=True)
                 else:
                     # todo: so far, only support pdf file ocr
+                    logger.info(f"ocr_enable: {extract_setting.ocr_enable}, file_extension: {file_extension}")
                     if extract_setting.ocr_enable and file_extension == ".pdf":
                         extractor = OcrExtractor(
                             file_path=file_path,

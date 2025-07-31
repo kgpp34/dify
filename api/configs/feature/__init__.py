@@ -798,6 +798,7 @@ class CeleryBeatConfig(BaseSettings):
         default=30,
     )
 
+
 class PositionConfig(BaseSettings):
     POSITION_PROVIDER_PINS: str = Field(
         description="Comma-separated list of pinned model providers",

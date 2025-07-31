@@ -74,6 +74,8 @@ from tasks.recover_document_indexing_task import recover_document_indexing_task
 from tasks.retry_document_indexing_task import retry_document_indexing_task
 from tasks.sync_website_document_indexing_task import sync_website_document_indexing_task
 
+logger = logging.getLogger(__name__)
+
 
 class DatasetService:
     @staticmethod
@@ -1053,6 +1055,7 @@ class DocumentService:
                             rules=process_rule.rules.model_dump_json() if process_rule.rules else None,
                             created_by=account.id,
                         )
+                        logger.info(f"当前dataset的process rule为: {dataset_process_rule}\n")
                     elif process_rule.mode == "automatic":
                         # Check whether knowledge_config contains ocr model options
                         automatic_rules = copy.deepcopy(DatasetProcessRule.AUTOMATIC_RULES)

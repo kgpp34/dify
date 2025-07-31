@@ -40,6 +40,8 @@ from models.dataset import Document as DatasetDocument
 from models.model import UploadFile
 from services.feature_service import FeatureService
 
+logger = logging.getLogger(__name__)
+
 
 class IndexingRunner:
     def __init__(self):
@@ -61,6 +63,10 @@ class IndexingRunner:
                     db.session.query(DatasetProcessRule)
                     .filter(DatasetProcessRule.id == dataset_document.dataset_process_rule_id)
                     .first()
+                )
+                logger.info(
+                    f"index runner 中查询到的dataset: {dataset_document.dataset_id} "
+                    f"对应的process rule为：{processing_rule}"
                 )
                 if not processing_rule:
                     raise ValueError("no process rule found")
@@ -368,13 +374,14 @@ class IndexingRunner:
                 extract_setting = ExtractSetting(
                     datasource_type="upload_file", upload_file=file_detail, document_model=dataset_document.doc_form
                 )
-                
+
                 if process_rule and "pre_processing_rules" in process_rule:
                     pre_processing_rules = process_rule["pre_processing_rules"]
                     for rule in pre_processing_rules:
                         if rule.get("id") == "enable_table_and_pic_recognition":
                             extract_setting.ocr_enable = rule.get("enabled", False)
                             break
+                logger.info(f"extract setting为: {extract_setting}")
                 text_docs = index_processor.extract(extract_setting, process_rule_mode=process_rule["mode"])
         elif dataset_document.data_source_type == "notion_import":
             if (
