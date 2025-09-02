@@ -43,6 +43,7 @@ class FileService:
         source: Literal["datasets"] | None = None,
         source_url: str = "",
         file_metadata: dict | None = None,
+        used: bool = False,
     ) -> UploadFile:
         # get file extension
         extension = os.path.splitext(filename)[1].lstrip(".").lower()
@@ -94,7 +95,7 @@ class FileService:
             created_by_role=(CreatedByRole.ACCOUNT if isinstance(user, Account) else CreatedByRole.END_USER),
             created_by=user.id,
             created_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
-            used=False,
+            used=used,
             hash=hashlib.sha3_256(content).hexdigest(),
             source_url=source_url,
             file_metadata=file_metadata,

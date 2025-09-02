@@ -194,6 +194,7 @@ class DocumentAddByFileApi(DatasetApiResource):
             mimetype=file.mimetype,
             user=current_user,
             source="datasets",
+            used=True,
         )
         data_source = {
             "type": "upload_file",
