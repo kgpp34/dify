@@ -65,9 +65,9 @@ def init_app(app: DifyApp) -> Celery:
 
     imports = [
         "schedule.clean_embedding_cache_task",
-        "schedule.clean_unused_datasets_task",
-        "schedule.create_tidb_serverless_task",
-        "schedule.update_tidb_serverless_status_task",
+        # "schedule.clean_unused_datasets_task",
+        # "schedule.create_tidb_serverless_task",
+        # "schedule.update_tidb_serverless_status_task",
         "schedule.clean_messages",
         "schedule.mail_clean_document_notify_task",
         "schedule.confluence_resync_task",
