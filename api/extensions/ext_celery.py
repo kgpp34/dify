@@ -79,18 +79,18 @@ def init_app(app: DifyApp) -> Celery:
             "task": "schedule.clean_embedding_cache_task.clean_embedding_cache_task",
             "schedule": timedelta(days=day),
         },
-        "clean_unused_datasets_task": {
-            "task": "schedule.clean_unused_datasets_task.clean_unused_datasets_task",
-            "schedule": timedelta(days=day),
-        },
-        "create_tidb_serverless_task": {
-            "task": "schedule.create_tidb_serverless_task.create_tidb_serverless_task",
-            "schedule": crontab(minute="0", hour="*"),
-        },
-        "update_tidb_serverless_status_task": {
-            "task": "schedule.update_tidb_serverless_status_task.update_tidb_serverless_status_task",
-            "schedule": timedelta(minutes=10),
-        },
+        # "clean_unused_datasets_task": {
+        #     "task": "schedule.clean_unused_datasets_task.clean_unused_datasets_task",
+        #     "schedule": timedelta(days=day),
+        # },
+        # "create_tidb_serverless_task": {
+        #     "task": "schedule.create_tidb_serverless_task.create_tidb_serverless_task",
+        #     "schedule": crontab(minute="0", hour="*"),
+        # },
+        # "update_tidb_serverless_status_task": {
+        #     "task": "schedule.update_tidb_serverless_status_task.update_tidb_serverless_status_task",
+        #     "schedule": timedelta(minutes=10),
+        # },
         "clean_messages": {
             "task": "schedule.clean_messages.clean_messages",
             "schedule": timedelta(days=day),
