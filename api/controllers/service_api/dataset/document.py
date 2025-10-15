@@ -1,4 +1,5 @@
 import json
+from urllib.parse import unquote
 
 from flask import request
 from flask_restful import marshal, reqparse  # type: ignore
@@ -28,6 +29,34 @@ from models.dataset import Dataset, Document, DocumentSegment
 from services.dataset_service import DocumentService
 from services.entities.knowledge_entities.knowledge_entities import KnowledgeConfig
 from services.file_service import FileService
+
+
+def parse_rfc2231_filename(filename):
+    """
+    解析 RFC 2231 格式的文件名
+    格式: charset'lang'encoded_text
+    例如: UTF-8''66%E5%85%B3%E4%BA%8E...
+    """
+    if not filename:
+        return filename
+
+    # 检查是否是 RFC 2231 格式 (包含 '')
+    if "''" in filename:
+        try:
+            # 分割格式: encoding'language'encoded_filename
+            parts = filename.split("''", 1)
+            if len(parts) == 2:
+                encoding = parts[0]  # 通常是 'UTF-8'
+                encoded_filename = parts[1]
+                # URL 解码
+                decoded_filename = unquote(encoded_filename, encoding=encoding if encoding else "utf-8")
+                return decoded_filename
+        except Exception as e:
+            print(f"Error parsing RFC2231 filename: {e}")
+            return filename
+
+    # 如果不是 RFC 2231 格式，直接返回
+    return filename
 
 
 class DocumentAddByTextApi(DatasetApiResource):
@@ -188,8 +217,15 @@ class DocumentAddByFileApi(DatasetApiResource):
         if not file.filename:
             raise FilenameNotExistsError
 
+        raw_filename = file.filename
+        print(f"Raw filename: {raw_filename}")
+
+        # 解析文件名
+        correct_filename = parse_rfc2231_filename(raw_filename)
+        print(f"Correct filename: {correct_filename}")
+
         upload_file = FileService.upload_file(
-            filename=file.filename,
+            filename=correct_filename,
             content=file.read(),
             mimetype=file.mimetype,
             user=current_user,
