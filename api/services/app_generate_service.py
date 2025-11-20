@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Generator, Mapping
 from typing import Any, Union
 
@@ -54,10 +55,22 @@ class AppGenerateService:
 
         # app level rate limiter
         max_active_request = AppGenerateService._get_max_active_requests(app_model)
+        logging.debug(
+            "AppGenerateService.generate app_id=%s max_active_requests=%s streaming=%s",
+            app_model.id,
+            max_active_request,
+            streaming,
+        )
         rate_limit = RateLimit(app_model.id, max_active_request)
+        logging.debug(
+            "RateLimit status app_id=%s disabled=%s",
+            app_model.id,
+            rate_limit.disabled(),
+        )
         request_id = RateLimit.gen_request_key()
         try:
             request_id = rate_limit.enter(request_id)
+            logging.debug("RateLimit enter app_id=%s request_id=%s", app_model.id, request_id)
             if app_model.mode == AppMode.COMPLETION.value:
                 return rate_limit.generate(
                     CompletionAppGenerator.convert_to_event_stream(
@@ -122,10 +135,12 @@ class AppGenerateService:
         except RateLimitError as e:
             raise InvokeRateLimitError(str(e))
         except Exception:
+            logging.debug("RateLimit exit (exception) app_id=%s request_id=%s", app_model.id, request_id)
             rate_limit.exit(request_id)
             raise
         finally:
             if not streaming:
+                logging.debug("RateLimit exit (non-stream) app_id=%s request_id=%s", app_model.id, request_id)
                 rate_limit.exit(request_id)
 
     @staticmethod
