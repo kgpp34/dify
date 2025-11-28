@@ -1,8 +1,8 @@
 # Variables
-DOCKER_REGISTRY=langgenius
+DOCKER_REGISTRY=kgpp34
 WEB_IMAGE=$(DOCKER_REGISTRY)/dify-web
 API_IMAGE=$(DOCKER_REGISTRY)/dify-api
-VERSION=latest
+VERSION=1.2.0-beta1
 
 # Build Docker images
 build-web:
@@ -12,7 +12,7 @@ build-web:
 
 build-api:
 	@echo "Building API Docker image: $(API_IMAGE):$(VERSION)..."
-	docker build -t $(API_IMAGE):$(VERSION) ./api
+	docker build --platform linux/amd64 -t $(API_IMAGE):$(VERSION) ./api
 	@echo "API Docker image built successfully: $(API_IMAGE):$(VERSION)"
 
 # Push Docker images
