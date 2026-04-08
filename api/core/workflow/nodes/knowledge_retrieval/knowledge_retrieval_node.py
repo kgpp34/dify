@@ -8,6 +8,7 @@ from typing import Any, Optional, cast
 
 from sqlalchemy import Integer, and_, func, or_, text
 from sqlalchemy import cast as sqlalchemy_cast
+from sqlalchemy.sql.elements import literal
 
 from core.app.app_config.entities import DatasetRetrieveConfigEntity
 from core.app.entities.app_invoke_entities import ModelConfigWithCredentialsEntity
@@ -41,6 +42,7 @@ from extensions.ext_database import db
 from extensions.ext_redis import redis_client
 from libs.json_in_md_parser import parse_and_check_json_markdown
 from models.dataset import Dataset, DatasetMetadata, Document, RateLimitLog
+from models.dataset import Document as DatasetDocument
 from models.workflow import WorkflowNodeExecutionStatus
 from services.feature_service import FeatureService
 
@@ -458,6 +460,8 @@ class KnowledgeRetrievalNode(LLMNode):
     ):
         key = f"{metadata_name}_{sequence}"
         key_value = f"{metadata_name}_{sequence}_value"
+
+        json_field = DatasetDocument.doc_metadata[metadata_name].as_string()
         match condition:
             case "contains":
                 filters.append(
@@ -505,6 +509,20 @@ class KnowledgeRetrievalNode(LLMNode):
                 filters.append(sqlalchemy_cast(Document.doc_metadata[metadata_name].astext, Integer) <= value)
             case "≥" | ">=":
                 filters.append(sqlalchemy_cast(Document.doc_metadata[metadata_name].astext, Integer) >= value)
+            case "in" | "not in":
+                if isinstance(value, str):
+                    value_list = [v.strip() for v in value.split(",") if v.strip()]
+                elif isinstance(value, (list, tuple)):
+                    value_list = [str(v) for v in value if v is not None]
+                else:
+                    value_list = [str(value)] if value is not None else []
+
+                if not value_list:
+                    # `field in []` is False, `field not in []` is True
+                    filters.append(literal(condition == "not in"))
+                else:
+                    op = json_field.in_ if condition == "in" else json_field.notin_
+                    filters.append(op(value_list))
             case _:
                 pass
         return filters

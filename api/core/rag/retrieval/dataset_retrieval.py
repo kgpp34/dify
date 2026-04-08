@@ -9,6 +9,7 @@ from typing import Any, Optional, Union, cast
 from flask import Flask, current_app
 from sqlalchemy import Integer, and_, or_, text
 from sqlalchemy import cast as sqlalchemy_cast
+from sqlalchemy.sql.elements import literal
 
 from core.app.app_config.entities import (
     DatasetEntity,
@@ -972,6 +973,8 @@ class DatasetRetrieval:
     ):
         key = f"{metadata_name}_{sequence}"
         key_value = f"{metadata_name}_{sequence}_value"
+
+        json_field = DatasetDocument.doc_metadata[metadata_name].as_string()
         match condition:
             case "contains":
                 filters.append(
@@ -1024,6 +1027,20 @@ class DatasetRetrieval:
                 filters.append(sqlalchemy_cast(DatasetDocument.doc_metadata[metadata_name].astext, Integer) <= value)
             case "≥" | ">=":
                 filters.append(sqlalchemy_cast(DatasetDocument.doc_metadata[metadata_name].astext, Integer) >= value)
+            case "in" | "not in":
+                if isinstance(value, str):
+                    value_list = [v.strip() for v in value.split(",") if v.strip()]
+                elif isinstance(value, (list, tuple)):
+                    value_list = [str(v) for v in value if v is not None]
+                else:
+                    value_list = [str(value)] if value is not None else []
+
+                if not value_list:
+                    # `field in []` is False, `field not in []` is True
+                    filters.append(literal(condition == "not in"))
+                else:
+                    op = json_field.in_ if condition == "in" else json_field.notin_
+                    filters.append(op(value_list))
             case _:
                 pass
         return filters

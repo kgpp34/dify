@@ -57,6 +57,8 @@ def test_execute_if_else_result_true():
     pool.add(["start", "less_than_or_equal"], 21)
     pool.add(["start", "null"], None)
     pool.add(["start", "not_null"], "1212")
+    pool.add(["start", "in_value"], "apple")
+    pool.add(["start", "not_in_value"], "grape")
 
     node = IfElseNode(
         id=str(uuid.uuid4()),
@@ -104,6 +106,16 @@ def test_execute_if_else_result_true():
                     {"comparison_operator": "≤", "variable_selector": ["start", "less_than_or_equal"], "value": "22"},
                     {"comparison_operator": "null", "variable_selector": ["start", "null"]},
                     {"comparison_operator": "not null", "variable_selector": ["start", "not_null"]},
+                    {
+                        "comparison_operator": "in",
+                        "variable_selector": ["start", "in_value"],
+                        "value": ["apple", "banana", "orange"],
+                    },
+                    {
+                        "comparison_operator": "not in",
+                        "variable_selector": ["start", "not_in_value"],
+                        "value": ["apple", "banana", "orange"],
+                    },
                 ],
             },
         },
