@@ -1,15 +1,16 @@
-"""update_dataset_model_field_null_available
+"""add document split strategy
 
-Revision ID: 4bcffcd64aa4
-Revises: 853f9b9cd3b6
-Create Date: 2023-08-28 20:58:50.077056
+Revision ID: 7d1b6a4e2f90
+Revises: 4c0b10f71d9d
+Create Date: 2025-07-29 10:55:13
 
 """
 import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = '4c0b10f71d9d'
+revision = '7d1b6a4e2f90'
+down_revision = '4c0b10f71d9d'
 branch_labels = None
 depends_on = None
 

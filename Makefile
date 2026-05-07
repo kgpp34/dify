@@ -2,7 +2,7 @@
 DOCKER_REGISTRY=kgpp34
 WEB_IMAGE=$(DOCKER_REGISTRY)/dify-web
 API_IMAGE=$(DOCKER_REGISTRY)/dify-api
-VERSION=1.2.0-beta1
+VERSION=1.2.0-alpha19
 
 # Build Docker images
 build-web:
