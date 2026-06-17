@@ -326,6 +326,11 @@ class HttpConfig(BaseSettings):
         PositiveInt, Field(ge=10, description="Maximum write timeout in seconds for HTTP requests")
     ] = 20
 
+    EXTERNAL_INDEX_PROCESSOR_TIMEOUT: PositiveInt = Field(
+        description="Request timeout in seconds for external index processor",
+        default=600,
+    )
+
     HTTP_REQUEST_NODE_MAX_BINARY_SIZE: PositiveInt = Field(
         description="Maximum allowed size in bytes for binary data in HTTP requests",
         default=10 * 1024 * 1024,

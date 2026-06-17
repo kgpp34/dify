@@ -512,7 +512,7 @@ class KnowledgeRetrievalNode(LLMNode):
             case "in" | "not in":
                 if isinstance(value, str):
                     value_list = [v.strip() for v in value.split(",") if v.strip()]
-                elif isinstance(value, (list, tuple)):
+                elif isinstance(value, list | tuple):
                     value_list = [str(v) for v in value if v is not None]
                 else:
                     value_list = [str(value)] if value is not None else []

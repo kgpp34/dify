@@ -3,6 +3,7 @@ import logging
 import uuid
 from typing import Optional
 
+from configs import dify_config
 from core.rag.datasource.keyword.keyword_factory import Keyword
 from core.rag.datasource.retrieval_service import RetrievalService
 from core.rag.datasource.vdb.vector_factory import Vector
@@ -21,7 +22,7 @@ from models import Dataset
 
 class ExternalIndexProcessor(BaseIndexProcessor):
     def __init__(self, server_address: str):
-        self._http_client = HttpClient(base_url=server_address)
+        self._http_client = HttpClient(base_url=server_address, timeout=dify_config.EXTERNAL_INDEX_PROCESSOR_TIMEOUT)
         self.server_address = server_address
         self.document: list[Document] = []
 
