@@ -12,12 +12,15 @@ from core.rag.extractor.entity.external_response_type import ExternalResponseEnu
 from core.rag.extractor.entity.extract_setting import ExtractSetting
 from core.rag.index_processor.index_processor_base import BaseIndexProcessor
 from core.rag.models.document import Document
+from extensions.ext_redis import redis_client
 from extensions.ext_storage import storage
 from libs import helper
 from libs.http_client import HttpClient
 
 # from models import Document, Dataset
 from models import Dataset
+
+EXTERNAL_INDEX_PROCESSOR_LOCK_PREFIX = "external_index_processor_lock:"
 
 
 class ExternalIndexProcessor(BaseIndexProcessor):
@@ -38,8 +41,14 @@ class ExternalIndexProcessor(BaseIndexProcessor):
             "Content-Type": "application/json",
         }
         data = {"transfer_method": "base64", "file_name": file_name, "file_data": file_base64}
+        # The external split service only supports handling one request at a time, so
+        # requests against the same server_address are serialized via a distributed lock
+        # rather than relying on Celery worker concurrency (which is shared with unrelated tasks).
+        lock_name = f"{EXTERNAL_INDEX_PROCESSOR_LOCK_PREFIX}{self.server_address}"
+        lock_timeout = dify_config.EXTERNAL_INDEX_PROCESSOR_TIMEOUT + 30
         try:
-            response = self._http_client.post(endpoint="", headers=headers, json_data=data)
+            with redis_client.lock(lock_name, timeout=lock_timeout):
+                response = self._http_client.post(endpoint="", headers=headers, json_data=data)
             # todo: these logic is full junior level, must to optimize
             parsed_response = ResponseData.from_dict(response)
             documents = []
