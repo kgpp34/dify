@@ -317,6 +317,11 @@ class DocumentUpdateByFileApi(DatasetApiResource):
         args["original_document_id"] = str(document_id)
 
         knowledge_config = KnowledgeConfig(**args)
+        if (
+            knowledge_config.split_strategy is not None
+            and knowledge_config.split_strategy.external_strategy_desc is not None
+        ):
+            knowledge_config.doc_form = "external_model"
         DocumentService.document_create_args_validate(knowledge_config)
 
         try:

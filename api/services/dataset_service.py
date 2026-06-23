@@ -1135,6 +1135,11 @@ class DocumentService:
                                 document.data_source_info = json.dumps(data_source_info)
                                 document.batch = batch
                                 document.indexing_status = "waiting"
+                                document.split_strategy = (
+                                    json.dumps(knowledge_config.split_strategy.model_dump())
+                                    if knowledge_config.split_strategy
+                                    else None
+                                )
                                 db.session.add(document)
                                 documents.append(document)
                                 duplicate_document_ids.append(document.id)
@@ -1464,6 +1469,9 @@ class DocumentService:
         document.updated_at = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
         document.created_from = created_from
         document.doc_form = document_data.doc_form
+        document.split_strategy = (
+            json.dumps(document_data.split_strategy.model_dump()) if document_data.split_strategy else None
+        )
         db.session.add(document)
         db.session.commit()
         # update document segment
