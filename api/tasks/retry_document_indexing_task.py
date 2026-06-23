@@ -55,7 +55,7 @@ def retry_document_indexing_task(dataset_id: str, document_ids: list[str]):
                 db.session.commit()
             redis_client.delete(retry_indexing_cache_key)
             db.session.close()
-            return
+            continue
 
         logging.info(click.style("Start retry document: {}".format(document_id), fg="green"))
         document = (
@@ -64,7 +64,7 @@ def retry_document_indexing_task(dataset_id: str, document_ids: list[str]):
         if not document:
             logging.info(click.style("Document not found: {}".format(document_id), fg="yellow"))
             db.session.close()
-            return
+            continue
         try:
             # clean old data
             index_processor = IndexProcessorFactory(
