@@ -25,14 +25,15 @@ def retry_document_indexing_task(dataset_id: str, document_ids: list[str]):
     documents: list[Document] = []
     start_at = time.perf_counter()
 
-    dataset = db.session.query(Dataset).filter(Dataset.id == dataset_id).first()
-    if not dataset:
-        logging.info(click.style("Dataset not found: {}".format(dataset_id), fg="red"))
-        db.session.close()
-        return
-
     for document_id in document_ids:
         retry_indexing_cache_key = "document_{}_is_retried".format(document_id)
+        # dataset is re-queried every iteration because db.session.close() below
+        # detaches it from the session, expiring its attributes after each commit
+        dataset = db.session.query(Dataset).filter(Dataset.id == dataset_id).first()
+        if not dataset:
+            logging.info(click.style("Dataset not found: {}".format(dataset_id), fg="red"))
+            db.session.close()
+            continue
         # check document limit
         features = FeatureService.get_features(dataset.tenant_id)
         try:
