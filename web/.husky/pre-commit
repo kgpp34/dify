@@ -34,10 +34,10 @@ if $api_modified; then
     fi
 
     # run Ruff linter auto-fixing
-    ruff check --fix ./api
+    poetry run -C api ruff check --fix ./
 
     # run Ruff linter checks
-    ruff check  ./api || status=$?
+    poetry run -C api ruff check ./ || status=$?
 
     status=${status:-0}
 

@@ -39,3 +39,8 @@ class MilvusConfig(BaseSettings):
         "older versions",
         default=True,
     )
+
+    MILVUS_ANALYZER_PARAMS: str = Field(
+        description='Analyzer params for Milvus full-text search. For Chinese BM25, set to {"type":"chinese"}',
+        default="",
+    )

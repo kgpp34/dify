@@ -32,6 +32,7 @@ class MilvusConfig(BaseModel):
     batch_size: int = 100  # Batch size for operations
     database: str = "default"  # Database name
     enable_hybrid_search: bool = False  # Flag to enable hybrid search
+    analyzer_params: Optional[dict[str, Any] | str] = None  # Analyzer params for BM25 full-text search
 
     @model_validator(mode="before")
     @classmethod
@@ -46,6 +47,16 @@ class MilvusConfig(BaseModel):
             raise ValueError("config MILVUS_USER is required")
         if not values.get("password"):
             raise ValueError("config MILVUS_PASSWORD is required")
+        analyzer_params = values.get("analyzer_params")
+        if isinstance(analyzer_params, str):
+            analyzer_params = analyzer_params.strip()
+            if analyzer_params:
+                try:
+                    values["analyzer_params"] = json.loads(analyzer_params)
+                except json.JSONDecodeError as e:
+                    raise ValueError("config MILVUS_ANALYZER_PARAMS must be a valid JSON object") from e
+            else:
+                values["analyzer_params"] = None
         return values
 
     def to_milvus_params(self):
@@ -300,13 +311,15 @@ class MilvusVector(BaseVector):
 
                 # Create the text field, enable_analyzer will be set True to support milvus automatically
                 # transfer text to sparse_vector, reference: https://milvus.io/docs/full-text-search.md
+                text_field_kwargs = {
+                    "max_length": 65_535,
+                    "enable_analyzer": self._hybrid_search_enabled,
+                }
+                if self._hybrid_search_enabled and self._client_config.analyzer_params:
+                    text_field_kwargs["analyzer_params"] = self._client_config.analyzer_params
+
                 fields.append(
-                    FieldSchema(
-                        Field.CONTENT_KEY.value,
-                        DataType.VARCHAR,
-                        max_length=65_535,
-                        enable_analyzer=self._hybrid_search_enabled,
-                    )
+                    FieldSchema(Field.CONTENT_KEY.value, DataType.VARCHAR, **text_field_kwargs)
                 )
                 # Create the primary key field
                 fields.append(FieldSchema(Field.PRIMARY_KEY.value, DataType.INT64, is_primary=True, auto_id=True))
@@ -383,5 +396,6 @@ class MilvusVectorFactory(AbstractVectorFactory):
                 password=dify_config.MILVUS_PASSWORD or "",
                 database=dify_config.MILVUS_DATABASE or "",
                 enable_hybrid_search=dify_config.MILVUS_ENABLE_HYBRID_SEARCH or False,
+                analyzer_params=dify_config.MILVUS_ANALYZER_PARAMS,
             ),
         )
