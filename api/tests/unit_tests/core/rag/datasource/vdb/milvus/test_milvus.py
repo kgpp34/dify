@@ -16,3 +16,24 @@ def test_default_value():
 
     config = MilvusConfig(**valid_config)
     assert config.database == "default"
+
+
+def test_analyzer_params():
+    config = MilvusConfig(
+        uri="http://localhost:19530",
+        user="root",
+        password="Milvus",
+        analyzer_params='{"type":"chinese"}',
+    )
+
+    assert config.analyzer_params == {"type": "chinese"}
+
+    with pytest.raises(ValidationError) as e:
+        MilvusConfig(
+            uri="http://localhost:19530",
+            user="root",
+            password="Milvus",
+            analyzer_params="{invalid",
+        )
+
+    assert e.value.errors()[0]["msg"] == "Value error, config MILVUS_ANALYZER_PARAMS must be a valid JSON object"
