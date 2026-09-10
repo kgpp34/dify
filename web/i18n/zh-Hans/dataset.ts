@@ -126,6 +126,11 @@ const translation = {
   },
   docsFailedNotice: '文档索引失败',
   retry: '重试',
+  retryAll: '重新解析全部文档',
+  retryAllConfirmTitle: '重新解析全部文档？',
+  retryAllConfirmContent: '将对该知识库下所有已完成或已失败的文档重新执行抽取、分段与向量化，沿用每个文档原有的处理规则，此操作不可撤销。',
+  retryAllSuccess: '已触发 {{count}} 个文档重新解析',
+  retryAllError: '触发重新解析失败',
   documentsDisabled: '{{num}} 个文档已禁用 - 未活动超过 30 天',
   enable: '启用',
   indexingTechnique: {
