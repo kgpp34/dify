@@ -4,8 +4,10 @@ from werkzeug.exceptions import NotFound
 
 from controllers.service_api import api
 from controllers.service_api.wraps import DatasetApiResource
+from extensions.ext_database import db
 from fields.dataset_fields import dataset_metadata_fields
-from services.dataset_service import DatasetService
+from models.dataset import Dataset
+from services.dataset_service import DatasetService, DocumentService
 from services.entities.knowledge_entities.knowledge_entities import (
     MetadataArgs,
     MetadataOperationData,
@@ -99,6 +101,27 @@ class DatasetMetadataBuiltInFieldActionServiceApi(DatasetApiResource):
         return 200
 
 
+class DocumentMetadataGetServiceApi(DatasetApiResource):
+    def get(self, tenant_id, dataset_id, document_id):
+        dataset_id_str = str(dataset_id)
+        document_id_str = str(document_id)
+        tenant_id_str = str(tenant_id)
+
+        dataset = (
+            db.session.query(Dataset)
+            .filter(Dataset.tenant_id == tenant_id_str, Dataset.id == dataset_id_str)
+            .first()
+        )
+        if dataset is None:
+            raise NotFound("Dataset not found.")
+
+        document = DocumentService.get_document(dataset_id_str, document_id_str)
+        if document is None:
+            raise NotFound("Document not found.")
+
+        return {"doc_metadata": document.doc_metadata_details or []}, 200
+
+
 class DocumentMetadataEditServiceApi(DatasetApiResource):
     def post(self, tenant_id, dataset_id):
         dataset_id_str = str(dataset_id)
@@ -124,3 +147,6 @@ api.add_resource(
     DatasetMetadataBuiltInFieldActionServiceApi, "/datasets/<uuid:dataset_id>/metadata/built-in/<string:action>"
 )
 api.add_resource(DocumentMetadataEditServiceApi, "/datasets/<uuid:dataset_id>/documents/metadata")
+api.add_resource(
+    DocumentMetadataGetServiceApi, "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/metadata"
+)

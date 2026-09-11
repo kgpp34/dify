@@ -1705,6 +1705,49 @@ import { Row, Col, Properties, Property, Heading, SubProperty, PropertyInstructi
 <hr className='ml-0 mr-0' />
 
 <Heading
+  url='/datasets/{dataset_id}/documents/{document_id}/download'
+  method='GET'
+  title='下载文档源文件'
+  name='#download_document'
+/>
+<Row>
+  <Col>
+    ### Path
+    <Properties>
+      <Property name='dataset_id' type='string' key='dataset_id'>
+        知识库 ID
+      </Property>
+      <Property name='document_id' type='string' key='document_id'>
+        文档 ID
+      </Property>
+    </Properties>
+
+    <i>直接返回文档对应的原始文件二进制内容（响应头 <code>Content-Disposition: attachment</code>），无需像“获取上传文件”接口那样再请求一次签名 URL。仅支持数据来源为 <code>upload_file</code> 的文档。</i>
+  </Col>
+  <Col sticky>
+    <CodeGroup
+      title="Request"
+      tag="GET"
+      label="/datasets/{dataset_id}/documents/{document_id}/download"
+      targetCode={`curl --location --request GET '${props.apiBaseUrl}/datasets/{dataset_id}/documents/{document_id}/download' \\\n--header 'Authorization: Bearer {api_key}' \\\n--output downloaded_file`}
+    >
+    ```bash {{ title: 'cURL' }}
+    curl --location --request GET '${props.apiBaseUrl}/datasets/{dataset_id}/documents/{document_id}/download' \
+    --header 'Authorization: Bearer {api_key}' \
+    --output downloaded_file
+    ```
+    </CodeGroup>
+    <CodeGroup title="Response">
+    ```text {{ title: 'Response' }}
+    二进制文件内容（原始文档字节流）
+    ```
+    </CodeGroup>
+  </Col>
+</Row>
+
+<hr className='ml-0 mr-0' />
+
+<Heading
   url='/datasets/{dataset_id}/retrieve'
   method='POST'
   title='检索知识库'
@@ -2044,6 +2087,54 @@ import { Row, Col, Properties, Property, Heading, SubProperty, PropertyInstructi
       targetCode={`curl --location --request POST '${props.apiBaseUrl}/datasets/{dataset_id}/documents/metadata' \\\n--header 'Authorization: Bearer {api_key}' \\\n--header 'Content-Type: application/json'\\\n--data-raw '{"operation_data": [{"document_id": "document_id", "metadata_list": [{"id": "id", "value": "value", "name": "name"}]}]}'`}
     >
     ```bash {{ title: 'cURL' }}
+    ```
+    </CodeGroup>
+  </Col>
+</Row>
+
+<hr className='ml-0 mr-0' />
+
+<Heading
+  url='/datasets/{dataset_id}/documents/{document_id}/metadata'
+  method='GET'
+  title='查询文档元数据'
+  name='#get_document_metadata'
+/>
+<Row>
+  <Col>
+    ### Path
+    <Properties>
+      <Property name='dataset_id' type='string' key='dataset_id'>
+        知识库 ID
+      </Property>
+      <Property name='document_id' type='string' key='document_id'>
+        文档 ID
+      </Property>
+    </Properties>
+  </Col>
+  <Col sticky>
+    <CodeGroup
+      title="Request"
+      tag="GET"
+      label="/datasets/{dataset_id}/documents/{document_id}/metadata"
+      targetCode={`curl --location --request GET '${props.apiBaseUrl}/datasets/{dataset_id}/documents/{document_id}/metadata' \\\n--header 'Authorization: Bearer {api_key}'`}
+    >
+    ```bash {{ title: 'cURL' }}
+    ```
+    </CodeGroup>
+    <CodeGroup title="Response">
+    ```json {{ title: 'Response' }}
+    {
+      "doc_metadata": [
+        {
+          "id": "id",
+          "name": "name",
+          "type": "string",
+          "value": "value"
+        },
+        ...
+      ]
+    }
     ```
     </CodeGroup>
   </Col>

@@ -742,6 +742,20 @@ class DocumentService:
         return documents
 
     @staticmethod
+    def get_reparseable_documents_by_dataset_id(dataset_id: str) -> list[Document]:
+        # completed/error only: skip in-progress docs to avoid racing an active indexing task
+        documents = (
+            db.session.query(Document)
+            .filter(
+                Document.dataset_id == dataset_id,
+                Document.archived == False,
+                Document.indexing_status.in_(["completed", "error"]),
+            )
+            .all()
+        )
+        return documents
+
+    @staticmethod
     def get_batch_documents(dataset_id: str, batch: str) -> list[Document]:
         documents = (
             db.session.query(Document)
@@ -919,21 +933,23 @@ class DocumentService:
 
     @staticmethod
     def retry_document(dataset_id: str, documents: list[Document]):
+        document_ids = []
         for document in documents:
-            # add retry flag
+            # skip documents that are already being retried, instead of aborting the whole batch
             retry_indexing_cache_key = "document_{}_is_retried".format(document.id)
             cache_result = redis_client.get(retry_indexing_cache_key)
             if cache_result is not None:
-                raise ValueError("Document is being retried, please try again later")
+                continue
             # retry document indexing
             document.indexing_status = "waiting"
             db.session.add(document)
             db.session.commit()
 
             redis_client.setex(retry_indexing_cache_key, 600, 1)
-        # trigger async task
-        document_ids = [document.id for document in documents]
-        retry_document_indexing_task.delay(dataset_id, document_ids)
+            document_ids.append(document.id)
+        # trigger async task only for the documents actually queued above
+        if document_ids:
+            retry_document_indexing_task.delay(dataset_id, document_ids)
 
     @staticmethod
     def sync_website_document(dataset_id: str, document: Document):

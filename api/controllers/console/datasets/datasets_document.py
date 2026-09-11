@@ -1043,6 +1043,25 @@ class DocumentRetryApi(DocumentResource):
         return {"result": "success"}, 204
 
 
+class DocumentRetryAllApi(DocumentResource):
+    @setup_required
+    @login_required
+    @account_initialization_required
+    @cloud_edition_billing_rate_limit_check("knowledge")
+    def post(self, dataset_id):
+        """retry all completed/error documents in the dataset."""
+        dataset_id = str(dataset_id)
+        dataset = DatasetService.get_dataset(dataset_id)
+        if not dataset:
+            raise NotFound("Dataset not found.")
+
+        retry_documents = DocumentService.get_reparseable_documents_by_dataset_id(dataset_id)
+        if retry_documents:
+            DocumentService.retry_document(dataset_id, retry_documents)
+
+        return {"result": "success", "count": len(retry_documents)}, 200
+
+
 class DocumentRenameApi(DocumentResource):
     @setup_required
     @login_required
@@ -1152,6 +1171,7 @@ api.add_resource(DocumentStatusApi, "/datasets/<uuid:dataset_id>/documents/statu
 api.add_resource(DocumentPauseApi, "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/processing/pause")
 api.add_resource(DocumentRecoverApi, "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/processing/resume")
 api.add_resource(DocumentRetryApi, "/datasets/<uuid:dataset_id>/retry")
+api.add_resource(DocumentRetryAllApi, "/datasets/<uuid:dataset_id>/documents/retry-all")
 api.add_resource(DocumentRenameApi, "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/rename")
 api.add_resource(DocumentAutoUpgradeApi, "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/auto_upgrade")
 api.add_resource(DocumentAutoUpgradeBatchApi, "/datasets/<uuid:dataset_id>/documents/auto_upgrade")
