@@ -923,6 +923,47 @@ import { Row, Col, Properties, Property, Heading, SubProperty, PropertyInstructi
 <hr className='ml-0 mr-0' />
 
 <Heading
+  url='/datasets/{dataset_id}/retry'
+  method='POST'
+  title='重试知识库下所有失败文档'
+  name='#retry_document'
+/>
+<Row>
+  <Col>
+    重试指定知识库下所有索引状态为“失败”（error）或“暂停”（paused）且未归档的文档，无需传入文档 ID。
+    ### Path
+    <Properties>
+      <Property name='dataset_id' type='string' key='dataset_id'>
+        知识库 ID
+      </Property>
+    </Properties>
+  </Col>
+  <Col sticky>
+    <CodeGroup
+      title="Request"
+      tag="POST"
+      label="/datasets/{dataset_id}/retry"
+      targetCode={`curl --location --request POST '${props.apiBaseUrl}/datasets/{dataset_id}/retry' \\\n--header 'Authorization: Bearer {api_key}'`}
+    >
+    ```bash {{ title: 'cURL' }}
+    curl --location --request POST '${props.apiBaseUrl}/datasets/{dataset_id}/retry' \
+    --header 'Authorization: Bearer {api_key}' \
+    ```
+    </CodeGroup>
+    <CodeGroup title="Response">
+    ```json {{ title: 'Response' }}
+    {
+      "result": "success",
+      "count": 2
+    }
+    ```
+    </CodeGroup>
+  </Col>
+</Row>
+
+<hr className='ml-0 mr-0' />
+
+<Heading
   url='/datasets/{dataset_id}/documents/{document_id}'
   method='DELETE'
   title='删除文档'

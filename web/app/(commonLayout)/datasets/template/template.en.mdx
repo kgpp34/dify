@@ -922,6 +922,47 @@ import { Row, Col, Properties, Property, Heading, SubProperty, PropertyInstructi
 <hr className='ml-0 mr-0' />
 
 <Heading
+  url='/datasets/{dataset_id}/retry'
+  method='POST'
+  title='Retry All Failed Documents'
+  name='#retry_document'
+/>
+<Row>
+  <Col>
+    Retries every document in the specified dataset whose indexing status is `error` or `paused` and which is not archived. No document IDs need to be provided.
+    ### Path
+    <Properties>
+      <Property name='dataset_id' type='string' key='dataset_id'>
+        Knowledge Base ID
+      </Property>
+    </Properties>
+  </Col>
+  <Col sticky>
+    <CodeGroup
+      title="Request"
+      tag="POST"
+      label="/datasets/{dataset_id}/retry"
+      targetCode={`curl --location --request POST '${props.apiBaseUrl}/datasets/{dataset_id}/retry' \\\n--header 'Authorization: Bearer {api_key}'`}
+    >
+    ```bash {{ title: 'cURL' }}
+    curl --location --request POST '${props.apiBaseUrl}/datasets/{dataset_id}/retry' \
+    --header 'Authorization: Bearer {api_key}' \
+    ```
+    </CodeGroup>
+    <CodeGroup title="Response">
+    ```json {{ title: 'Response' }}
+    {
+      "result": "success",
+      "count": 2
+    }
+    ```
+    </CodeGroup>
+  </Col>
+</Row>
+
+<hr className='ml-0 mr-0' />
+
+<Heading
   url='/datasets/{dataset_id}/documents/{document_id}'
   method='DELETE'
   title='Delete a Document'

@@ -20,7 +20,11 @@ from controllers.service_api.dataset.error import (
     ArchivedDocumentImmutableError,
     DocumentIndexingError,
 )
-from controllers.service_api.wraps import DatasetApiResource, cloud_edition_billing_resource_check
+from controllers.service_api.wraps import (
+    DatasetApiResource,
+    cloud_edition_billing_rate_limit_check,
+    cloud_edition_billing_resource_check,
+)
 from core.errors.error import ProviderTokenNotInitError
 from extensions.ext_database import db
 from fields.document_fields import document_fields, document_status_fields
@@ -436,6 +440,29 @@ class DocumentIndexingStatusApi(DatasetApiResource):
         return data
 
 
+class DocumentRetryApi(DatasetApiResource):
+    """Resource for retrying all failed documents in a dataset."""
+
+    @cloud_edition_billing_rate_limit_check("knowledge", "dataset")
+    def post(self, tenant_id, dataset_id):
+        """retry all failed (error/paused) documents in the dataset."""
+        dataset_id = str(dataset_id)
+        tenant_id = str(tenant_id)
+        dataset = db.session.query(Dataset).filter(Dataset.tenant_id == tenant_id, Dataset.id == dataset_id).first()
+        if not dataset:
+            raise NotFound("Dataset not found.")
+
+        retry_documents = [
+            document
+            for document in DocumentService.get_error_documents_by_dataset_id(dataset_id)
+            if not DocumentService.check_archived(document)
+        ]
+        if retry_documents:
+            DocumentService.retry_document(dataset_id, retry_documents)
+
+        return {"result": "success", "count": len(retry_documents)}, 200
+
+
 api.add_resource(
     DocumentAddByTextApi,
     "/datasets/<uuid:dataset_id>/document/create_by_text",
@@ -459,3 +486,4 @@ api.add_resource(
 api.add_resource(DocumentDeleteApi, "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>")
 api.add_resource(DocumentListApi, "/datasets/<uuid:dataset_id>/documents")
 api.add_resource(DocumentIndexingStatusApi, "/datasets/<uuid:dataset_id>/documents/<string:batch>/indexing-status")
+api.add_resource(DocumentRetryApi, "/datasets/<uuid:dataset_id>/retry")
