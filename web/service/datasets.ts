@@ -288,6 +288,10 @@ export const retryErrorDocs: Fetcher<CommonResponse, { datasetId: string; docume
   return post<CommonResponse>(`/datasets/${datasetId}/retry`, { body: { document_ids } })
 }
 
+export const retryAllDocs: Fetcher<CommonResponse & { count: number }, { datasetId: string }> = ({ datasetId }) => {
+  return post<CommonResponse & { count: number }>(`/datasets/${datasetId}/documents/retry-all`)
+}
+
 // 获取未使用的文件列表
 export const fetchUnusedFiles = () => {
   return get<any>('files/unused')

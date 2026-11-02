@@ -126,6 +126,11 @@ const translation = {
   },
   docsFailedNotice: 'documents indexed failed',
   retry: 'Retry',
+  retryAll: 'Re-parse all documents',
+  retryAllConfirmTitle: 'Re-parse all documents?',
+  retryAllConfirmContent: 'This will re-run extraction, splitting and embedding for every completed or failed document in this knowledge base, using each document\'s original processing rule. This cannot be undone.',
+  retryAllSuccess: '{{count}} document(s) queued for re-parsing',
+  retryAllError: 'Failed to trigger re-parsing',
   documentsDisabled: '{{num}} documents disabled - inactive for over 30 days',
   enable: 'Enable',
   indexingTechnique: {

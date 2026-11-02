@@ -22,6 +22,7 @@ import type { NotionPage } from '@/models/common'
 import type { CreateDocumentReq } from '@/models/datasets'
 import { DataSourceType, ProcessMode } from '@/models/datasets'
 import IndexFailed from '@/app/components/datasets/common/document-status-with-action/index-failed'
+import RetryAllButton from '@/app/components/datasets/common/document-status-with-action/retry-all'
 import { useProviderContext } from '@/context/provider-context'
 import cn from '@/utils/classnames'
 import { useDocumentList, useInvalidDocumentDetailKey, useInvalidDocumentList } from '@/service/knowledge/use-document'
@@ -285,6 +286,7 @@ const Documents: FC<IDocumentsProps> = ({ datasetId }) => {
           <div className='flex !h-8 items-center justify-center gap-2'>
             {!isFreePlan && <AutoDisabledDocument datasetId={datasetId} />}
             <IndexFailed datasetId={datasetId} />
+            <RetryAllButton datasetId={datasetId} onSuccess={invalidDocumentList} />
             <div className="flex items-center mr-4">
               <span className="text-sm mr-2">{t('dataset.patchAutoUpdate')}</span>
               <Switch
