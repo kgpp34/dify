@@ -26,3 +26,4 @@ class VectorType(StrEnum):
     OCEANBASE = "oceanbase"
     OPENGAUSS = "opengauss"
     TABLESTORE = "tablestore"
+    KINGBASE = "kingbase"

@@ -156,6 +156,10 @@ class Vector:
                 from core.rag.datasource.vdb.tablestore.tablestore_vector import TableStoreVectorFactory
 
                 return TableStoreVectorFactory
+            case VectorType.KINGBASE:
+                from core.rag.datasource.vdb.kingbase.kingbase import KingbaseVectorFactory
+
+                return KingbaseVectorFactory
             case _:
                 raise ValueError(f"Vector store {vector_type} is not supported.")
 

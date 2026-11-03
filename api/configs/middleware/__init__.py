@@ -22,6 +22,7 @@ from .vdb.baidu_vector_config import BaiduVectorDBConfig
 from .vdb.chroma_config import ChromaConfig
 from .vdb.couchbase_config import CouchbaseConfig
 from .vdb.elasticsearch_config import ElasticsearchConfig
+from .vdb.kingbase_config import KingbaseConfig
 from .vdb.lindorm_config import LindormConfig
 from .vdb.milvus_config import MilvusConfig
 from .vdb.myscale_config import MyScaleConfig
@@ -285,5 +286,6 @@ class MiddlewareConfig(
     BaiduVectorDBConfig,
     OpenGaussConfig,
     TableStoreConfig,
+    KingbaseConfig,
 ):
     pass

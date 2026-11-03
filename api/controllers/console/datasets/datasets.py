@@ -668,6 +668,7 @@ class DatasetRetrievalSettingApi(Resource):
                 | VectorType.OCEANBASE
                 | VectorType.TABLESTORE
                 | VectorType.TENCENT
+                | VectorType.KINGBASE
             ):
                 return {
                     "retrieval_method": [
@@ -713,6 +714,7 @@ class DatasetRetrievalSettingMockApi(Resource):
                 | VectorType.OCEANBASE
                 | VectorType.TABLESTORE
                 | VectorType.TENCENT
+                | VectorType.KINGBASE
             ):
                 return {
                     "retrieval_method": [
